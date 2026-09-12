@@ -3,13 +3,7 @@
   <!-- Topic Header -->
   <section
     class="py-16 px-6 border-b border-neutral-200"
-    {%
-    if
-    page.color
-    %}style="border-top: 4px solid {{ page.color }}"
-    {%
-    endif
-    %}
+    {% if page.color %}style="border-top: 4px solid {{ page.color }}"{% endif %}
   >
     <div class="max-w-6xl mx-auto">
       <div class="flex items-start gap-4 mb-4">

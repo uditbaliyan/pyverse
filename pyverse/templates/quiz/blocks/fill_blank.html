@@ -1,6 +1,8 @@
 <div class="pe-quiz-block pe-quiz-block--fill-blank">
   <pre class="pe-quiz-code"><code>{{ value.code_with_blank }}</code></pre>
   <p class="pe-quiz-prompt">Fill in the blank.</p>
-  {# The correct_answer is intentionally not rendered here — grading/reveal logic belongs to the
-  interactive front-end, not the static template. #}
+  {% comment %}
+  The correct_answer is intentionally not rendered here — grading and reveal
+  logic belong to the interactive front end, not the static template.
+  {% endcomment %}
 </div>

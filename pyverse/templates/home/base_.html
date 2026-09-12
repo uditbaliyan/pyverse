@@ -86,8 +86,7 @@
   </head>
 
   <body class="bg-bg text-ink font-sans text-base leading-relaxed">
-    {# ════════════════════════════════════════════════════════════ #} {# NAVBAR #} {#
-    ════════════════════════════════════════════════════════════ #}
+    {# ── navbar ──────────────────────────────────────────────────── #}
     <nav
       class="sticky top-0 z-50 bg-bg border-b-[3px] border-ink"
       role="navigation"
@@ -99,8 +98,7 @@
           href="/"
           class="font-black text-[20px] tracking-tight text-ink no-underline flex items-center gap-2"
         >
-          {% if settings.home.SiteSettings.logo %} {% image settings.home.SiteSettings.logo width-32
-          class="h-7 w-auto" %} {% endif %}
+          {% if settings.home.SiteSettings.logo %}{% image settings.home.SiteSettings.logo width-32 class="h-7 w-auto" %}{% endif %}
           <span>{{ settings.home.SiteSettings.logo_text|default:"PYVERSE." }}</span>
         </a>
 
@@ -110,14 +108,7 @@
           <a
             href="{{ item.url }}"
             class="font-mono text-[12px] px-3 py-2 text-ink no-underline hover:bg-ink hover:text-bg transition-colors"
-            {%
-            if
-            item.open_in_new_tab
-            %}target="_blank"
-            rel="noopener noreferrer"
-            {%
-            endif
-            %}
+            {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
           >
             {{ item.label }}
           </a>
@@ -160,14 +151,7 @@
         <a
           href="{{ item.url }}"
           class="font-mono text-[13px] py-3 text-ink no-underline border-b border-ink/10"
-          {%
-          if
-          item.open_in_new_tab
-          %}target="_blank"
-          rel="noopener noreferrer"
-          {%
-          endif
-          %}
+          {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
         >
           {{ item.label }}
         </a>
@@ -182,12 +166,10 @@
       </div>
     </nav>
 
-    {# ════════════════════════════════════════════════════════════ #} {# MAIN CONTENT #} {#
-    ════════════════════════════════════════════════════════════ #}
+    {# ── main content ────────────────────────────────────────────── #}
     <main>{% block content %}{% endblock %}</main>
 
-    {# ════════════════════════════════════════════════════════════ #} {# FOOTER #} {#
-    ════════════════════════════════════════════════════════════ #}
+    {# ── footer ──────────────────────────────────────────────────── #}
     <footer class="border-t-[3px] border-ink bg-bg" role="contentinfo">
       <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-8">
         {# ── top row: brand + link columns ────────────────────── #}
@@ -218,14 +200,7 @@
                   <a
                     href="{{ link.url }}"
                     class="font-mono text-[11.5px] text-muted no-underline hover:text-ink transition-colors"
-                    {%
-                    if
-                    link.open_in_new_tab
-                    %}target="_blank"
-                    rel="noopener noreferrer"
-                    {%
-                    endif
-                    %}
+                    {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
                   >
                     {{ link.label }}
                   </a>

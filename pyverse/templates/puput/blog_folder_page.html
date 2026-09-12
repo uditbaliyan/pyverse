@@ -60,8 +60,7 @@
     <div class="mb-8 flex justify-between items-center border-b border-ink/10 pb-4">
       <h2 class="font-black text-xl tracking-tight uppercase text-ink">Published Entries</h2>
       <span class="font-mono text-xs text-muted">
-        {% with live_children=self.get_children.live %} TOTAL: {{
-        live_children.count|stringformat:"02d" }} {% endwith %}
+        {% with live_children=self.get_children.live %}TOTAL: {{ live_children.count|stringformat:"02d" }}{% endwith %}
       </span>
     </div>
 
