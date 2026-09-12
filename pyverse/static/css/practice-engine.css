@@ -1,0 +1,265 @@
+/* PyVerse Practice engine — shared tokens and components.
+ *
+ * Spec §8: Landing, Sheets, Tracks and the problem page are one product, not a
+ * marketing site with a themed tool bolted on. The token set is the reference
+ * engine's (`leetwasm-pyscript.html`), and every Practice surface links this
+ * file rather than re-declaring colours, badges or pills.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+.pe-engine {
+  --bg0: #0d0f14;
+  --bg1: #12151c;
+  --bg2: #181c25;
+  --bg3: #1e2330;
+  --bg4: #252b3b;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hi: rgba(255, 255, 255, 0.13);
+  --text0: #e8ecf5;
+  --text1: #9ba3bc;
+  --text2: #4e5670;
+  --accent: #7c6af7;
+  --accent-dim: rgba(124, 106, 247, 0.14);
+  --green: #3dd68c;
+  --green-dim: rgba(61, 214, 140, 0.11);
+  --red: #f26d6d;
+  --red-dim: rgba(242, 109, 109, 0.11);
+  --amber: #f0a140;
+  --amber-dim: rgba(240, 161, 64, 0.11);
+  --blue: #5aacf7;
+  --mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --sans: "Syne", system-ui, sans-serif;
+
+  background: var(--bg0);
+  color: var(--text0);
+  font-family: var(--sans);
+  min-height: 100vh;
+}
+.pe-engine ::-webkit-scrollbar { width: 6px; height: 6px; }
+.pe-engine ::-webkit-scrollbar-track { background: transparent; }
+.pe-engine ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+.pe-engine a { color: inherit; text-decoration: none; }
+.pe-hidden { display: none !important; }
+
+/* ── header ─────────────────────────────────────────────────────────── */
+.pe-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 0 18px; min-height: 52px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); background: var(--bg1);
+}
+.pe-logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 14px; }
+.pe-logo-icon {
+  width: 24px; height: 24px; background: var(--accent); border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900; color: #fff;
+}
+.pe-logo-sep { color: var(--text2); font-weight: 400; font-size: 13px; }
+.pe-nav { display: flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 12px; }
+.pe-nav a { color: var(--text2); }
+.pe-nav a:hover, .pe-nav a[aria-current="page"] { color: var(--text0); }
+.pe-status-pill {
+  display: flex; align-items: center; gap: 7px; padding: 4px 12px;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--bg2);
+  font-family: var(--mono); font-size: 11px; color: var(--text1);
+}
+.pe-sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+.pe-sdot.ready { background: var(--green); animation: none; }
+.pe-sdot.failed { background: var(--red); }
+@keyframes pe-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.22; } }
+.pe-sdot.loading { animation: pe-blink 1.4s ease-in-out infinite; }
+
+/* ── shell ──────────────────────────────────────────────────────────── */
+.pe-page { max-width: 1180px; margin: 0 auto; padding: 26px 20px 70px; }
+.pe-path { font-family: var(--mono); font-size: 11px; color: var(--text2); margin-bottom: 12px; }
+.pe-path a:hover { color: var(--text1); }
+.pe-sep { margin: 0 0.35rem; opacity: 0.5; }
+.pe-h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+.pe-sub { color: var(--text1); font-size: 13.5px; line-height: 1.7; max-width: 70ch; margin: 0 0 18px; }
+.pe-sub :is(p, ul, ol) { margin: 0 0 0.7em; }
+
+/* ── stats strip ────────────────────────────────────────────────────── */
+.pe-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 18px;
+}
+.pe-stat {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px;
+}
+.pe-stat-lbl {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text2); margin-bottom: 6px;
+}
+.pe-stat-val { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+.pe-stat-val.green { color: var(--green); }
+.pe-stat-val.amber { color: var(--amber); }
+.pe-stat-val.red { color: var(--red); }
+.pe-stat-val.accent { color: var(--accent); }
+.pe-stat-note { font-family: var(--mono); font-size: 10.5px; color: var(--text2); margin-top: 4px; }
+
+/* ── filter bar ─────────────────────────────────────────────────────── */
+.pe-filters {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+  background: var(--bg1); border: 1px solid var(--border); border-radius: 9px;
+  padding: 12px 14px; margin-bottom: 14px;
+}
+.pe-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1 1 150px; }
+.pe-field > label {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text2);
+}
+.pe-input, .pe-select {
+  background: var(--bg0); border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 10px; font-family: var(--mono); font-size: 12px; color: var(--text0);
+  outline: none; width: 100%;
+}
+.pe-input:focus, .pe-select:focus { border-color: var(--accent); }
+.pe-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pe-chip {
+  font-family: var(--mono); font-size: 11px; padding: 5px 11px; cursor: pointer;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--bg2);
+  color: var(--text1);
+}
+.pe-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text0); background: var(--accent-dim); }
+.pe-chip:hover { color: var(--text0); }
+.pe-clear {
+  font-family: var(--mono); font-size: 11px; padding: 6px 12px; border-radius: 6px;
+  border: 1px solid var(--border-hi); background: var(--bg3); color: var(--text1); cursor: pointer;
+}
+.pe-clear:hover { color: var(--text0); background: var(--bg4); }
+
+/* ── problem table ──────────────────────────────────────────────────── */
+.pe-table-wrap { border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--bg1); }
+.pe-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pe-table th {
+  text-align: left; font-family: var(--mono); font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text2); font-weight: 500;
+  padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg2);
+  white-space: nowrap;
+}
+.pe-table th button {
+  background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 0;
+}
+.pe-table th button:hover { color: var(--text0); }
+.pe-table th[aria-sort] button { color: var(--text0); }
+.pe-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.pe-table tbody tr:last-child td { border-bottom: none; }
+.pe-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+.pe-num { font-family: var(--mono); font-size: 11.5px; color: var(--text2); }
+.pe-rowlink { font-weight: 600; }
+.pe-rowlink:hover { color: var(--accent); }
+.pe-status { font-family: var(--mono); font-size: 13px; width: 26px; }
+.pe-status[data-status="solved"] { color: var(--green); }
+.pe-status[data-status="attempted"] { color: var(--amber); }
+.pe-status[data-status="todo"] { color: var(--text2); }
+.pe-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.pe-tag {
+  font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--border); color: var(--text1);
+}
+.pe-tag.more { color: var(--text2); }
+.pe-empty {
+  font-family: var(--mono); font-size: 12.5px; color: var(--text2);
+  padding: 22px 14px; text-align: center;
+}
+.pe-count-line { font-family: var(--mono); font-size: 11px; color: var(--text2); margin: 10px 2px 0; }
+
+/* ── badges ─────────────────────────────────────────────────────────── */
+.pe-badge {
+  display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; border: 1px solid var(--border-hi);
+  font-family: var(--sans); white-space: nowrap;
+}
+.pe-badge.diff-easy { background: var(--green-dim); color: var(--green); border-color: rgba(61, 214, 140, 0.2); }
+.pe-badge.diff-medium { background: var(--amber-dim); color: var(--amber); border-color: rgba(240, 161, 64, 0.2); }
+.pe-badge.diff-hard { background: var(--red-dim); color: var(--red); border-color: rgba(242, 109, 109, 0.2); }
+.pe-pill {
+  font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(124, 106, 247, 0.2);
+}
+
+/* ── cards + progress ───────────────────────────────────────────────── */
+.pe-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.pe-card {
+  display: block; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 14px 15px; transition: border-color 0.14s, transform 0.14s;
+}
+.pe-card:hover { border-color: var(--border-hi); transform: translateY(-1px); }
+.pe-card-title { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; }
+.pe-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 5px;
+}
+.pe-card-head .pe-card-title { margin-bottom: 0; }
+.pe-rowtitle { flex: 1; }
+.pe-card-note { font-size: 12.5px; color: var(--text1); line-height: 1.65; margin-bottom: 10px; }
+.pe-card-note :is(p, ul, ol) { margin: 0 0 0.6em; }
+.pe-card-meta { font-family: var(--mono); font-size: 11px; color: var(--text2); display: flex; gap: 10px; flex-wrap: wrap; }
+.pe-dots { display: flex; gap: 3px; margin-top: 10px; }
+.pe-dot { width: 9px; height: 9px; border-radius: 2px; background: var(--bg4); }
+.pe-dot.on { background: var(--accent); }
+.pe-bar { height: 4px; border-radius: 2px; background: var(--bg4); overflow: hidden; margin-top: 8px; }
+.pe-bar > span { display: block; height: 100%; background: var(--accent); }
+.pe-ring {
+  --pct: 0; width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--bg4) 0);
+  display: grid; place-items: center;
+}
+.pe-ring::after {
+  content: attr(data-label); width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg2); display: grid; place-items: center;
+  font-family: var(--mono); font-size: 9.5px; color: var(--text1);
+}
+
+/* ── trees (sheets + tracks) ────────────────────────────────────────── */
+.pe-tree { border: 1px solid var(--border); border-radius: 9px; background: var(--bg1); overflow: hidden; }
+.pe-tree-head {
+  display: flex; align-items: center; gap: 10px; padding: 11px 13px;
+  background: var(--bg2); border-bottom: 1px solid var(--border); cursor: pointer;
+  font-weight: 600; font-size: 13.5px;
+}
+.pe-tree-head .pe-caret { font-family: var(--mono); color: var(--text2); width: 12px; }
+.pe-tree-head .pe-count-pill { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text2); }
+.pe-tree-body { display: block; }
+.pe-tree-body.collapsed { display: none; }
+.pe-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 13px;
+  border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.pe-tree-body .pe-row:last-child { border-bottom: none; }
+.pe-row:hover { background: rgba(255, 255, 255, 0.02); }
+.pe-row .pe-rowtitle { flex: 1; }
+.pe-row .pe-badge { margin-left: auto; }
+
+/* ── buttons (shared) ───────────────────────────────────────────────── */
+.pe-btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 6px;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border-hi); background: var(--bg3); color: var(--text1);
+  transition: all 0.12s; white-space: nowrap;
+}
+.pe-btn:hover:not(:disabled) { background: var(--bg4); color: var(--text0); }
+.pe-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pe-btn.run { color: var(--green); border-color: rgba(61, 214, 140, 0.22); }
+.pe-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pe-btn.primary:hover { filter: brightness(1.1); }
+
+/* ── metrics + terminal (problem page + anything reporting a run) ───── */
+.pe-mrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
+.pe-mcard { background: var(--bg0); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; }
+.pe-mlbl { font-size: 10px; color: var(--text2); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+.pe-mval { font-size: 16px; font-weight: 700; font-family: var(--mono); }
+.pe-mval.g { color: var(--green); }
+.pe-mval.p { color: var(--accent); }
+.pe-mval.r { color: var(--red); }
+.pe-mval.a { color: var(--amber); }
+.pe-terminal { font-family: var(--mono); font-size: 12px; color: var(--text1); line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+.pe-terminal .tg { color: var(--green); }
+.pe-terminal .tr { color: var(--red); }
+.pe-terminal .ta { color: var(--amber); }
+.pe-terminal .td { color: var(--text2); }
+.pe-inline-code, .pe-engine code {
+  font-family: var(--mono); font-size: 11.5px; background: var(--bg3); color: var(--accent);
+  padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border);
+}
+.pe-kbd { font-family: var(--mono); font-size: 10px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }

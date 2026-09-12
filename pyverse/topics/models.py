@@ -1,10 +1,12 @@
-from django.core.paginator import Paginator
 from django.db import models
 from django.template.response import TemplateResponse
+from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.contrib.routable_page.models import RoutablePageMixin
 from wagtail.fields import RichTextField
+from wagtail.fields import StreamField
 from wagtail.models import Page
+from wagtail.snippets.blocks import SnippetChooserBlock
 from wagtail.url_routing import RouteResult
 
 
@@ -27,16 +29,147 @@ class PracticeHubPage(Page):
     ]
 
     parent_page_types = ["home.HomePage"]
-    subpage_types = ["topics.PracticeTopicPage"]
+    subpage_types = ["topics.PracticeTopicPage", "topics.SheetsIndexPage"]
 
     class Meta:
         verbose_name = "Practice Hub Page"
 
     def get_context(self, request):
         context = super().get_context(request)
+
+        from pyverse.coding.models import CodingProblem
+        from pyverse.taxonomy import DIFFICULTY_RANK
+
+        # The Landing table: every live problem, difficulty ascending by
+        # default (spec §2). Filtering and sorting happen client-side so the
+        # static export needs no server round-trip.
+        context["problems"] = (
+            CodingProblem.objects.filter(topic__isnull=False, topic__live=True)
+            .select_related("topic")
+            .order_by(DIFFICULTY_RANK, "title")
+        )
+        context["practice_topics"] = (
+            PracticeTopicPage.objects.live().public().order_by("title")
+        )
+        # Track cards need their problems server-side so the client can show a
+        # real completion bar: progress lives in IndexedDB, but the *set* of
+        # problems in a track is a build-time fact. Counts use the same
+        # subtree aggregation the Track page itself uses.
+        context["tracks"] = [
+            {
+                "page": topic,
+                "problems": CodingProblem.objects.filter(
+                    topic__path__startswith=topic.path,
+                ).order_by(DIFFICULTY_RANK, "title"),
+            }
+            for topic in PracticeTopicPage.objects.live().public().order_by("title")
+        ]
         context["top_level_topics"] = (
             PracticeTopicPage.objects.child_of(self).live().order_by("title")
         )
+        return context
+
+
+class SheetsIndexPage(Page):
+    """`/practice/sheets/` — the curated-sheet listing (spec §3).
+
+    Sheets answer a different question from the Landing table ("tell me what
+    order to solve things in"), so they live beside the tag hubs rather than
+    replacing them.
+    """
+
+    max_count = 1
+
+    intro = RichTextField(
+        blank=True,
+        help_text="Shown above the sheet cards.",
+    )
+
+    content_panels = [
+        *Page.content_panels,
+        FieldPanel("intro"),
+    ]
+
+    parent_page_types = ["topics.PracticeHubPage"]
+    subpage_types = ["topics.SheetPage"]
+
+    class Meta:
+        verbose_name = "Sheets Index Page"
+
+    def get_context(self, request):
+        context = super().get_context(request)
+        context["sheets"] = (
+            SheetPage.objects.child_of(self).live().public().order_by("title")
+        )
+        return context
+
+
+class SheetPage(Page):
+    """One curated, ordered path through problems (spec §3).
+
+    Problems are referenced with a `SnippetChooserBlock`, never copied: the
+    same `CodingProblem` can sit in three sheets, one track and the Landing
+    table at once, and still be one record.
+    """
+
+    description = RichTextField(
+        blank=True,
+        help_text="What this sheet is for, and who it suits.",
+    )
+    categories = StreamField(
+        [
+            (
+                "category",
+                blocks.StructBlock(
+                    [
+                        ("name", blocks.CharBlock()),
+                        (
+                            "problems",
+                            blocks.ListBlock(
+                                SnippetChooserBlock(
+                                    "coding.CodingProblem",
+                                    label="Problem",
+                                ),
+                                label="Problems, in solving order",
+                            ),
+                        ),
+                    ],
+                    icon="list-ul",
+                    label="Category",
+                ),
+            ),
+        ],
+        use_json_field=True,
+        blank=True,
+        help_text=(
+            "Group the sheet into categories (Arrays & Hashing, Two Pointers…) "
+            "each holding problems in the order they should be solved."
+        ),
+    )
+
+    content_panels = [
+        *Page.content_panels,
+        FieldPanel("description"),
+        FieldPanel("categories"),
+    ]
+
+    parent_page_types = ["topics.SheetsIndexPage"]
+    subpage_types = []
+
+    class Meta:
+        verbose_name = "Sheet Page"
+
+    def problem_count(self):
+        return sum(len(block.value["problems"]) for block in self.categories)
+
+    def problems(self):
+        """Every referenced problem, in sheet order."""
+        for block in self.categories:
+            yield from block.value["problems"]
+
+    def get_context(self, request):
+        context = super().get_context(request)
+        context["problem_total"] = self.problem_count()
         return context
 
 
@@ -135,10 +268,7 @@ class PracticeTopicPage(RoutablePageMixin, Page):
                 "page": self,
                 "problem": problem,
                 "practice_breadcrumb": self.get_practice_breadcrumb(),
-                "payload": {
-                    "fn": problem.function_name,
-                    "cases": problem.test_case_payload(),
-                },
+                "payload": problem.grading_payload(),
             },
         )
 
@@ -148,36 +278,26 @@ class PracticeTopicPage(RoutablePageMixin, Page):
     def get_context(self, request):
         context = super().get_context(request)
 
-        # Lazy imports — keeps topics/ decoupled from coding/ and quiz/.
         from pyverse.coding.models import CodingProblem
         from pyverse.quiz.models import Quiz
+        from pyverse.taxonomy import DIFFICULTY_RANK
 
-        active_type = request.GET.get("type", "coding")
-        if active_type not in ("coding", "quiz"):
-            active_type = "coding"
-
-        # O(1) tree-path inheritance — no recursive Python walk, no MPTT.
-        problems_qs = (
+        # A Track is this page: every problem tagged to it or a descendant,
+        # difficulty ascending by default (spec §4). No pagination — the table
+        # is filtered/sorted client-side, and MVP volume is well under the
+        # point where an initial payload matters.
+        context["problems"] = (
             CodingProblem.objects.filter(topic__path__startswith=self.path)
             .select_related("topic")
-            .order_by("title")
+            .order_by(DIFFICULTY_RANK, "title")
         )
-        quizzes_qs = (
+        context["quizzes"] = (
             Quiz.objects.filter(topic__path__startswith=self.path)
             .select_related("topic")
             .order_by("title")
         )
-
-        page_number = request.GET.get("page", 1)
-
-        context.update(
-            {
-                "practice_breadcrumb": self.get_practice_breadcrumb(),
-                "active_type": active_type,
-                "coding_problems_page": Paginator(problems_qs, 20).get_page(
-                    page_number,
-                ),
-                "quizzes_page": Paginator(quizzes_qs, 20).get_page(page_number),
-            },
+        context["subtopics"] = (
+            PracticeTopicPage.objects.child_of(self).live().public().order_by("title")
         )
+        context["practice_breadcrumb"] = self.get_practice_breadcrumb()
         return context

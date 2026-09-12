@@ -1,0 +1,97 @@
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+One sheet (spec §3): a two-level collapsible tree — categories holding
+problems in solving order, with per-category progress read from the shared
+IndexedDB store. Collapse state is remembered per sheet in localStorage.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+  </head>
+
+  <body class="pe-engine" data-tree-key="sheet-{{ page.slug }}">
+    {% include "practice/includes/engine_header.html" with is_sheets=True header_note=header_note %}
+
+    <div class="pe-page" data-progress-scope>
+      <div class="pe-path">
+        <a href="/practice/">practice</a><span class="pe-sep">/</span>
+        <a href="/practice/sheets/">sheets</a><span class="pe-sep">/</span>
+        <span>{{ page.slug }}</span>
+      </div>
+
+      <div class="pe-card-head" style="align-items: center; gap: 16px">
+        <div>
+          <h1 class="pe-h1">{{ page.title }}</h1>
+          {% if page.description %}<div class="pe-sub">{{ page.description|richtext }}</div>{% endif %}
+        </div>
+        <span class="pe-ring" data-progress-ring data-label="0%"></span>
+      </div>
+
+      <div class="pe-stats">
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Solved</div>
+          <div class="pe-stat-val green" id="stat-solved">0</div>
+          <div class="pe-stat-note">of {{ problem_total }} in this sheet</div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Attempted</div>
+          <div class="pe-stat-val amber" id="stat-attempted">0</div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Categories</div>
+          <div class="pe-stat-val accent">{{ page.categories|length }}</div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Resume</div>
+          <a class="pe-btn primary" href="#" data-continue>Continue</a>
+        </div>
+      </div>
+
+      {% for block in page.categories %}
+        <div class="pe-tree" style="margin-bottom: 12px" data-progress-scope>
+          <div class="pe-tree-head" data-tree-head="cat-{{ forloop.counter0 }}" role="button" aria-expanded="true" tabindex="0">
+            <span class="pe-caret">▾</span>
+            <span>{{ block.value.name }}</span>
+            <span class="pe-count-pill">
+              <span data-progress-label>0/{{ block.value.problems|length }}</span>
+              <span class="pe-dots" data-progress-dots style="display: inline-flex; margin-left: 8px; vertical-align: middle"></span>
+            </span>
+          </div>
+          <div class="pe-tree-body" data-tree-body="cat-{{ forloop.counter0 }}">
+            {% for problem in block.value.problems %}
+              <div
+                class="pe-row"
+                data-slug="{{ problem.slug }}"
+                data-title="{{ problem.title }}"
+                data-difficulty="{{ problem.difficulty }}"
+              >
+                <span class="pe-status" data-status-icon data-status="todo">○</span>
+                <a class="pe-rowtitle" href="{{ problem.get_absolute_url }}">{{ problem.title }}</a>
+                <span class="pe-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span>
+              </div>
+            {% empty %}
+              <div class="pe-row"><span class="pe-empty">No problems in this category yet.</span></div>
+            {% endfor %}
+          </div>
+        </div>
+      {% empty %}
+        <p class="pe-empty">This sheet has no categories yet.</p>
+      {% endfor %}
+    </div>
+
+    <script src="{% static 'js/pyverse-progress.js' %}"></script>
+    <script src="{% static 'js/practice-browse.js' %}"></script>
+  </body>
+</html>

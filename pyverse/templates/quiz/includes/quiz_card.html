@@ -1,8 +1,14 @@
-{% load wagtailcore_tags %}
+{% comment %}
+Quiz card. Quizzes are listed alongside problems on a Track; the Quiz Suite
+own UX (spec: later phase) will reuse this same card.
+{% endcomment %}
 <div class="pe-card">
   <div class="pe-card-head">
-    <p class="pe-card-title">{{ quiz.title }}</p>
-    <span class="pe-badge pe-badge--quiz">{{ quiz.get_quiz_type_display }}</span>
+    <span class="pe-rowtitle">{{ quiz.title }}</span>
+    <span class="pe-badge pe-badge-quiz">{{ quiz.get_quiz_type_display }}</span>
   </div>
-  <div class="pe-card-meta">{% if quiz.topic %}{{ quiz.topic.title }}{% endif %}</div>
+  <div class="pe-card-meta">
+    <span>{{ quiz.questions.count }} question{{ quiz.questions.count|pluralize }}</span>
+    {% if quiz.topic %}<span>{{ quiz.topic.title }}</span>{% else %}<span class="pe-tag">untagged</span>{% endif %}
+  </div>
 </div>

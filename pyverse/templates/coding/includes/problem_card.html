@@ -1,17 +1,16 @@
-{% load wagtailcore_tags %}
-{# The whole card is a link to the problem's canonical page under its owning
-   topic, so ancestor-topic listings point at one URL per problem. #}
-<a class="pe-card" href="{{ problem.get_absolute_url }}">
+{% comment %}
+Coding problem row used by Tracks and Sheets. Same engine tokens as the
+Landing table and the problem page (spec §8).
+{% endcomment %}
+<a class="pe-card" href="{{ problem.get_absolute_url }}" data-slug="{{ problem.slug }}" data-title="{{ problem.title }}">
   <div class="pe-card-head">
-    <p class="pe-card-title">{{ problem.title }}</p>
-    <span class="pe-badge pe-badge--{{ problem.difficulty }}">
-      {{ problem.get_difficulty_display }}
-    </span>
+    <span class="pe-rowtitle">{{ problem.title }}</span>
+    <span class="pe-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span>
   </div>
   <div class="pe-card-meta">
-    def {{ problem.function_name }}(...):
-    {% if problem.topic %}&middot; {{ problem.topic.title }}
-    {% endif %}&middot; {{ problem.test_cases|length }} test case{{
-    problem.test_cases|length|pluralize }}
+    <span>{{ problem.function_name }}()</span>
+    {% if problem.topic %}<span>{{ problem.topic.title }}</span>{% endif %}
+    <span>{{ problem.test_case_payload|length }} case{{ problem.test_case_payload|length|pluralize }}</span>
+    <span data-status-icon>○</span>
   </div>
 </a>

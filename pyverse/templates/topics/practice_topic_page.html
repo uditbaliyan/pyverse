@@ -1,75 +1,147 @@
-{% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+Track (spec §4): a Topic hub page, re-skinned as a single-axis drilling
+surface — every problem tagged to this topic or a descendant, difficulty
+ascending, with progress from the shared IndexedDB store. Not a new content
+type: same URL, same Wagtail page.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+  </head>
 
-{% block content %}
-<div class="pe-root">
-  <div class="pe-shell">
+  <body class="pe-engine" data-tree-key="track-{{ page.slug }}">
+    {% include "practice/includes/engine_header.html" with header_note=header_note %}
 
-    {# ── Breadcrumb as file path ──────────────────────────────────── #}
-    <div class="pe-path">
-      {% for crumb in practice_breadcrumb %}
+    <div class="pe-page" data-progress-scope>
+      <div class="pe-path">
+        <a href="/practice/">practice</a>
+        {% for crumb in practice_breadcrumb %}
+          <span class="pe-sep">/</span>
+          <a href="{{ crumb.url }}">{{ crumb.slug }}</a>
+        {% endfor %}
         <span class="pe-sep">/</span>
-        <a href="{{ crumb.url }}">{{ crumb.slug }}</a>
-      {% endfor %}
-      <span class="pe-sep">/</span>
-      <span>{{ page.slug }}</span>
-    </div>
+        <span>{{ page.slug }}</span>
+      </div>
 
-    <h1 class="pe-title">{{ page.title }}</h1>
+      <h1 class="pe-h1">{{ page.title }}</h1>
+      {% if page.theory_content %}<div class="pe-sub">{{ page.theory_content|richtext }}</div>{% endif %}
 
-    {# ── Theory (optional) ────────────────────────────────────────── #}
-    {% if page.theory_content %}
-      <div class="pe-theory">{{ page.theory_content|richtext }}</div>
-    {% endif %}
+      <div class="pe-stats">
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Solved in this track</div>
+          <div class="pe-stat-val green" id="stat-solved">0</div>
+          <div class="pe-stat-note">
+            <span id="stat-easy">0</span> easy ·
+            <span id="stat-medium">0</span> medium ·
+            <span id="stat-hard">0</span> hard
+          </div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Attempted</div>
+          <div class="pe-stat-val amber" id="stat-attempted">0</div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Problems</div>
+          <div class="pe-stat-val accent" id="stat-total">{{ problems|length }}</div>
+          <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Streak</div>
+          <div class="pe-stat-val" id="stat-streak">0</div>
+        </div>
+      </div>
 
-    {# ── Subtopic grid ────────────────────────────────────────────── #}
-    {% with subtopics=page.get_children.live %}
       {% if subtopics %}
-        <div class="pe-topic-grid">
+        <h2 class="pe-h1" style="font-size: 16px; margin-top: 26px">Subtopics</h2>
+        <div class="pe-cards">
           {% for subtopic in subtopics %}
-            <a class="pe-topic-tile" href="{% pageurl subtopic %}">
-              <span class="pe-topic-name">{{ subtopic.title }}</span>
-              <span class="pe-topic-hint">{{ page.slug }}/{{ subtopic.slug }}/</span>
+            <a class="pe-card" href="{{ subtopic.url }}">
+              <div class="pe-card-title">{{ subtopic.title }}</div>
+              <div class="pe-card-meta">
+                <span>{{ subtopic.coding_problems.count }} problem{{ subtopic.coding_problems.count|pluralize }}</span>
+              </div>
             </a>
           {% endfor %}
         </div>
       {% endif %}
-    {% endwith %}
 
-    {# ── Tab bar ──────────────────────────────────────────────────── #}
-    <div class="pe-tabbar">
-      <a
-        class="pe-tab pe-tab--coding"
-        {% if active_type == 'coding' %}data-active="true"{% endif %}
-        href="?type=coding"
-      >
-        <span class="pe-dot"></span>
-        problems.py
-        <span class="pe-count">{{ coding_problems_page.paginator.count }}</span>
-      </a>
-      <a
-        class="pe-tab pe-tab--quiz"
-        {% if active_type == 'quiz' %}data-active="true"{% endif %}
-        href="?type=quiz"
-      >
-        <span class="pe-dot"></span>
-        quizzes.json
-        <span class="pe-count">{{ quizzes_page.paginator.count }}</span>
-      </a>
-    </div>
-
-    {# ── Content panel ────────────────────────────────────────────── #}
-    <div class="pe-panel">
-
-      {% if active_type == 'quiz' %}
-        {% include "topics/includes/quiz_panel.html" %}
+      <h2 class="pe-h1" style="font-size: 16px; margin-top: 30px">Problems</h2>
+      {% if problems %}
+        <p class="pe-sub">Difficulty ascending by default — click a column to re-sort.</p>
+        <div class="pe-table-wrap">
+          <table class="pe-table" data-practice-table data-default-sort="difficulty">
+            <thead>
+              <tr>
+                <th scope="col"><span class="pe-hidden">Status</span></th>
+                <th scope="col" data-sort="title"><button type="button">Title</button></th>
+                <th scope="col" data-sort="difficulty"><button type="button">Difficulty</button></th>
+                <th scope="col" data-sort="status"><button type="button">Status</button></th>
+                <th scope="col">Topic</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for problem in problems %}
+                <tr
+                  data-slug="{{ problem.slug }}"
+                  data-title="{{ problem.title }}"
+                  data-difficulty="{{ problem.difficulty }}"
+                  data-topic="{{ problem.topic.slug }}"
+                >
+                  <td class="pe-status" data-status-icon data-status="todo">○</td>
+                  <td><a class="pe-rowlink" href="{{ problem.get_absolute_url }}">{{ problem.title }}</a></td>
+                  <td><span class="pe-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span></td>
+                  <td class="pe-num" data-status-label data-status="todo">unsolved</td>
+                  <td class="pe-tags">
+                    {% if problem.topic %}<a class="pe-tag" href="{{ problem.topic.url }}">{{ problem.topic.title }}</a>{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pe-count-line" id="table-count">{{ problems|length }} problems</div>
       {% else %}
-        {% include "topics/includes/coding_panel.html" %}
+        <p class="pe-empty">No problems in this track yet.</p>
       {% endif %}
 
+      {% if quizzes %}
+        <h2 class="pe-h1" style="font-size: 16px; margin-top: 30px">Quizzes</h2>
+        <div class="pe-cards">
+          {% for quiz in quizzes %}
+            {% include "quiz/includes/quiz_card.html" with quiz=quiz %}
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
-  </div>
-</div>
 
-{% include "topics/includes/practice_styles.html" %}
-{% endblock %}
+    <script src="{% static 'js/pyverse-progress.js' %}"></script>
+    <script src="{% static 'js/practice-browse.js' %}"></script>
+    <script>
+      document.querySelectorAll("[data-practice-table] tbody tr[data-slug]").forEach((row) => {
+        const label = row.querySelector("[data-status-label]");
+        if (!label) return;
+        new MutationObserver(() => {
+          label.textContent =
+            row.dataset.status === "solved"
+              ? "solved"
+              : row.dataset.status === "attempted"
+                ? "attempted"
+                : "unsolved";
+        }).observe(row, { attributes: true, attributeFilter: ["data-status"] });
+      });
+    </script>
+  </body>
+</html>

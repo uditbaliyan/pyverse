@@ -1,23 +1,182 @@
-{% extends "base.html" %} {% load wagtailcore_tags %} {% block content %}
-<div class="pe-root">
-  <div class="pe-shell">
-    <div class="pe-path">practice/</div>
-    <h1 class="pe-title">{{ page.title }}</h1>
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+Practice Landing (spec §2): the LeetCode-style problemset clone.
+Progress comes from the shared IndexedDB store — the table's status icons, the
+stats strip and the streak are all client-side, so the static export stays
+static. Acceptance rate is deliberately omitted (spec §2: show real aggregate
+data or nothing, never a made-up number), as is the Company/Pattern filter
+until those tag axes go live.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+  </head>
 
-    {% if page.intro %}
-    <div class="pe-intro">{{ page.intro }}</div>
-    {% endif %} {% if top_level_topics %}
-    <div class="pe-topic-grid">
-      {% for topic in top_level_topics %}
-      <a class="pe-topic-tile" href="{% pageurl topic %}">
-        <span class="pe-topic-name">{{ topic.title }}</span>
-        <span class="pe-topic-hint">practice/{{ topic.slug }}/</span>
-      </a>
-      {% endfor %}
+  <body class="pe-engine">
+    {% include "practice/includes/engine_header.html" with is_landing=True header_note=header_note %}
+
+    <div class="pe-page">
+      <div class="pe-path">practice/</div>
+      <h1 class="pe-h1">{{ page.title }}</h1>
+      {% if page.intro %}<div class="pe-sub">{{ page.intro|richtext }}</div>{% endif %}
+
+      {# ── Stats strip (IndexedDB-backed) ───────────────────────────── #}
+      <div class="pe-stats" data-progress-scope>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Solved</div>
+          <div class="pe-stat-val green" id="stat-solved">0</div>
+          <div class="pe-stat-note">
+            <span id="stat-easy">0</span> easy ·
+            <span id="stat-medium">0</span> medium ·
+            <span id="stat-hard">0</span> hard
+          </div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Attempted</div>
+          <div class="pe-stat-val amber" id="stat-attempted">0</div>
+          <div class="pe-stat-note">submitted, not yet accepted</div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Available</div>
+          <div class="pe-stat-val accent" id="stat-total">{{ problems|length }}</div>
+          <div class="pe-stat-note">across {{ practice_topics|length }} topic{{ practice_topics|length|pluralize }}</div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Streak</div>
+          <div class="pe-stat-val" id="stat-streak">0</div>
+          <div class="pe-stat-note">consecutive days with a submission</div>
+        </div>
+        <div class="pe-stat pe-hidden" id="stat-cta">
+          <div class="pe-stat-lbl">New here?</div>
+          <a class="pe-btn primary" href="#tracks">Start with a Track →</a>
+        </div>
+      </div>
+
+      {# ── Filter bar ───────────────────────────────────────────────── #}
+      <div class="pe-filters">
+        <div class="pe-field">
+          <label>Difficulty</label>
+          <div class="pe-chips">
+            <button class="pe-chip" type="button" data-difficulty-chip="easy" aria-pressed="false">Easy</button>
+            <button class="pe-chip" type="button" data-difficulty-chip="medium" aria-pressed="false">Medium</button>
+            <button class="pe-chip" type="button" data-difficulty-chip="hard" aria-pressed="false">Hard</button>
+          </div>
+        </div>
+        <div class="pe-field">
+          <label for="filter-topic">Topic</label>
+          <select class="pe-select" id="filter-topic">
+            <option value="">All topics</option>
+            {% for topic in practice_topics %}
+              <option value="{{ topic.slug }}">{{ topic.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="pe-field">
+          <label for="filter-status">Status</label>
+          <select class="pe-select" id="filter-status">
+            <option value="all">All</option>
+            <option value="solved">Solved</option>
+            <option value="attempted">Attempted</option>
+            <option value="todo">Todo</option>
+          </select>
+        </div>
+        <div class="pe-field">
+          <label for="filter-q">Search</label>
+          <input class="pe-input" id="filter-q" type="search" placeholder="title or topic" />
+        </div>
+        <button class="pe-clear" type="button" id="filter-clear">Reset</button>
+      </div>
+
+      {# ── Problem table ────────────────────────────────────────────── #}
+      <div class="pe-table-wrap">
+        <table class="pe-table" data-practice-table data-default-sort="default">
+          <thead>
+            <tr>
+              <th scope="col"><span class="pe-hidden">Status</span></th>
+              <th scope="col"><span class="pe-hidden">#</span></th>
+              <th scope="col" data-sort="title"><button type="button">Title</button></th>
+              <th scope="col" data-sort="difficulty"><button type="button">Difficulty</button></th>
+              <th scope="col" data-sort="status"><button type="button">Status</button></th>
+              <th scope="col">Topics</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for problem in problems %}
+              <tr
+                data-slug="{{ problem.slug }}"
+                data-title="{{ problem.title }}"
+                data-difficulty="{{ problem.difficulty }}"
+                data-topic="{{ problem.topic.slug }}"
+              >
+                <td class="pe-status" data-status-icon data-status="todo">○</td>
+                <td class="pe-num">{{ forloop.counter }}</td>
+                <td><a class="pe-rowlink" href="{{ problem.get_absolute_url }}">{{ problem.title }}</a></td>
+                <td><span class="pe-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span></td>
+                <td class="pe-num" data-status-label data-status="todo">unsolved</td>
+                <td class="pe-tags">
+                  {% if problem.topic %}<a class="pe-tag" href="{{ problem.topic.url }}">{{ problem.topic.title }}</a>{% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="pe-empty">No problems published yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="pe-count-line" id="table-count">{{ problems|length }} problems</div>
+
+      {# ── Tracks (topic pages, spec §4: no new content type) ───────── #}
+      <h2 class="pe-h1" id="tracks" style="font-size: 18px; margin-top: 34px">Tracks</h2>
+      <p class="pe-sub">Drill one topic at a time, difficulty ascending.</p>
+      <div class="pe-cards">
+        {% for track in tracks %}
+          <a class="pe-card" href="{{ track.page.url }}" data-progress-scope>
+            {% for problem in track.problems %}<span class="pe-hidden" data-slug="{{ problem.slug }}"></span>{% endfor %}
+            <div class="pe-card-title">{{ track.page.title }}</div>
+            {% if track.page.theory_content %}
+              <div class="pe-card-note">{{ track.page.theory_content|striptags|truncatechars:110 }}</div>
+            {% endif %}
+            <div class="pe-card-meta">
+              <span>{{ track.problems|length }} problem{{ track.problems|length|pluralize }}</span>
+              <span data-progress-label>0/0</span>
+            </div>
+            <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
+          </a>
+        {% empty %}
+          <p class="pe-empty">No tracks published yet.</p>
+        {% endfor %}
+      </div>
     </div>
-    {% else %}
-    <p class="pe-empty">No topics have been published yet.</p>
-    {% endif %}
-  </div>
-</div>
-{% include "topics/includes/practice_styles.html" %} {% endblock %}
+
+    <script src="{% static 'js/pyverse-progress.js' %}"></script>
+    <script src="{% static 'js/practice-browse.js' %}"></script>
+    <script>
+      // The Landing table's rows carry the status; the stats strip counts them.
+      document.querySelectorAll("[data-practice-table] tbody tr[data-slug]").forEach((row) => {
+        const label = row.querySelector("[data-status-label]");
+        if (!label) return;
+        const observer = new MutationObserver(() => {
+          label.textContent =
+            row.dataset.status === "solved"
+              ? "solved"
+              : row.dataset.status === "attempted"
+                ? "attempted"
+                : "unsolved";
+        });
+        observer.observe(row, { attributes: true, attributeFilter: ["data-status"] });
+      });
+    </script>
+  </body>
+</html>

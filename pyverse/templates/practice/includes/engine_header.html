@@ -1,0 +1,20 @@
+{% comment %}
+Engine header for the browse surfaces (Landing, Sheets, Tracks). The problem
+page has its own header because it also carries the runtime status pill.
+{% endcomment %}
+<header class="pe-header">
+  <div class="pe-logo">
+    <div class="pe-logo-icon">P</div>
+    PyVerse <span class="pe-logo-sep">/ Practice</span>
+  </div>
+  <nav class="pe-nav">
+    <a href="/practice/" {% if is_landing %}aria-current="page"{% endif %}>Problems</a>
+    <a href="/practice/sheets/" {% if is_sheets %}aria-current="page"{% endif %}>Sheets</a>
+    <a href="/learn/">Learn</a>
+    <a href="/python/">Blog</a>
+    <a href="/">Home</a>
+  </nav>
+  {% if header_note %}
+    <div class="pe-status-pill"><span class="pe-sdot ready"></span><span>{{ header_note }}</span></div>
+  {% endif %}
+</header>

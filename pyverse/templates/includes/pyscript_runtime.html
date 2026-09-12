@@ -1,5 +1,6 @@
 {% comment %}
-Canonical client-side Python runtime + grading harness (spec §12, §18).
+Canonical client-side Python runtime + grading harness (spec §12, §18,
+Practice spec §5.3).
 
 One PyScript version for the whole site, pinned here and nowhere else:
 2025.7.3 — the version the shared grader prototype (`web_grader.html`) runs
@@ -7,9 +8,10 @@ on. Do not add a second runtime tag or a second version; extend this file.
 
 Contract for any page that includes this partial:
   * Render a `<script type="application/json" id="pyverse-payload">` element
-    with `{"fn": "<function name>", "cases": [{"input": "...", "expected":
-    "...", "hidden": false}, ...]}` — `json_script` is the way to emit it.
-  * Set `window._pendingCode` (the student's source) before calling
+    with `{"fn": …, "comparator": "exact|sorted_list|float_tolerance|custom",
+    "custom": "<python source defining compare()>", "cases": [{"input": …,
+    "expected": …, "hidden": false}, …]}` — `json_script` is the way to emit it.
+  * Set `window._pendingCode` (the learner's source) before calling
     `window._pyExec(isSubmit, customJson)`.
   * `customJson` is `{"args": "<python source for the argument list>"}` for a
     single ad-hoc run; `"{}"` is fine when submitting.
@@ -45,33 +47,73 @@ document.head.appendChild(_hide)
 
 
 def _payload():
-    """Read the problem payload the page rendered for us."""
+    """The problem's data, baked into its own page (spec approach A)."""
     return json.loads(document.getElementById("pyverse-payload").textContent)
 
 
 def _call(fn, args_src):
-    """Call the student's function with arguments written as Python source."""
+    """Call the learner's function with arguments written as Python source."""
     return eval("__fn(" + (args_src or "") + ")", {"__fn": fn})
 
 
-def _matches(result, expected_src):
-    """Compare against the authored expected value.
-
-    Expected values are authored as Python source (`[0, 1]`, `"abc"`, `True`),
-    so they are evaluated rather than string-compared. If that fails — an
-    author wrote prose instead of a literal — fall back to repr comparison so
-    the case still grades instead of erroring.
-    """
+def _expected_value(expected_src):
+    """Expected outputs are authored as Python literals; evaluate when possible."""
     try:
-        expected = eval(expected_src, {})
+        return eval(expected_src, {}), True
     except Exception:
-        return repr(result).strip() == expected_src.strip()
+        return expected_src, False
 
-    if isinstance(result, bool) or isinstance(expected, bool):
-        return result == expected
-    if isinstance(result, (int, float)) and isinstance(expected, (int, float)):
-        return abs(result - expected) <= 1e-9
-    return result == expected
+
+def _is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _float_close(actual, expected, tolerance=1e-6):
+    if _is_number(actual) and _is_number(expected):
+        return abs(actual - expected) <= tolerance
+    if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
+        if len(actual) != len(expected):
+            return False
+        return all(
+            _float_close(a, e, tolerance) for a, e in zip(actual, expected)
+        )
+    return actual == expected
+
+
+def _sorted_equal(actual, expected):
+    try:
+        return sorted(actual) == sorted(expected)
+    except TypeError:
+        # Unorderable elements (dicts, nested mixed types): compare by repr.
+        try:
+            return sorted(map(repr, actual)) == sorted(map(repr, expected))
+        except Exception:
+            return False
+
+
+def _matches(actual, expected_src, mode, comparator_ns):
+    """Dispatch on the problem's declared comparator (spec §5.2)."""
+    expected, evaluated = _expected_value(expected_src)
+
+    if mode == "sorted_list":
+        if not evaluated:
+            return repr(actual).strip() == str(expected_src).strip()
+        return _sorted_equal(actual, expected)
+    if mode == "float_tolerance":
+        if not evaluated:
+            return repr(actual).strip() == str(expected_src).strip()
+        return _float_close(actual, expected)
+    if mode == "custom":
+        compare = comparator_ns.get("compare")
+        if not callable(compare):
+            raise NameError(
+                "This problem declares the 'custom' comparator but defines no "
+                "compare(actual, expected) -> bool."
+            )
+        return bool(compare(actual, expected))
+    if evaluated:
+        return actual == expected
+    return repr(actual).strip() == str(expected_src).strip()
 
 
 def exec_solution(is_submit, custom_json):
@@ -79,6 +121,7 @@ def exec_solution(is_submit, custom_json):
     payload = _payload()
     fn_name = payload["fn"]
     cases = payload["cases"]
+    mode = payload.get("comparator") or "exact"
     status = "RUNTIME_ERROR"
     latency = 0.0
     passed = 0
@@ -93,6 +136,11 @@ def exec_solution(is_submit, custom_json):
         if not callable(fn):
             raise NameError(f"{fn_name}() was not defined — check your function name.")
 
+        comparator_ns = {}
+        custom_src = payload.get("custom") or ""
+        if mode == "custom" and custom_src:
+            exec(compile(custom_src, "<comparator>", "exec"), comparator_ns)
+
         if not is_submit:
             args_src = json.loads(custom_json).get("args", "")
             print(f"Call   : {fn_name}({args_src})")
@@ -103,7 +151,7 @@ def exec_solution(is_submit, custom_json):
             status = "SUCCESS"
         else:
             total = len(cases)
-            print(f"Running {total} test case{'' if total == 1 else 's'}…\n")
+            print(f"Grading {total} case{'' if total == 1 else 's'} · comparator: {mode}\n")
             for index, case in enumerate(cases, start=1):
                 args_src = case["input"]
                 label = "<hidden case>" if case["hidden"] else f"{fn_name}({args_src})"
@@ -121,7 +169,7 @@ def exec_solution(is_submit, custom_json):
                     print(f"  [FAIL] case {index}/{total}  {label}")
                     print(f"         raised {error}")
                 else:
-                    ok = _matches(result, case["expected"])
+                    ok = _matches(result, case["expected"], mode, comparator_ns)
                     print(f"  [{'pass' if ok else 'FAIL'}] case {index}/{total}  {label}")
                     if not ok:
                         if case["hidden"]:

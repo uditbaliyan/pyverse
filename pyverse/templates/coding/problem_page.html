@@ -1,459 +1,706 @@
-{% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+LeetWasm problem page (Practice spec §5). Standalone document, not extending
+base.html: the engine is a full-viewport app with its own dark theme (spec §8),
+and shares its tokens with the Landing, Sheets and Tracks surfaces.
 
-{% block css %}
-  {{ block.super }}
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
-  />
-{% endblock css %}
+Problem data is baked into this page at build time (spec §5.2 approach A) — no
+runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
 
-{% block javascript %}
-  {{ block.super }}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
-{% endblock javascript %}
+    <!-- PyScript (via the shared runtime partial) -->
+    <!-- CodeMirror 5, same build the reference engine uses -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
 
-{% block content %}
-  <div class="pp-root">
-    <div class="pp-shell">
-      {# ── Path breadcrumb ───────────────────────────────────────────── #}
-      <div class="pp-path">
-        {% for crumb in practice_breadcrumb %}
-          <span class="pp-sep">/</span>
-          <a href="{{ crumb.url }}">{{ crumb.slug }}</a>
-        {% endfor %}
-        <span class="pp-sep">/</span>
-        <a href="{{ page.url }}">{{ page.slug }}</a>
-        <span class="pp-sep">/</span>
-        <span>{{ problem.slug }}</span>
-      </div>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 
-      <header class="pp-head">
-        <h1 class="pp-title">{{ problem.title }}</h1>
-        <span class="pp-badge pp-badge--{{ problem.difficulty }}">
-          {{ problem.get_difficulty_display }}
-        </span>
+    <style>
+      *, *::before, *::after { margin: 0; padding: 0; }
+      html, body { height: 100%; overflow: hidden; background: var(--bg0, #0d0f14); color: var(--text0, #e8ecf5); font-family: var(--sans, sans-serif); }
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+      .hidden { display: none !important; }
+      a { color: inherit; }
+
+      .shell { display: flex; flex-direction: column; height: 100vh; }
+      .header {
+        display: flex; align-items: center; justify-content: space-between;
+        height: 46px; padding: 0 18px; flex-shrink: 0;
+        border-bottom: 1px solid var(--border); background: var(--bg1);
+      }
+      .logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 14px; }
+      .logo-icon {
+        width: 24px; height: 24px; background: var(--accent); border-radius: 5px;
+        display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff;
+      }
+      .logo-sep { color: var(--text2); font-weight: 400; font-size: 13px; }
+      .crumb { font-family: var(--mono); font-size: 11px; color: var(--text2); text-decoration: none; }
+      .crumb:hover { color: var(--text1); }
+      .status-pill {
+        display: flex; align-items: center; gap: 7px; padding: 4px 12px;
+        border-radius: 999px; border: 1px solid var(--border); background: var(--bg2);
+        font-family: var(--mono); font-size: 11px; color: var(--text1);
+      }
+      .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+      .sdot.ready { background: var(--green); animation: none; }
+      .sdot.failed { background: var(--red); }
+      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.22} }
+      .sdot.loading { animation: blink 1.4s ease-in-out infinite; }
+
+      .main { display: flex; flex: 1; min-height: 0; }
+      .left { width: 42%; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--bg1); min-height: 0; }
+      .tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg1); flex-shrink: 0; overflow-x: auto; }
+      .tbtn {
+        padding: 9px 15px; font-family: var(--sans); font-size: 12px; font-weight: 500;
+        color: var(--text2); cursor: pointer; border: none; background: none;
+        border-bottom: 2px solid transparent; transition: color .14s, border-color .14s;
+      }
+      .tbtn:hover { color: var(--text1); }
+      .tbtn.on { color: var(--text0); border-bottom-color: var(--accent); }
+      .tcontent { flex: 1; overflow-y: auto; padding: 22px 20px; min-height: 0; }
+
+      .ptitle { font-size: 19px; font-weight: 700; }
+      .diff-badge {
+        display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px;
+        font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle;
+        border: 1px solid var(--border-hi);
+      }
+      .diff-easy { background: var(--green-dim); color: var(--green); border-color: rgba(61,214,140,.2); }
+      .diff-medium { background: var(--amber-dim); color: var(--amber); border-color: rgba(240,161,64,.2); }
+      .diff-hard { background: var(--red-dim); color: var(--red); border-color: rgba(242,109,109,.2); }
+      .sig { font-family: var(--mono); font-size: 11.5px; color: var(--text1); margin-left: 10px; }
+      .ptext { font-size: 13.5px; line-height: 1.75; color: var(--text1); margin: 14px 0; }
+      .ptext :is(p, ul, ol) { margin: 0 0 .8em; }
+      .ptext :is(ul, ol) { padding-left: 1.2em; }
+      .ptext code, code.ic {
+        font-family: var(--mono); font-size: 11.5px; background: var(--bg3); color: var(--accent);
+        padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border);
+      }
+      .ex {
+        background: var(--bg2); border: 1px solid var(--border); border-radius: 9px;
+        padding: 12px 14px; margin-bottom: 10px; font-family: var(--mono); font-size: 12px;
+      }
+      .ex-lbl { font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; }
+      .ex-row { line-height: 1.8; }
+      .ek { color: var(--text2); }
+      .ev { color: var(--text0); }
+      .en { color: var(--text1); font-size: 11px; }
+      .ctitle { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 8px; }
+      .ci { font-family: var(--mono); font-size: 12px; color: var(--text1); line-height: 2; }
+
+      .hint-item { border: 1px solid var(--border); background: var(--bg2); border-radius: 9px; padding: 12px 14px; margin-bottom: 9px; }
+      .hint-tier { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); margin-bottom: 6px; }
+      .hint-body { font-size: 13px; color: var(--text1); line-height: 1.7; }
+      .hint-body :is(p, ul, ol) { margin: 0 0 .6em; }
+      .hint-locked { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+      .hint-actions { margin-top: 12px; }
+
+      .eapproach { padding: 13px 15px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg2); margin-bottom: 11px; }
+      .eapproach.opt { border-color: rgba(124,106,247,.3); }
+      .ename { font-size: 13.5px; font-weight: 600; color: var(--text0); margin-bottom: 5px; }
+      .edesc { font-size: 13px; color: var(--text1); line-height: 1.65; margin-bottom: 8px; }
+      .edesc :is(p, ul, ol) { margin: 0 0 .6em; }
+      .ctags { display: flex; gap: 8px; flex-wrap: wrap; }
+      .ctag { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+      .ctag.t { background: var(--amber-dim); color: var(--amber); border-color: rgba(240,161,64,.2); }
+      .ctag.s { background: var(--accent-dim); color: var(--accent); border-color: rgba(124,106,247,.2); }
+      .opt-pill {
+        font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+        background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(124,106,247,.2);
+        margin-left: 8px; vertical-align: middle;
+      }
+      .sol-block {
+        background: var(--bg0); border: 1px solid var(--border); border-radius: 9px;
+        padding: 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85;
+        overflow-x: auto; color: #a8b5c8; white-space: pre;
+      }
+
+      .sub-empty { font-family: var(--mono); font-size: 12px; color: var(--text2); font-style: italic; }
+      .sub-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); margin-bottom: 7px; }
+      @keyframes drop-in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+      .sub-item { animation: drop-in .18s ease; }
+      .sbadge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; letter-spacing: .04em; }
+      .sbadge.ac { background: var(--green-dim); color: var(--green); border: 1px solid rgba(61,214,140,.2); }
+      .sbadge.wa { background: var(--red-dim); color: var(--red); border: 1px solid rgba(242,109,109,.2); }
+      .sbadge.re { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(240,161,64,.2); }
+      .stime { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+      .slat { font-family: var(--mono); font-size: 12px; color: var(--text1); font-weight: 500; }
+      .scnt {
+        display: inline-flex; align-items: center; justify-content: center; min-width: 16px;
+        height: 16px; padding: 0 4px; border-radius: 999px; background: var(--accent);
+        color: #fff; font-size: 9px; font-weight: 700; font-family: var(--mono); margin-left: 5px;
+      }
+
+      .right { flex: 1; display: flex; flex-direction: column; background: var(--bg0); min-height: 0; }
+      .editor-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 14px; height: 38px; border-bottom: 1px solid var(--border); background: var(--bg1); flex-shrink: 0;
+      }
+      .lang-tag { font-family: var(--mono); font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+      .ldot { width: 8px; height: 8px; border-radius: 50%; background: #4b8bbe; }
+      .eactions { display: flex; align-items: center; gap: 7px; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 6px;
+        font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; border: none;
+        transition: all .12s; user-select: none; white-space: nowrap;
+      }
+      .btn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+      .btn:active:not(:disabled) { transform: scale(.96); }
+      .btn-ghost { background: var(--bg3); color: var(--text1); border: 1px solid var(--border-hi); }
+      .btn-ghost:hover { background: var(--bg4); color: var(--text0); }
+      .btn-run { background: var(--bg3); color: var(--green); border: 1px solid rgba(61,214,140,.22); }
+      .btn-run:hover { background: var(--green-dim); border-color: rgba(61,214,140,.4); }
+      .btn-acc { background: var(--accent); color: #fff; box-shadow: 0 0 18px rgba(124,106,247,.28); }
+      .btn-acc:hover { filter: brightness(1.1); }
+
+      #editor-host { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+      #editor-ta { display: none; }
+      .CodeMirror {
+        flex: 1; height: 100% !important; font-family: var(--mono) !important; font-size: 13px !important;
+        background: var(--bg0) !important; color: var(--text0) !important; line-height: 1.75 !important;
+      }
+      .CodeMirror-scroll { padding-bottom: 0 !important; }
+      .CodeMirror-gutters { background: var(--bg0) !important; border-right: 1px solid var(--border) !important; }
+      .CodeMirror-linenumber { color: var(--text2) !important; font-size: 11px !important; padding: 0 10px 0 8px !important; }
+      .CodeMirror-activeline-background { background: rgba(255,255,255,0.025) !important; }
+      .CodeMirror-activeline-gutter .CodeMirror-linenumber { color: var(--text1) !important; }
+      .CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
+      .CodeMirror-selected { background: rgba(124,106,247,0.25) !important; }
+      .CodeMirror-focused .CodeMirror-selected { background: rgba(124,106,247,0.28) !important; }
+      .CodeMirror-matchingbracket { color: var(--green) !important; background: rgba(61,214,140,0.15) !important; outline: 1px solid rgba(61,214,140,0.4) !important; }
+      .cm-keyword { color: #c792ea !important; }
+      .cm-builtin { color: #82aaff !important; }
+      .cm-def { color: var(--green) !important; }
+      .cm-operator { color: var(--text1) !important; }
+      .cm-variable { color: var(--text0) !important; }
+      .cm-variable-2 { color: var(--blue) !important; }
+      .cm-string, .cm-string-2 { color: #f07178 !important; }
+      .cm-comment { color: var(--text2) !important; font-style: italic !important; }
+      .cm-number, .cm-atom { color: var(--amber) !important; }
+      .cm-punctuation { color: var(--text1) !important; }
+      .cm-meta { color: var(--text2) !important; }
+
+      .bottom { height: 255px; flex-shrink: 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg1); min-height: 0; }
+      .bot-bar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; padding-right: 14px; }
+      .bot-tabs { display: flex; }
+      .btbtn {
+        padding: 8px 14px; font-family: var(--sans); font-size: 12px; font-weight: 500;
+        color: var(--text2); cursor: pointer; border: none; background: none;
+        border-bottom: 2px solid transparent; transition: color .13s, border-color .13s;
+      }
+      .btbtn:hover { color: var(--text1); }
+      .btbtn.on { color: var(--text0); border-bottom-color: var(--green); }
+      .bot-content { flex: 1; overflow-y: auto; padding: 13px 15px; min-height: 0; }
+
+      .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 10px; }
+      .pgroup { display: flex; flex-direction: column; gap: 4px; }
+      .plbl { font-family: var(--mono); font-size: 10px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: .07em; }
+      .pinput {
+        background: var(--bg0); border: 1px solid var(--border); border-radius: 6px;
+        padding: 7px 10px; font-family: var(--mono); font-size: 12px; color: var(--amber);
+        outline: none; transition: border-color .13s; width: 100%;
+      }
+      .pinput:focus { border-color: var(--accent); }
+      .terminal { font-family: var(--mono); font-size: 12px; color: var(--text1); line-height: 1.8; white-space: pre-wrap; user-select: text; word-break: break-word; }
+      .tg { color: var(--green); } .tr { color: var(--red); }
+      .ta { color: var(--amber); } .td { color: var(--text2); }
+
+      .mrow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
+      .mcard { background: var(--bg0); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; }
+      .mlbl { font-size: 10px; color: var(--text2); font-family: var(--mono); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+      .mval { font-size: 17px; font-weight: 700; font-family: var(--mono); }
+      .mval.g { color: var(--green); } .mval.p { color: var(--accent); } .mval.r { color: var(--red); } .mval.a { color: var(--amber); }
+
+      .rhandle { width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0; transition: background .13s; }
+      .rhandle:hover, .rhandle.drag { background: var(--accent); }
+      kbd { font-family: var(--mono); font-size: 10px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }
+      @media (max-width: 900px) {
+        .main { flex-direction: column; }
+        .left { width: 100% !important; height: 50%; }
+        .rhandle { display: none; }
+      }
+    </style>
+  </head>
+
+  <body
+    class="pe-engine"
+    data-problem-slug="{{ problem.slug }}"
+    data-problem-title="{{ problem.title }}"
+    data-problem-topic="{{ page.title }}"
+  >
+    <div class="shell">
+      <header class="header">
+        <div class="logo">
+          <div class="logo-icon">L</div>
+          LeetWasm <span class="logo-sep">/ {{ page.title }}</span>
+          <a class="crumb" href="{{ page.url }}">&larr; all problems</a>
+          <a class="crumb" href="/practice/">practice</a>
+        </div>
+        <div class="status-pill">
+          <span class="sdot loading" id="sdot"></span>
+          <span id="stxt">Loading PyScript runtime…</span>
+        </div>
       </header>
 
-      <div class="pp-grid">
-        {# ── Statement ──────────────────────────────────────────────── #}
-        <section class="pp-statement">
-          {% if problem.description %}
-            <div class="pp-prose">{{ problem.description|richtext }}</div>
-          {% else %}
-            <p class="pp-empty">No statement has been written for this challenge yet.</p>
-          {% endif %}
-
-          <h2 class="pp-h2">Implement</h2>
-          <pre class="pp-sig">def {{ problem.function_name }}(...) -&gt; ...</pre>
-
-          <h2 class="pp-h2">Visible test cases</h2>
-          {% if problem.visible_test_cases %}
-            <table class="pp-cases">
-              <thead>
-                <tr><th>Input</th><th>Expected output</th></tr>
-              </thead>
-              <tbody>
-                {% for case in problem.visible_test_cases %}
-                  <tr>
-                    <td><code>{{ problem.function_name }}({{ case.input }})</code></td>
-                    <td><code>{{ case.expected }}</code></td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <p class="pp-empty">All test cases for this challenge are hidden.</p>
-          {% endif %}
-        </section>
-
-        {# ── Work area ──────────────────────────────────────────────── #}
-        <section class="pp-work">
-          <div class="pp-work-head">
-            <span class="pp-file">solution.py</span>
-            <span class="pp-runtime" id="pp-runtime">loading Python runtime…</span>
+      <div class="main" id="main">
+        <div class="left" id="left-panel">
+          <div class="tab-bar">
+            <button class="tbtn on" data-tab="desc">Description</button>
+            {% if problem.hint_tiers %}
+              <button class="tbtn" data-tab="hints">Hints</button>
+            {% endif %}
+            {% if problem.editorial_approaches %}
+              <button class="tbtn" data-tab="edit">Editorial</button>
+            {% endif %}
+            {% if problem.solution_code or problem.solution_explanation %}
+              <button class="tbtn" data-tab="sol">Solutions</button>
+            {% endif %}
+            <button class="tbtn" data-tab="sub" id="sub-tbtn">
+              Submissions<span class="scnt hidden" id="sub-count"></span>
+            </button>
           </div>
 
-          <textarea id="pp-editor" spellcheck="false">{{ problem.starter_code }}</textarea>
+          {# ── Description ─────────────────────────────────────────── #}
+          <div class="tcontent" id="tab-desc">
+            <div style="margin-bottom: 12px">
+              <span class="ptitle">{{ problem.title }}</span>
+              <span class="diff-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span>
+              <span class="sig">{{ problem.function_name }}{{ problem.function_signature }}</span>
+            </div>
 
-          <div class="pp-controls">
-            <label class="pp-args-label" for="pp-args">
-              Run arguments
-              <span class="pp-hint">(Python source, e.g. <code>[1, 2], 5</code>)</span>
-            </label>
-            <input
-              id="pp-args"
-              class="pp-args"
-              type="text"
-              value="{% if problem.visible_test_cases %}{{ problem.visible_test_cases.0.input }}{% endif %}"
-            />
-            <div class="pp-buttons">
-              <button id="pp-run" type="button" disabled>Run</button>
-              <button id="pp-submit" type="button" class="pp-primary" disabled>Submit</button>
-              <button id="pp-reset" type="button" class="pp-ghost">Reset</button>
-              <span class="pp-verdict" id="pp-verdict"></span>
-              <span class="pp-latency" id="pp-latency"></span>
+            <div class="ptext">{{ problem.description|richtext }}</div>
+
+            {% if problem.examples %}
+              {% for block in problem.examples %}
+                <div class="ex">
+                  <div class="ex-lbl">Example {{ forloop.counter }}</div>
+                  {% if block.value.input %}<div class="ex-row"><span class="ek">Input   </span><span class="ev">{{ block.value.input }}</span></div>{% endif %}
+                  {% if block.value.output %}<div class="ex-row"><span class="ek">Output  </span><span class="ev">{{ block.value.output }}</span></div>{% endif %}
+                  {% if block.value.note %}<div class="en">{{ block.value.note }}</div>{% endif %}
+                </div>
+              {% endfor %}
+            {% endif %}
+
+            {% if problem.constraints %}
+              <div class="ctitle">Constraints</div>
+              {% for block in problem.constraints %}
+                <div class="ci">{{ block.value }}</div>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          {# ── Hints: revealed one tier at a time ──────────────────── #}
+          {% if problem.hint_tiers %}
+            <div class="tcontent hidden" id="tab-hints">
+              <div id="hint-list">
+                {% for block in problem.hint_tiers %}
+                  <div class="hint-item" data-hint="{{ forloop.counter0 }}">
+                    <div class="hint-tier">{{ block.value.tier|upper }}</div>
+                    <div class="hint-body hidden" id="hint-body-{{ forloop.counter0 }}">{{ block.value.text|richtext }}</div>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="hint-actions">
+                <button class="btn btn-ghost" id="hint-btn">Reveal hint 1</button>
+                <span class="hint-locked" id="hint-state"></span>
+              </div>
+            </div>
+          {% endif %}
+
+          {# ── Editorial ───────────────────────────────────────────── #}
+          {% if problem.editorial_approaches %}
+            <div class="tcontent hidden" id="tab-edit">
+              {% for block in problem.editorial_approaches %}
+                <div class="eapproach{% if block.value.is_optimal %} opt{% endif %}">
+                  <div class="ename">
+                    {{ block.value.name }}
+                    {% if block.value.is_optimal %}<span class="opt-pill">OPTIMAL</span>{% endif %}
+                  </div>
+                  {% if block.value.description %}<div class="edesc">{{ block.value.description|richtext }}</div>{% endif %}
+                  <div class="ctags">
+                    {% if block.value.time_complexity %}<span class="ctag t">time {{ block.value.time_complexity }}</span>{% endif %}
+                    {% if block.value.space_complexity %}<span class="ctag s">space {{ block.value.space_complexity }}</span>{% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {# ── Solutions ───────────────────────────────────────────── #}
+          {% if problem.solution_code or problem.solution_explanation %}
+            <div class="tcontent hidden" id="tab-sol">
+              {% if problem.solution_explanation %}
+                <div class="ptext">{{ problem.solution_explanation|richtext }}</div>
+              {% endif %}
+              {% if problem.solution_code %}
+                <div class="sol-block">{{ problem.solution_code }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {# ── Submissions ─────────────────────────────────────────── #}
+          <div class="tcontent hidden" id="tab-sub">
+            <div id="sub-list"><div class="sub-empty">No submissions yet — submit a solution to log one here.</div></div>
+          </div>
+        </div>
+
+        <div class="rhandle" id="rh"></div>
+
+        <div class="right">
+          <div class="editor-header">
+            <div class="lang-tag"><span class="ldot"></span> Python · {{ problem.comparator }}</div>
+            <div class="eactions">
+              <button class="btn btn-ghost" id="reset-btn" type="button">Reset</button>
+              <button class="btn btn-run" id="run-btn" type="button" disabled>Run <kbd>⌃↵</kbd></button>
+              <button class="btn btn-acc" id="sub-btn" type="button" disabled>Submit <kbd>⌃⇧↵</kbd></button>
             </div>
           </div>
 
-          <pre class="pp-out" id="pp-out">Press Run to try the visible example, or Submit to grade every test case.</pre>
-        </section>
+          <div id="editor-host">
+            <textarea id="editor-ta" spellcheck="false">{{ problem.starter_code }}</textarea>
+          </div>
+
+          <div class="bottom">
+            <div class="bot-bar">
+              <div class="bot-tabs">
+                <button class="btbtn on" data-btab="case">Testcase</button>
+                <button class="btbtn" data-btab="out">Output</button>
+              </div>
+              <span class="td" id="cases-note">{{ problem.visible_test_cases|length }} visible · {{ problem.test_case_payload|length }} total</span>
+            </div>
+
+            <div class="bot-content" id="tab-case">
+              {% if problem.visible_test_cases %}
+                <div class="pgrid">
+                  <div class="pgroup">
+                    <span class="plbl">Case</span>
+                    <select class="pinput" id="case-select">
+                      {% for case in problem.visible_test_cases %}
+                        <option value="{{ forloop.counter0 }}">Case {{ forloop.counter }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="pgroup">
+                    <span class="plbl">Arguments (Python source)</span>
+                    <input class="pinput" id="p-args" type="text" value="{{ problem.visible_test_cases.0.input }}" />
+                  </div>
+                </div>
+                <div class="td">Run passes these arguments to <code class="ic">{{ problem.function_name }}()</code>; Submit grades every case, including hidden ones.</div>
+              {% else %}
+                <div class="pgrid">
+                  <div class="pgroup">
+                    <span class="plbl">Arguments (Python source)</span>
+                    <input class="pinput" id="p-args" type="text" value="" />
+                  </div>
+                </div>
+                <div class="td">Every test case for this problem is hidden — Submit to grade.</div>
+              {% endif %}
+            </div>
+
+            <div class="bot-content hidden" id="tab-out">
+              <div class="terminal" id="out-area">Press Run to try the visible example, or Submit to grade every case.</div>
+              <div class="mrow hidden" id="metrics">
+                <div class="mcard"><div class="mlbl">Runtime</div><div class="mval p" id="m-rt">—</div></div>
+                <div class="mcard"><div class="mlbl">Cases</div><div class="mval g" id="m-cases">—</div></div>
+                <div class="mcard"><div class="mlbl">Verdict</div><div class="mval" id="verdict">—</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  {{ payload|json_script:"pyverse-payload" }}
-  {% include "includes/pyscript_runtime.html" %}
+    {{ payload|json_script:"pyverse-payload" }}
+    <script src="{% static 'js/pyverse-progress.js' %}"></script>
+    {% include "includes/pyscript_runtime.html" %}
 
-  <style>
-    .pp-root {
-      --pp-ink: #1f2421;
-      --pp-mute: #6b6a62;
-      --pp-line: #d9d5cb;
-      --pp-paper: #efede6;
-      --pp-surface: #ffffff;
-      --pp-coding: #2d5f5d;
-      --pp-green: #1f7a4d;
-      --pp-red: #b23a3a;
-      --pp-amber: #9a6b16;
-      background: var(--pp-paper);
-      color: var(--pp-ink);
-      font-family: "IBM Plex Sans", -apple-system, sans-serif;
-      line-height: 1.55;
-      padding: 2.5rem 1.5rem 5rem;
-    }
-    .pp-shell { max-width: 1180px; margin: 0 auto; }
-    .pp-path {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.78rem;
-      color: var(--pp-mute);
-      margin-bottom: 0.75rem;
-    }
-    .pp-path a { color: inherit; }
-    .pp-path a:hover { color: var(--pp-ink); }
-    .pp-sep { margin: 0 0.35rem; opacity: 0.5; }
-    .pp-head { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
-    .pp-title {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 1.9rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      margin: 0;
-    }
-    .pp-badge {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.2rem 0.55rem;
-      border-radius: 3px;
-    }
-    .pp-badge--easy { background: rgba(31, 122, 77, 0.12); color: var(--pp-green); }
-    .pp-badge--medium { background: rgba(154, 107, 22, 0.14); color: var(--pp-amber); }
-    .pp-badge--hard { background: rgba(178, 58, 58, 0.12); color: var(--pp-red); }
+    <script>
+      (function () {
+        const editorTa = document.getElementById("editor-ta");
+        const starter = editorTa.value;
+        const runBtn = document.getElementById("run-btn");
+        const subBtn = document.getElementById("sub-btn");
+        const resetBtn = document.getElementById("reset-btn");
+        const outEl = document.getElementById("out-area");
+        const metricsEl = document.getElementById("metrics");
+        const verdictEl = document.getElementById("verdict");
+        const rtEl = document.getElementById("m-rt");
+        const casesEl = document.getElementById("m-cases");
+        const argsEl = document.getElementById("p-args");
+        const caseSelect = document.getElementById("case-select");
+        const sdot = document.getElementById("sdot");
+        const stxt = document.getElementById("stxt");
+        const hintBodies = Array.from(document.querySelectorAll(".hint-body"));
+        let hintIndex = 0;
+        let subCount = 0;
 
-    .pp-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-      gap: 2rem;
-      align-items: start;
-      margin-top: 1.75rem;
-    }
-    @media (max-width: 900px) {
-      .pp-grid { grid-template-columns: minmax(0, 1fr); }
-    }
+        const editor = CodeMirror.fromTextArea(editorTa, {
+          mode: "python",
+          lineNumbers: true,
+          indentUnit: 4,
+          tabSize: 4,
+          indentWithTabs: false,
+          smartIndent: true,
+          autoCloseBrackets: true,
+          matchBrackets: true,
+          styleActiveLine: true,
+          extraKeys: {
+            Tab: (cm) =>
+              cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection("    ", "end"),
+            "Shift-Tab": (cm) => cm.indentSelection("subtract"),
+            "Ctrl-Enter": () => trigger(false),
+            "Cmd-Enter": () => trigger(false),
+            "Ctrl-Shift-Enter": () => trigger(true),
+            "Cmd-Shift-Enter": () => trigger(true),
+            "Ctrl-/": "toggleComment",
+            "Cmd-/": "toggleComment",
+          },
+        });
 
-    .pp-prose :is(p, ul, ol) { margin: 0 0 1em; }
-    .pp-prose { max-width: 68ch; }
-    .pp-prose code {
-      font-family: "IBM Plex Mono", monospace;
-      background: var(--pp-surface);
-      border: 1px solid var(--pp-line);
-      border-radius: 3px;
-      padding: 0.1em 0.35em;
-      font-size: 0.9em;
-    }
-    .pp-h2 {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--pp-mute);
-      margin: 1.75rem 0 0.6rem;
-    }
-    .pp-sig {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.85rem;
-      background: var(--pp-surface);
-      border: 1px solid var(--pp-line);
-      border-radius: 6px;
-      padding: 0.75rem 0.9rem;
-      margin: 0;
-      overflow-x: auto;
-    }
-    .pp-cases {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.78rem;
-      background: var(--pp-surface);
-      border: 1px solid var(--pp-line);
-      border-radius: 6px;
-    }
-    .pp-cases th,
-    .pp-cases td {
-      text-align: left;
-      padding: 0.5rem 0.7rem;
-      border-bottom: 1px solid var(--pp-line);
-    }
-    .pp-cases th { color: var(--pp-mute); font-weight: 500; }
-    .pp-cases tr:last-child td { border-bottom: none; }
-    .pp-empty {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.82rem;
-      color: var(--pp-mute);
-    }
-
-    .pp-work {
-      background: var(--pp-surface);
-      border: 1px solid var(--pp-line);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .pp-work-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.55rem 0.9rem;
-      border-bottom: 1px solid var(--pp-line);
-      background: var(--pp-paper);
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.75rem;
-    }
-    .pp-file { color: var(--pp-coding); font-weight: 600; }
-    .pp-runtime { color: var(--pp-mute); }
-    .pp-runtime[data-state="ready"] { color: var(--pp-green); }
-    .pp-runtime[data-state="failed"] { color: var(--pp-red); }
-
-    #pp-editor { display: none; }
-    .CodeMirror {
-      height: 340px;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.85rem;
-      line-height: 1.5;
-    }
-    .pp-controls { padding: 0.9rem; border-top: 1px solid var(--pp-line); }
-    .pp-args-label {
-      display: block;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--pp-mute);
-      margin-bottom: 0.35rem;
-    }
-    .pp-hint { text-transform: none; letter-spacing: 0; }
-    .pp-args {
-      width: 100%;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.82rem;
-      padding: 0.45rem 0.6rem;
-      border: 1px solid var(--pp-line);
-      border-radius: 5px;
-      background: var(--pp-paper);
-      color: var(--pp-ink);
-    }
-    .pp-buttons {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-      margin-top: 0.8rem;
-    }
-    .pp-buttons button {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.8rem;
-      padding: 0.42rem 0.95rem;
-      border-radius: 5px;
-      border: 1px solid var(--pp-line);
-      background: var(--pp-surface);
-      color: var(--pp-ink);
-      cursor: pointer;
-    }
-    .pp-buttons button:hover:not(:disabled) { border-color: var(--pp-coding); }
-    .pp-buttons button:disabled { opacity: 0.45; cursor: not-allowed; }
-    .pp-buttons .pp-primary {
-      background: var(--pp-coding);
-      border-color: var(--pp-coding);
-      color: #fff;
-    }
-    .pp-buttons .pp-ghost { color: var(--pp-mute); }
-    .pp-verdict { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; }
-    .pp-verdict[data-state="ACCEPTED"],
-    .pp-verdict[data-state="SUCCESS"] { color: var(--pp-green); font-weight: 600; }
-    .pp-verdict[data-state="WRONG_ANSWER"] { color: var(--pp-red); font-weight: 600; }
-    .pp-verdict[data-state="RUNTIME_ERROR"] { color: var(--pp-amber); font-weight: 600; }
-    .pp-latency {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.75rem;
-      color: var(--pp-mute);
-      margin-left: auto;
-    }
-    .pp-out {
-      margin: 0;
-      padding: 0.9rem;
-      border-top: 1px solid var(--pp-line);
-      background: #1f2421;
-      color: #e8e6df;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.78rem;
-      line-height: 1.5;
-      min-height: 120px;
-      max-height: 320px;
-      overflow: auto;
-      white-space: pre-wrap;
-    }
-    .pp-out .pass { color: #7fd6a2; }
-    .pp-out .fail { color: #f08b8b; }
-    .pp-out .err { color: #f0c27b; }
-    .pp-out .dim { color: #9a988f; }
-    .pp-out .busy { color: #9a988f; }
-  </style>
-{% endblock content %}
-
-{% block inline_javascript %}
-  <script>
-    (function () {
-      const runBtn = document.getElementById("pp-run");
-      const submitBtn = document.getElementById("pp-submit");
-      const resetBtn = document.getElementById("pp-reset");
-      const argsEl = document.getElementById("pp-args");
-      const outEl = document.getElementById("pp-out");
-      const verdictEl = document.getElementById("pp-verdict");
-      const latencyEl = document.getElementById("pp-latency");
-      const runtimeEl = document.getElementById("pp-runtime");
-      const ta = document.getElementById("pp-editor");
-
-      const starter = ta.value;
-      const editor = CodeMirror.fromTextArea(ta, {
-        mode: "python",
-        lineNumbers: true,
-        indentUnit: 4,
-        tabSize: 4,
-        indentWithTabs: false,
-        smartIndent: true,
-        lineWrapping: false,
-        autoCloseBrackets: true,
-        matchBrackets: true,
-        styleActiveLine: true,
-        extraKeys: {
-          Tab: (cm) =>
-            cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection("    ", "end"),
-          "Shift-Tab": (cm) => cm.indentSelection("subtract"),
-          "Ctrl-Enter": () => trigger(false),
-          "Cmd-Enter": () => trigger(false),
-          "Ctrl-Shift-Enter": () => trigger(true),
-          "Cmd-Shift-Enter": () => trigger(true),
-        },
-      });
-
-      function escapeHtml(text) {
-        return text
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-      }
-
-      function decorate(log) {
-        let html = escapeHtml(log);
-        html = html.replace(/\[pass\]/g, '<span class="pass">[pass]</span>');
-        html = html.replace(/\[FAIL\]/g, '<span class="fail">[FAIL]</span>');
-        html = html.replace(/^(SyntaxError.*|RuntimeError.*|Traceback.*)/gm, '<span class="err">$1</span>');
-        html = html.replace(/(\d+\/\d+ cases passed\.)/g, '<span class="dim">$1</span>');
-        return html;
-      }
-
-      function setBusy(busy) {
-        runBtn.disabled = busy || !window._pyExec;
-        submitBtn.disabled = busy || !window._pyExec;
-        resetBtn.disabled = busy;
-      }
-
-      function trigger(isSubmit) {
-        if (!window._pyExec) return;
-        setBusy(true);
-        verdictEl.textContent = "";
-        verdictEl.removeAttribute("data-state");
-        latencyEl.textContent = "";
-        outEl.innerHTML = '<span class="busy">⚡ Running…</span>';
-
-        let customJson = "{}";
-        if (!isSubmit) {
-          customJson = JSON.stringify({ args: argsEl.value.trim() });
+        if (caseSelect && argsEl) {
+          const inputs = JSON.parse(document.getElementById("pyverse-payload").textContent).cases;
+          caseSelect.addEventListener("change", () => {
+            argsEl.value = inputs[Number(caseSelect.value)].input;
+          });
         }
-        window._pendingCode = editor.getValue();
 
-        // Yield to the browser so the busy state paints before Python blocks.
-        setTimeout(() => {
-          try {
-            const result = window._pyExec(isSubmit, customJson);
-            const meta = JSON.parse(result[0]);
-            outEl.innerHTML = decorate(result[1]);
+        function escapeHtml(text) {
+          return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
 
-            const labels = {
-              ACCEPTED: "✓ Accepted",
-              WRONG_ANSWER: "✗ Wrong Answer",
-              RUNTIME_ERROR: "⚠ Runtime Error",
-              SUCCESS: "✓ Ran",
-            };
-            verdictEl.textContent = labels[meta.status] || meta.status;
-            verdictEl.dataset.state = meta.status;
-            if (meta.latency) {
-              latencyEl.textContent = meta.latency.toFixed(2) + " ms";
+        function decorate(log) {
+          let html = escapeHtml(log);
+          html = html.replace(/\[pass\]/g, '<span class="tg">[pass]</span>');
+          html = html.replace(/\[FAIL\]/g, '<span class="tr">[FAIL]</span>');
+          html = html.replace(/^(SyntaxError.*|RuntimeError.*|Traceback.*|NameError.*)/gm, '<span class="tr">$1</span>');
+          html = html.replace(/(\d+\/\d+ cases passed\.)/g, '<span class="td">$1</span>');
+          return html;
+        }
+
+        function setBusy(busy) {
+          runBtn.disabled = busy || !window._pyExec;
+          subBtn.disabled = busy || !window._pyExec;
+          resetBtn.disabled = busy;
+        }
+
+        function trigger(isSubmit) {
+          if (!window._pyExec) return;
+          setBusy(true);
+          btab("out", document.querySelector('[data-btab="out"]'));
+          metricsEl.classList.add("hidden");
+          verdictEl.textContent = "—";
+          verdictEl.className = "mval";
+          outEl.innerHTML = '<span class="td">⚡ Running…</span>';
+
+          const customJson = isSubmit ? "{}" : JSON.stringify({ args: (argsEl ? argsEl.value : "").trim() });
+          window._pendingCode = editor.getValue();
+
+          // Yield so the busy state paints before the synchronous Python call.
+          setTimeout(() => {
+            try {
+              const result = window._pyExec(isSubmit, customJson);
+              const meta = JSON.parse(result[0]);
+              outEl.innerHTML = decorate(result[1]);
+
+              metricsEl.classList.remove("hidden");
+              rtEl.textContent = meta.latency ? meta.latency.toFixed(2) + " ms" : "—";
+              casesEl.textContent = meta.total ? meta.passed + "/" + meta.total : "—";
+
+              const labels = {
+                ACCEPTED: ["✓ Accepted", "g"],
+                WRONG_ANSWER: ["✗ Wrong Answer", "r"],
+                RUNTIME_ERROR: ["⚠ Runtime Error", "a"],
+                SUCCESS: ["✓ Ran", "g"],
+              };
+              const [text, tone] = labels[meta.status] || [meta.status, ""];
+              verdictEl.textContent = text;
+              verdictEl.className = "mval " + tone;
+
+              if (isSubmit) logSubmission(meta);
+            } catch (err) {
+              outEl.innerHTML = '<span class="tr">Execution bridge error: ' + escapeHtml(String(err)) + "</span>";
             }
-          } catch (err) {
-            outEl.innerHTML = '<span class="err">Execution bridge error: ' + escapeHtml(String(err)) + "</span>";
+            setBusy(false);
+          }, 20);
+        }
+
+        function logSubmission(meta) {
+          const list = document.getElementById("sub-list");
+          if (subCount === 0) list.innerHTML = "";
+          subCount += 1;
+
+          const badge = document.getElementById("sub-count");
+          if (badge) {
+            badge.textContent = subCount;
+            badge.classList.remove("hidden");
           }
-          setBusy(false);
-        }, 20);
-      }
 
-      runBtn.addEventListener("click", () => trigger(false));
-      submitBtn.addEventListener("click", () => trigger(true));
-      resetBtn.addEventListener("click", () => {
-        editor.setValue(starter);
-        outEl.textContent = "Editor reset to the starter code.";
-        verdictEl.textContent = "";
-        verdictEl.removeAttribute("data-state");
-        latencyEl.textContent = "";
-      });
+          renderSubmission({ status: meta.status, latency: meta.latency, timestamp: Date.now() }, true);
 
-      // Pyodide loads asynchronously; offline it never arrives, so stop waiting
-      // and say so instead of leaving the buttons greyed out forever.
-      const started = Date.now();
-      (function waitForRuntime() {
-        if (document.body.dataset.pyverseReady === "1") {
-          runtimeEl.textContent = "Pyodide ready";
-          runtimeEl.dataset.state = "ready";
-          setBusy(false);
-          return;
+          // Shared store: the Landing table, Sheets rings and Track bars read
+          // this, so a submission here is progress everywhere (spec §7).
+          if (window.PyverseProgress) {
+            window.PyverseProgress.recordSubmission({
+              slug: document.body.dataset.problemSlug,
+              title: document.body.dataset.problemTitle,
+              status: meta.status,
+              latency: meta.latency,
+            }).catch(() => {});
+          }
         }
-        if (Date.now() - started > 45000) {
-          runtimeEl.textContent = "Python runtime failed to load";
-          runtimeEl.dataset.state = "failed";
-          outEl.innerHTML =
-            '<span class="err">The Pyodide runtime could not be downloaded. ' +
-            "Check your connection and reload the page.</span>";
-          return;
+
+        function renderSubmission(row, prepend) {
+          const list = document.getElementById("sub-list");
+          const tone = { ACCEPTED: "ac", WRONG_ANSWER: "wa", RUNTIME_ERROR: "re" }[row.status] || "re";
+          const el = document.createElement("div");
+          el.className = "sub-item";
+          el.innerHTML =
+            '<div style="display:flex;align-items:center;gap:9px">' +
+            '<span class="sbadge ' + tone + '">' + String(row.status).replace(/_/g, " ") + "</span>" +
+            '<span class="stime">' + new Date(row.timestamp).toLocaleString() + "</span></div>" +
+            '<span class="slat">' + (row.latency ? Number(row.latency).toFixed(2) + " ms" : "—") + "</span>";
+          if (prepend) {
+            list.insertBefore(el, list.firstChild);
+          } else {
+            list.appendChild(el);
+          }
         }
-        setTimeout(waitForRuntime, 200);
+
+        // Hydrate the Submissions tab from previous visits (spec §5.5).
+        if (window.PyverseProgress) {
+          window.PyverseProgress.submissionsFor(document.body.dataset.problemSlug)
+            .then((rows) => {
+              if (!rows.length) return;
+              const list = document.getElementById("sub-list");
+              list.innerHTML = "";
+              rows.forEach((row) => renderSubmission(row, false));
+              subCount = rows.length;
+              const badge = document.getElementById("sub-count");
+              if (badge) {
+                badge.textContent = subCount;
+                badge.classList.remove("hidden");
+              }
+            })
+            .catch(() => {});
+        }
+
+        function ltab(id, btn) {
+          document.querySelectorAll(".tcontent").forEach((e) => e.classList.add("hidden"));
+          document.querySelectorAll(".tbtn").forEach((e) => e.classList.remove("on"));
+          document.getElementById("tab-" + id).classList.remove("hidden");
+          if (btn) btn.classList.add("on");
+        }
+
+        function btab(id, btn) {
+          document.querySelectorAll(".bot-content").forEach((e) => e.classList.add("hidden"));
+          document.querySelectorAll(".btbtn").forEach((e) => e.classList.remove("on"));
+          document.getElementById("tab-" + id).classList.remove("hidden");
+          if (btn) btn.classList.add("on");
+        }
+
+        function revealHint() {
+          if (hintIndex >= hintBodies.length) return;
+          hintBodies[hintIndex].classList.remove("hidden");
+          hintIndex += 1;
+          const btn = document.getElementById("hint-btn");
+          const state = document.getElementById("hint-state");
+          const left = hintBodies.length - hintIndex;
+          if (left === 0) {
+            btn.classList.add("hidden");
+            state.textContent = "All hints revealed.";
+          } else {
+            btn.textContent = "Reveal hint " + (hintIndex + 1);
+            state.textContent = left + " more available";
+          }
+        }
+
+        runBtn.addEventListener("click", () => trigger(false));
+        subBtn.addEventListener("click", () => trigger(true));
+        resetBtn.addEventListener("click", () => {
+          editor.setValue(starter);
+          outEl.textContent = "Editor reset to the starter code.";
+        });
+
+        // Functions live inside this closure, so every control is wired here
+        // rather than via inline onclick attributes (which resolve globally).
+        document.querySelectorAll("[data-tab]").forEach((btn) =>
+          btn.addEventListener("click", () => ltab(btn.dataset.tab, btn)),
+        );
+        document.querySelectorAll("[data-btab]").forEach((btn) =>
+          btn.addEventListener("click", () => btab(btn.dataset.btab, btn)),
+        );
+        const hintBtn = document.getElementById("hint-btn");
+        if (hintBtn) hintBtn.addEventListener("click", revealHint);
+
+        // Resizable split: keep the left panel usable on wide screens.
+        const rh = document.getElementById("rh");
+        const lp = document.getElementById("left-panel");
+        let dragging = false;
+        let startX = 0;
+        let startW = 0;
+        rh.addEventListener("mousedown", (e) => {
+          dragging = true;
+          startX = e.clientX;
+          startW = lp.getBoundingClientRect().width;
+          rh.classList.add("drag");
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        });
+        document.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const maxW = document.getElementById("main").getBoundingClientRect().width;
+          const next = Math.min(Math.max(startW + e.clientX - startX, 260), maxW - 300);
+          lp.style.width = next + "px";
+          editor.refresh();
+        });
+        document.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging = false;
+          rh.classList.remove("drag");
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        });
+
+        // Pyodide loads asynchronously; offline it never arrives, so stop
+        // waiting and say so instead of leaving the buttons greyed out.
+        const started = Date.now();
+        (function waitForRuntime() {
+          if (document.body.dataset.pyverseReady === "1") {
+            sdot.className = "sdot ready";
+            stxt.textContent = "PyScript ready";
+            setBusy(false);
+            return;
+          }
+          if (Date.now() - started > 45000) {
+            sdot.className = "sdot failed";
+            stxt.textContent = "Python runtime failed to load";
+            outEl.innerHTML = '<span class="tr">The Pyodide runtime could not be downloaded. Check your connection and reload the page.</span>';
+            return;
+          }
+          setTimeout(waitForRuntime, 200);
+        })();
       })();
-    })();
-  </script>
-{% endblock inline_javascript %}
+    </script>
+  </body>
+</html>

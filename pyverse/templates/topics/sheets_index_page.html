@@ -1,0 +1,55 @@
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+Sheets index (spec §3): curated, ordered paths through the problem set.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+  </head>
+
+  <body class="pe-engine">
+    {% include "practice/includes/engine_header.html" with is_sheets=True header_note=header_note %}
+
+    <div class="pe-page">
+      <div class="pe-path"><a href="/practice/">practice</a><span class="pe-sep">/</span>sheets</div>
+      <h1 class="pe-h1">{{ page.title }}</h1>
+      {% if page.intro %}<div class="pe-sub">{{ page.intro|richtext }}</div>{% endif %}
+
+      <div class="pe-cards">
+        {% for sheet in sheets %}
+          <a class="pe-card" href="{{ sheet.url }}" data-progress-scope>
+            {% for problem in sheet.problems %}<span class="pe-hidden" data-slug="{{ problem.slug }}"></span>{% endfor %}
+            <div class="pe-card-head">
+              <span class="pe-card-title">{{ sheet.title }}</span>
+              <span class="pe-ring" data-progress-ring data-label="0%"></span>
+            </div>
+            {% if sheet.description %}
+              <div class="pe-card-note">{{ sheet.description|striptags|truncatechars:120 }}</div>
+            {% endif %}
+            <div class="pe-card-meta">
+              <span>{{ sheet.problem_count }} problem{{ sheet.problem_count|pluralize }}</span>
+              <span>{{ sheet.categories|length }} categor{{ sheet.categories|length|pluralize:"y,ies" }}</span>
+            </div>
+          </a>
+        {% empty %}
+          <p class="pe-empty">No sheets published yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <script src="{% static 'js/pyverse-progress.js' %}"></script>
+    <script src="{% static 'js/practice-browse.js' %}"></script>
+  </body>
+</html>

@@ -9,6 +9,21 @@ from wagtail.fields import StreamField
 from pyverse.taxonomy import Difficulty
 
 
+class Comparator(models.TextChoices):
+    """How a returned value is compared with a test case's expected output.
+
+    A single equality rule does not generalise across problems: Two Sum may
+    return its index pair in either order, float problems need an epsilon, and
+    some answers are only equal structurally. The harness dispatches on this
+    field instead of hardcoding one comparison.
+    """
+
+    EXACT = "exact", "Exact equality"
+    SORTED_LIST = "sorted_list", "Order-independent list"
+    FLOAT_TOLERANCE = "float_tolerance", "Numbers within epsilon"
+    CUSTOM = "custom", "Custom comparator (compare(actual, expected) -> bool)"
+
+
 class TestCaseBlock(blocks.StructBlock):
     input = blocks.TextBlock(
         required=True,
@@ -37,6 +52,57 @@ class TestCaseBlock(blocks.StructBlock):
     class Meta:
         icon = "list-ul"
         label = "Test Case"
+
+
+class ExampleBlock(blocks.StructBlock):
+    input = blocks.TextBlock(
+        required=False,
+        help_text='Arguments as they should be read, e.g. "nums = [2,7,11,15], target = 9".',
+    )
+    output = blocks.TextBlock(
+        required=False,
+        help_text='The value the function should return, e.g. "[0,1]".',
+    )
+    note = blocks.CharBlock(
+        required=False,
+        help_text="Optional one-line explanation shown under the example.",
+    )
+
+    class Meta:
+        icon = "doc-full"
+        label = "Example"
+
+
+class HintBlock(blocks.StructBlock):
+    class Tier(models.TextChoices):
+        NUDGE = "nudge", "1 · Nudge"
+        APPROACH = "approach", "2 · Approach"
+        SOLUTION = "solution", "3 · Near-solution"
+
+    tier = blocks.ChoiceBlock(choices=Tier.choices, default=Tier.NUDGE)
+    text = blocks.RichTextBlock(
+        help_text="Revealed only when the learner asks for this tier.",
+    )
+
+    class Meta:
+        icon = "help"
+        label = "Hint"
+
+
+class EditorialApproachBlock(blocks.StructBlock):
+    name = blocks.CharBlock(help_text='e.g. "Hash map, one pass".')
+    description = blocks.RichTextBlock(required=False)
+    time_complexity = blocks.CharBlock(required=False, label="Time complexity")
+    space_complexity = blocks.CharBlock(required=False, label="Space complexity")
+    is_optimal = blocks.BooleanBlock(
+        required=False,
+        default=False,
+        help_text="Marks this approach as the intended optimal one.",
+    )
+
+    class Meta:
+        icon = "code"
+        label = "Editorial approach"
 
 
 class CodingProblem(ClusterableModel):
@@ -96,6 +162,66 @@ class CodingProblem(ClusterableModel):
             "match the function name used in the starter code."
         ),
     )
+    function_signature = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text=(
+            "Arguments and return type as written in the definition, "
+            'e.g. "(nums: list[int], target: int) -> list[int]".'
+        ),
+    )
+    comparator = models.CharField(
+        max_length=20,
+        choices=Comparator.choices,
+        default=Comparator.EXACT,
+        help_text=(
+            "How a returned value is compared against each test case's "
+            "expected output. Wrong choice = correct solutions marked wrong."
+        ),
+    )
+    custom_comparator_code = models.TextField(
+        blank=True,
+        help_text=(
+            "Only used when the comparator is 'Custom comparator'. Python "
+            "source defining compare(actual, expected) -> bool; it runs in "
+            "the learner's browser next to their own code."
+        ),
+    )
+    examples = StreamField(
+        [("example", ExampleBlock())],
+        use_json_field=True,
+        blank=True,
+        help_text="Worked examples shown in the Description tab.",
+    )
+    constraints = StreamField(
+        [("item", blocks.CharBlock(label="Constraint"))],
+        use_json_field=True,
+        blank=True,
+        help_text="Constraints listed under the examples, e.g. '1 <= nums.length <= 10^4'.",
+    )
+    hint_tiers = StreamField(
+        [("hint", HintBlock())],
+        use_json_field=True,
+        blank=True,
+        help_text=(
+            "Up to three hints, revealed one at a time in the order written. "
+            "Write them nudge → approach → near-solution."
+        ),
+    )
+    editorial_approaches = StreamField(
+        [("approach", EditorialApproachBlock())],
+        use_json_field=True,
+        blank=True,
+        help_text="Editorial tab content: one block per approach, cheapest first.",
+    )
+    solution_code = models.TextField(
+        blank=True,
+        help_text="Reference solution shown in the Solutions tab.",
+    )
+    solution_explanation = RichTextField(
+        blank=True,
+        help_text="Prose that accompanies the reference solution.",
+    )
     starter_code = models.TextField(
         blank=True,
         help_text="Boilerplate/stub code pre-filled into the student's editor when they open this problem.",
@@ -113,9 +239,18 @@ class CodingProblem(ClusterableModel):
         FieldPanel("slug"),
         FieldPanel("difficulty"),
         FieldPanel("description"),
+        FieldPanel("examples"),
+        FieldPanel("constraints"),
         FieldPanel("function_name"),
+        FieldPanel("function_signature"),
         FieldPanel("starter_code"),
+        FieldPanel("comparator"),
+        FieldPanel("custom_comparator_code"),
         FieldPanel("test_cases"),
+        FieldPanel("hint_tiers"),
+        FieldPanel("editorial_approaches"),
+        FieldPanel("solution_code"),
+        FieldPanel("solution_explanation"),
     ]
 
     class Meta:
@@ -169,3 +304,23 @@ class CodingProblem(ClusterableModel):
             }
             for child in self.test_cases
         ]
+
+    def grading_payload(self):
+        """Everything the in-browser harness needs, baked into the page.
+
+        Spec approach A: no runtime fetch — the problem's own static HTML
+        carries its function name, comparator and cases. Custom comparator
+        source travels as a string and is exec'd in the learner's browser,
+        next to their own code, so nothing executes server-side.
+        """
+        return {
+            "fn": self.function_name,
+            "signature": self.function_signature,
+            "comparator": self.comparator,
+            "custom": (
+                self.custom_comparator_code
+                if self.comparator == Comparator.CUSTOM
+                else ""
+            ),
+            "cases": self.test_case_payload(),
+        }
