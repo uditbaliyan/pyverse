@@ -12,6 +12,9 @@ window.PyverseBrowse = (function () {
     topic: "",
     status: "all",
     query: "",
+    companies: "",
+    patterns: "",
+    techniques: "",
     sort: "default",
     asc: true,
   };
@@ -112,6 +115,14 @@ window.PyverseBrowse = (function () {
       );
     });
 
+    // Quizzes are progress too (Quiz Suite): counted separately, because the
+    // challenge breakdown above is per-difficulty.
+    const quizCards = Array.from(document.querySelectorAll('a.pe-card[href^="/practice/quiz/"]'));
+    if (document.getElementById("stat-quizzes")) {
+      set("stat-quizzes", quizCards.filter((card) => card.dataset.status === "solved").length);
+      set("stat-quiz-total", quizCards.length);
+    }
+
     const tracked = rows.filter((r) => r.dataset.status !== "todo").length;
     const cta = document.getElementById("stat-cta");
     if (cta) cta.classList.toggle("pe-hidden", tracked > 0);
@@ -127,10 +138,17 @@ window.PyverseBrowse = (function () {
     }
   }
 
+  function axisValues(row, axis) {
+    return (row.dataset[axis] || "").split(",").filter(Boolean);
+  }
+
   function matches(row) {
     if (state.difficulty.size && !state.difficulty.has(row.dataset.difficulty)) return false;
     if (state.topic && row.dataset.topic !== state.topic) return false;
     if (state.status !== "all" && row.dataset.status !== state.status) return false;
+    if (state.companies && !axisValues(row, "companies").includes(state.companies)) return false;
+    if (state.patterns && !axisValues(row, "patterns").includes(state.patterns)) return false;
+    if (state.techniques && !axisValues(row, "techniques").includes(state.techniques)) return false;
     if (state.query) {
       const haystack = (row.dataset.title + " " + (row.dataset.topic || "")).toLowerCase();
       if (!haystack.includes(state.query.toLowerCase())) return false;
@@ -213,6 +231,19 @@ window.PyverseBrowse = (function () {
       });
     }
 
+    [
+      ["filter-company", "companies"],
+      ["filter-pattern", "patterns"],
+      ["filter-technique", "techniques"],
+    ].forEach(([elementId, axis]) => {
+      const select = document.getElementById(elementId);
+      if (!select) return;
+      select.addEventListener("change", () => {
+        state[axis] = select.value;
+        apply();
+      });
+    });
+
     const search = document.getElementById("filter-q");
     if (search) {
       search.addEventListener("input", () => {
@@ -240,11 +271,16 @@ window.PyverseBrowse = (function () {
         state.topic = "";
         state.status = "all";
         state.query = "";
+        state.companies = "";
+        state.patterns = "";
+        state.techniques = "";
         document
           .querySelectorAll("[data-difficulty-chip]")
           .forEach((chip) => chip.setAttribute("aria-pressed", "false"));
-        if (topicFilter) topicFilter.value = "";
-        if (statusFilter) statusFilter.value = "all";
+        ["filter-topic", "filter-status", "filter-company", "filter-pattern", "filter-technique"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = id === "filter-status" ? "all" : "";
+        });
         if (search) search.value = "";
         apply();
       });

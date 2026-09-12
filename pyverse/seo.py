@@ -117,31 +117,46 @@ def _first_text(*candidates):
 
 
 # ── Per-entity metadata ─────────────────────────────────────────────────
-def _description(page, problem=None, request=None):
-    if problem is not None:
-        explicit = _plain(problem.description)
-        if explicit:
-            return _clamp(explicit)
+def _problem_description(problem):
+    return _clamp(_plain(problem.description)) if problem is not None else ""
 
-    if page is not None:
-        explicit = _plain(getattr(page, "search_description", ""))
-        if explicit:
-            return _clamp(explicit)
 
-        for attr in _DESCRIPTION_ATTRS:
-            if attr == "search_description":
-                continue
-            if hasattr(page, attr):
-                text = _plain(getattr(page, attr))
-                if text:
-                    return _clamp(text)
+def _quiz_description(quiz):
+    if quiz is None:
+        return ""
+    text = _plain(quiz.instructions) or _plain(
+        f"{quiz.question_count} question quiz",
+    )
+    return _clamp(text)
 
-        stream_text = _stream_text(getattr(page, "body", None))
-        if stream_text:
-            return _clamp(stream_text)
 
-    # Site-wide fallback, editable in Wagtail under Settings → Site settings.
-    return _clamp(getattr(_site_settings(request), "footer_tagline", ""))
+def _page_description(page):
+    if page is None:
+        return ""
+    explicit = _plain(getattr(page, "search_description", ""))
+    if explicit:
+        return _clamp(explicit)
+
+    for attr in _DESCRIPTION_ATTRS:
+        if attr == "search_description":
+            continue
+        if hasattr(page, attr):
+            text = _plain(getattr(page, attr))
+            if text:
+                return _clamp(text)
+
+    return _clamp(_stream_text(getattr(page, "body", None)))
+
+
+def _description(page=None, problem=None, request=None, quiz=None):
+    """First authored description that exists, then the site-wide fallback."""
+    return (
+        _problem_description(problem)
+        or _quiz_description(quiz)
+        or _page_description(page)
+        # Editable in Wagtail under Settings → Site settings.
+        or _clamp(getattr(_site_settings(request), "footer_tagline", ""))
+    )
 
 
 def _site_settings(request):
@@ -187,11 +202,13 @@ def _social_image(page, problem, request, base):
     return _image_url(_site_settings(request).default_og_image, base)
 
 
-def _title(page, problem, site_name, override=None):
+def _title(page, problem, site_name, override=None, quiz=None):
     if override:
         title = override
     elif problem is not None:
         title = f"{problem.title} · {page.title}" if page is not None else problem.title
+    elif quiz is not None:
+        title = f"{quiz.title} · {page.title}" if page is not None else quiz.title
     elif page is not None:
         title = _first_text(getattr(page, "seo_title", ""), page.title)
     else:
@@ -202,13 +219,13 @@ def _title(page, problem, site_name, override=None):
 
 
 # ── Structured data ─────────────────────────────────────────────────────
-def _json_ld(page, problem, canonical, request=None, site_name=None):
+def _json_ld(page, problem, canonical, request=None, quiz=None):
     """Course / BlogPosting / LearningResource, per spec §15.3."""
     from pyverse.lms.models import CoursePage
     from pyverse.puput.models import EntryPage
 
     origin = base_url(request)
-    site_name = site_name or getattr(settings, "WAGTAIL_SITE_NAME", "PyVerse")
+    site_name = getattr(settings, "WAGTAIL_SITE_NAME", "PyVerse")
     publisher = {"@type": "Organization", "name": site_name, "url": origin}
 
     if problem is not None:
@@ -220,6 +237,19 @@ def _json_ld(page, problem, canonical, request=None, site_name=None):
             "url": canonical,
             "learningResourceType": "coding challenge",
             "educationalLevel": problem.get_difficulty_display(),
+            "isAccessibleForFree": True,
+            "inLanguage": "en",
+            "provider": publisher,
+        }
+    elif quiz is not None:
+        payload = {
+            "@context": "https://schema.org",
+            "@type": "LearningResource",
+            "name": quiz.title,
+            "description": _description(page, request=request, quiz=quiz),
+            "url": canonical,
+            "learningResourceType": "quiz",
+            "educationalLevel": quiz.get_difficulty_display(),
             "isAccessibleForFree": True,
             "inLanguage": "en",
             "provider": publisher,
@@ -272,17 +302,24 @@ def _iso(value):
 
 
 # ── The one entry point templates use ───────────────────────────────────
-def meta_for(request, page=None, problem=None, title=None, description=None):
+def meta_for(request, page=None, problem=None, quiz=None, overrides=None):
     """Everything the `<head>` needs, derived from whatever context exists.
 
-    `title` / `description` are explicit overrides for views that render no
+    `overrides` carries an explicit title/description for views that render no
     Wagtail page (a plain TemplateView), so they can still get a canonical URL
     and social card without a Page row behind them.
     """
+    overrides = overrides or {}
+    title = overrides.get("title")
+    description = overrides.get("description")
     site_name = getattr(settings, "WAGTAIL_SITE_NAME", "PyVerse")
     origin = base_url(request)
 
-    if page is not None:
+    # Routed sub-pages (challenges, quizzes) are canonical at their own path,
+    # not at the hub page that owns the route — check them first.
+    if request is not None and (problem is not None or quiz is not None):
+        canonical = canonical_for(request, routed_path=request.path)
+    elif page is not None:
         canonical = canonical_for(request, page=page)
     elif request is not None and (title or description):
         # A non-page view that declared its own title/description (plain
@@ -298,17 +335,21 @@ def meta_for(request, page=None, problem=None, title=None, description=None):
     # unmatched URL indistinguishable from a matched route that 404s) the meta
     # tag is omitted: the HTTP status code is what actually governs crawlers,
     # and a wrong robots directive is worse than none.
-    robots = "index, follow" if (page is not None or problem is not None) else ""
+    robots = (
+        "index, follow"
+        if (page is not None or problem is not None or quiz is not None)
+        else ""
+    )
 
     return {
-        "title": _title(page, problem, site_name, override=title),
-        "description": description or _description(page, problem, request) or "",
+        "title": _title(page, problem, site_name, override=title, quiz=quiz),
+        "description": description or _description(page, problem, request, quiz) or "",
         "canonical": canonical,
         "og_type": "article" if _is_blog_entry(page) else "website",
         "image": _social_image(page, problem, request, origin),
         "site_name": site_name,
         "robots": robots,
-        "json_ld": _json_ld(page, problem, canonical, request, site_name),
+        "json_ld": _json_ld(page, problem, canonical, request, quiz),
     }
 
 
@@ -367,6 +408,17 @@ def live_problems():
     )
 
 
+def live_quizzes():
+    """Quizzes reachable at a canonical quiz URL."""
+    from pyverse.quiz.models import Quiz
+
+    return (
+        Quiz.objects.filter(topic__isnull=False, topic__live=True)
+        .select_related("topic")
+        .order_by("title")
+    )
+
+
 # ── sitemap.xml ─────────────────────────────────────────────────────────
 class _CanonicalOrigin:
     """Pin <loc> to the same origin the canonical tags use."""
@@ -400,8 +452,20 @@ class CodingProblemSitemap(_CanonicalOrigin, Sitemap):
         return obj.get_absolute_url()
 
 
+class QuizSitemap(_CanonicalOrigin, Sitemap):
+    def items(self):
+        return live_quizzes()
+
+    def lastmod(self, obj):
+        return obj.topic.last_published_at
+
+    def location(self, obj):
+        return obj.get_absolute_url()
+
+
 # What `/sitemap.xml` serves, and the same set the static export walks.
 SITEMAPS = {
     "pages": LivePageSitemap,
     "problems": CodingProblemSitemap,
+    "quizzes": QuizSitemap,
 }

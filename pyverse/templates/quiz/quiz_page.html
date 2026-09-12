@@ -1,0 +1,238 @@
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+Quiz page (Quiz Suite). Pure client-side grading — no Python runtime, matching
+the runtime table in the source spec §18: only challenges and labs need
+Pyodide, quizzes are plain JS.
+
+The questions with their correct answers are baked into this page, which is
+inherent to a static site: grading happens in the learner's browser, and the
+attempt is written to the same IndexedDB store challenges use, so quiz progress
+shows up on the Landing, Sheets and Tracks.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+    <style>
+      .qz-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
+      .qz-q { font-size: 15px; line-height: 1.7; color: var(--text0); white-space: pre-wrap; margin-bottom: 14px; }
+      .qz-code { font-family: var(--mono); font-size: 12.5px; color: #a8b5c8; background: var(--bg0); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; white-space: pre; overflow-x: auto; margin-bottom: 14px; }
+      .qz-choices { display: flex; flex-direction: column; gap: 8px; }
+      .qz-choice {
+        text-align: left; padding: 11px 14px; border-radius: 8px; cursor: pointer;
+        border: 1px solid var(--border); background: var(--bg1); color: var(--text1);
+        font-family: var(--sans); font-size: 13.5px; transition: all 0.12s;
+      }
+      .qz-choice:hover:not(:disabled) { border-color: var(--border-hi); color: var(--text0); }
+      .qz-choice:disabled { cursor: default; }
+      .qz-choice.correct { border-color: rgba(61, 214, 140, 0.45); background: var(--green-dim); color: var(--green); }
+      .qz-choice.wrong { border-color: rgba(242, 109, 109, 0.45); background: var(--red-dim); color: var(--red); }
+      .qz-explanation { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--bg1); border: 1px solid var(--border); color: var(--text1); font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+      .qz-actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+      .qz-result { text-align: center; padding: 26px 20px; }
+      .qz-score { font-family: var(--mono); font-size: 40px; font-weight: 700; }
+      .qz-verdict { font-size: 14px; margin-top: 6px; }
+    </style>
+  </head>
+
+  <body
+    class="pe-engine"
+    data-quiz-slug="{{ quiz.slug }}"
+    data-quiz-title="{{ quiz.title }}"
+  >
+    {% include "practice/includes/engine_header.html" with header_note=header_note %}
+
+    <div class="pe-page" style="max-width: 760px">
+      <div class="pe-path">
+        <a href="/practice/">practice</a><span class="pe-sep">/</span>
+        <span>quiz</span><span class="pe-sep">/</span>
+        <span>{{ quiz.slug }}</span>
+      </div>
+
+      <h1 class="pe-h1">{{ quiz.title }}</h1>
+      <div class="pe-card-meta" style="margin-bottom: 14px">
+        <span class="pe-badge diff-{{ quiz.difficulty }}">{{ quiz.get_difficulty_display }}</span>
+        <span>{{ quiz.question_count }} question{{ quiz.question_count|pluralize }}</span>
+        <span>pass {{ quiz.pass_percentage }}%</span>
+        {% if topic %}<a class="pe-tag" href="{{ topic.url }}">{{ topic.title }}</a>{% endif %}
+      </div>
+
+      {% if quiz.instructions %}
+        <div class="pe-sub">{{ quiz.instructions }}</div>
+      {% endif %}
+
+      <div class="pe-bar" style="margin-bottom: 16px"><span id="qz-progress" style="width: 0%"></span></div>
+      <div class="pe-card-meta" style="margin-bottom: 14px">
+        <span id="qz-counter">Question 1</span>
+        <span id="qz-recorded"></span>
+      </div>
+
+      <div class="qz-card" id="qz-stage"></div>
+    </div>
+
+    {{ payload|json_script:"quiz-payload" }}
+    <script src="{% static 'js/pyverse-progress.js' %}"></script>
+    <script>
+      (function () {
+        const payload = JSON.parse(document.getElementById("quiz-payload").textContent);
+        if (payload.randomize_questions) {
+          payload.questions = payload.questions
+            .map((question) => ({ question, order: Math.random() }))
+            .sort((a, b) => a.order - b.order)
+            .map((entry) => entry.question);
+        }
+        const stage = document.getElementById("qz-stage");
+        const counter = document.getElementById("qz-counter");
+        const progress = document.getElementById("qz-progress");
+        const recorded = document.getElementById("qz-recorded");
+
+        let index = 0;
+        let correct = 0;
+        let answered = false;
+
+        function el(tag, className, text) {
+          const node = document.createElement(tag);
+          if (className) node.className = className;
+          if (text !== undefined) node.textContent = text;
+          return node;
+        }
+
+        function finish() {
+          const total = payload.questions.length;
+          const pct = total ? Math.round((correct / total) * 100) : 0;
+          const passed = pct >= payload.pass_percentage;
+
+          progress.style.width = "100%";
+          counter.textContent = "Finished";
+          stage.innerHTML = "";
+
+          const card = el("div", "qz-result");
+          card.appendChild(el("div", "qz-score", correct + "/" + total));
+          const verdict = el("div", "qz-verdict");
+          verdict.textContent = passed
+            ? "Passed — " + pct + "% (needs " + payload.pass_percentage + "%)"
+            : "Not passed — " + pct + "% (needs " + payload.pass_percentage + "%)";
+          verdict.style.color = passed ? "var(--green)" : "var(--red)";
+          card.appendChild(verdict);
+
+          const actions = el("div", "qz-actions");
+          actions.style.justifyContent = "center";
+          const retry = el("button", "pe-btn", "Retry quiz");
+          retry.type = "button";
+          retry.addEventListener("click", () => {
+            index = 0;
+            correct = 0;
+            render();
+          });
+          actions.appendChild(retry);
+          const back = el("a", "pe-btn", "Back to problems");
+          back.href = "/practice/";
+          actions.appendChild(back);
+          card.appendChild(actions);
+          stage.appendChild(card);
+
+          if (window.PyverseProgress) {
+            window.PyverseProgress.recordSubmission({
+              slug: document.body.dataset.quizSlug,
+              title: document.body.dataset.quizTitle,
+              status: passed ? "ACCEPTED" : "WRONG_ANSWER",
+              latency: 0,
+            }).then(() => {
+              recorded.textContent = "attempt recorded";
+            }).catch(() => {});
+          }
+        }
+
+        function grade(isCorrect, chosen, correctChoice) {
+          if (answered) return;
+          answered = true;
+          const question = payload.questions[index];
+
+          if (isCorrect) correct += 1;
+          chosen.classList.add(isCorrect ? "correct" : "wrong");
+          if (!isCorrect && correctChoice) correctChoice.classList.add("correct");
+
+          const explanation = el("div", "qz-explanation");
+          explanation.textContent =
+            question.explanation || (isCorrect ? "Correct." : "Not quite.");
+          stage.appendChild(explanation);
+
+          const actions = el("div", "qz-actions");
+          const last = index === payload.questions.length - 1;
+          const next = el("button", "pe-btn primary", last ? "See result" : "Next question");
+          next.type = "button";
+          next.addEventListener("click", () => {
+            if (last) finish();
+            else {
+              index += 1;
+              render();
+            }
+          });
+          actions.appendChild(next);
+          stage.appendChild(actions);
+        }
+
+        function questionButtons(question) {
+          const options =
+            question.type === "true_false"
+              ? [true, false]
+              : question.choices.map((choice) => choice.text);
+          const isCorrect = (position) =>
+            question.type === "true_false"
+              ? question.correct_bool === options[position]
+              : question.choices[position].is_correct;
+
+          const buttons = options.map((label) => {
+            const button = el("button", "qz-choice", label === true ? "True" : label === false ? "False" : label);
+            button.type = "button";
+            return button;
+          });
+          const correctIndex = options.findIndex((_, position) => isCorrect(position));
+
+          buttons.forEach((button, position) => {
+            button.addEventListener("click", () =>
+              grade(isCorrect(position), button, buttons[correctIndex] || null),
+            );
+          });
+          return buttons;
+        }
+
+        function render() {
+          answered = false;
+          stage.innerHTML = "";
+
+          const question = payload.questions[index];
+          const total = payload.questions.length;
+          counter.textContent = "Question " + (index + 1) + " of " + total;
+          progress.style.width = Math.round((index / total) * 100) + "%";
+
+          const card = el("div");
+          card.appendChild(el("div", "qz-q", question.text));
+          if (question.code_snippet) card.appendChild(el("pre", "qz-code", question.code_snippet));
+
+          const choices = el("div", "qz-choices");
+          questionButtons(question).forEach((button) => choices.appendChild(button));
+          card.appendChild(choices);
+          stage.appendChild(card);
+        }
+
+        if (!payload.questions.length) {
+          stage.appendChild(el("p", "pe-empty", "This quiz has no questions yet."));
+        } else {
+          render();
+        }
+      })();
+    </script>
+  </body>
+</html>

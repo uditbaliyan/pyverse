@@ -2,9 +2,24 @@
 from django.db import models
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
-from wagtail.admin.panels import FieldPanel, InlinePanel
+from taggit.managers import TaggableManager
+from taggit.models import TaggedItemBase
+from wagtail.admin.panels import FieldPanel
+from wagtail.admin.panels import InlinePanel
 from wagtail.models import Orderable
 from wagtail.snippets.models import register_snippet
+
+from pyverse.taxonomy import Difficulty
+
+
+class QuizTechnique(TaggedItemBase):
+    """Technique tags for quizzes (spec §5: Technique covers quiz items)."""
+
+    content_object = ParentalKey(
+        "quiz.Quiz",
+        related_name="tagged_techniques",
+        on_delete=models.CASCADE,
+    )
 
 
 class QuestionType(models.TextChoices):
@@ -23,29 +38,65 @@ class Quiz(ClusterableModel):
         choices=QuestionType.choices,
         default=QuestionType.TRUE_FALSE,
     )
+    difficulty = models.CharField(
+        max_length=10,
+        choices=Difficulty.choices,
+        default=Difficulty.EASY,
+        help_text="Easy / Medium / Hard — the same axis challenges use.",
+    )
 
-    # ← ADD THIS
     topic = models.ForeignKey(
         "topics.PracticeTopicPage",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="quizzes",  # different related_name than coding_problems
-        help_text=("The practice topic this quiz belongs to."),
+        help_text=(
+            "The practice topic this quiz belongs to. Without one it is "
+            "unreachable from any Track."
+        ),
     )
 
-    # ... rest of your model ...
+    techniques = TaggableManager(
+        through=QuizTechnique,
+        related_name="quiz_techniques",
+        blank=True,
+        verbose_name="Techniques",
+        help_text=(
+            "Python idioms this quiz drills (spec §5: Technique applies to quiz "
+            "items and challenges)."
+        ),
+    )
+
     panels = [
         FieldPanel("title"),
         FieldPanel("slug"),
+        FieldPanel("topic"),
+        FieldPanel("difficulty"),
         FieldPanel("instructions"),
         FieldPanel("pass_percentage"),
         FieldPanel("randomize_questions"),
+        FieldPanel("techniques"),
         InlinePanel("questions", label="Questions"),
     ]
 
+    class Meta:
+        verbose_name_plural = "quizzes"
+
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        """Flat, like challenge pages: /practice/quiz/<slug>/."""
+        return f"/practice/quiz/{self.slug}/"
+
+    @property
+    def question_count(self):
+        return self.questions.count()
+
+    @property
+    def total_points(self):
+        return sum(question.points for question in self.questions.all())
 
     def to_json_dict(self):
         return {
@@ -61,7 +112,7 @@ class Quiz(ClusterableModel):
 class Question(Orderable, ClusterableModel):
     quiz = ParentalKey(Quiz, related_name="questions", on_delete=models.CASCADE)
     question_type = models.CharField(
-        max_length=20, choices=QuestionType.choices, default=QuestionType.MCQ
+        max_length=20, choices=QuestionType.choices, default=QuestionType.MCQ,
     )
     text = models.TextField()
     code_snippet = models.TextField(blank=True)

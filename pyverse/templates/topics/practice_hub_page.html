@@ -35,13 +35,18 @@ until those tag axes go live.
       {# ── Stats strip (IndexedDB-backed) ───────────────────────────── #}
       <div class="pe-stats" data-progress-scope>
         <div class="pe-stat">
-          <div class="pe-stat-lbl">Solved</div>
+          <div class="pe-stat-lbl">Problems solved</div>
           <div class="pe-stat-val green" id="stat-solved">0</div>
           <div class="pe-stat-note">
             <span id="stat-easy">0</span> easy ·
             <span id="stat-medium">0</span> medium ·
             <span id="stat-hard">0</span> hard
           </div>
+        </div>
+        <div class="pe-stat">
+          <div class="pe-stat-lbl">Quizzes passed</div>
+          <div class="pe-stat-val accent" id="stat-quizzes">0</div>
+          <div class="pe-stat-note">of <span id="stat-quiz-total">0</span> available</div>
         </div>
         <div class="pe-stat">
           <div class="pe-stat-lbl">Attempted</div>
@@ -96,6 +101,33 @@ until those tag axes go live.
           <label for="filter-q">Search</label>
           <input class="pe-input" id="filter-q" type="search" placeholder="title or topic" />
         </div>
+        {% if company_options %}
+          <div class="pe-field">
+            <label for="filter-company">Company</label>
+            <select class="pe-select" id="filter-company">
+              <option value="">Any company</option>
+              {% for company in company_options %}<option value="{{ company }}">{{ company }}</option>{% endfor %}
+            </select>
+          </div>
+        {% endif %}
+        {% if pattern_options %}
+          <div class="pe-field">
+            <label for="filter-pattern">Pattern</label>
+            <select class="pe-select" id="filter-pattern">
+              <option value="">Any pattern</option>
+              {% for pattern in pattern_options %}<option value="{{ pattern }}">{{ pattern }}</option>{% endfor %}
+            </select>
+          </div>
+        {% endif %}
+        {% if technique_options %}
+          <div class="pe-field">
+            <label for="filter-technique">Technique</label>
+            <select class="pe-select" id="filter-technique">
+              <option value="">Any technique</option>
+              {% for technique in technique_options %}<option value="{{ technique }}">{{ technique }}</option>{% endfor %}
+            </select>
+          </div>
+        {% endif %}
         <button class="pe-clear" type="button" id="filter-clear">Reset</button>
       </div>
 
@@ -119,6 +151,9 @@ until those tag axes go live.
                 data-title="{{ problem.title }}"
                 data-difficulty="{{ problem.difficulty }}"
                 data-topic="{{ problem.topic.slug }}"
+                data-companies="{{ problem.company_names }}"
+                data-patterns="{{ problem.pattern_names }}"
+                data-techniques="{{ problem.technique_names }}"
               >
                 <td class="pe-status" data-status-icon data-status="todo">○</td>
                 <td class="pe-num">{{ forloop.counter }}</td>
@@ -158,6 +193,15 @@ until those tag axes go live.
           <p class="pe-empty">No tracks published yet.</p>
         {% endfor %}
       </div>
+      {% if quizzes %}
+        <h2 class="pe-h1" id="quizzes" style="font-size: 18px; margin-top: 34px">Quizzes</h2>
+        <p class="pe-sub">Quick checks on the same topics — graded in your browser, progress shared with challenges.</p>
+        <div class="pe-cards" data-progress-scope>
+          {% for quiz in quizzes %}
+            {% include "quiz/includes/quiz_card.html" with quiz=quiz %}
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
 
     <script src="{% static 'js/pyverse-progress.js' %}"></script>

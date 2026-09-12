@@ -1,19 +1,21 @@
 from django.db import models
+from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.contrib.routable_page.models import RoutablePageMixin
+from wagtail.contrib.routable_page.models import route
 from wagtail.fields import RichTextField
 from wagtail.fields import StreamField
 from wagtail.models import Page
 from wagtail.snippets.blocks import SnippetChooserBlock
-from wagtail.url_routing import RouteResult
 
 
-class PracticeHubPage(Page):
+class PracticeHubPage(RoutablePageMixin, Page):
     """
     Root landing page for the Free Practice Ecosystem.
-    Every practice topic hangs off this single page.
+    Every practice topic hangs off this single page — and, since the flat URL
+    scheme, so do the challenge pages themselves: `/practice/problem/<slug>/`.
     """
 
     max_count = 1
@@ -34,6 +36,49 @@ class PracticeHubPage(Page):
     class Meta:
         verbose_name = "Practice Hub Page"
 
+    # ------------------------------------------------------------------
+    # Flat challenge URLs — /practice/problem/<slug>/
+    # ------------------------------------------------------------------
+    @route(r"problem/(?P<slug>[\w-]+)/$")
+    def problem(self, request, slug):
+        """Serve one coding problem at its flat canonical URL.
+
+        Topic child pages still resolve through the normal page walk: this
+        pattern only matches a `problem/` prefix, so nothing else is shadowed.
+        The nested `/practice/<topic>/<slug>/` paths that used to be canonical
+        are kept alive as permanent redirects.
+        """
+        from pyverse.coding.models import CodingProblem
+
+        problem = get_object_or_404(CodingProblem, slug=slug)
+        return TemplateResponse(
+            request,
+            "coding/problem_page.html",
+            {
+                "page": self,
+                "problem": problem,
+                "topic": problem.topic,
+                "payload": problem.grading_payload(),
+            },
+        )
+
+    @route(r"quiz/(?P<slug>[\w-]+)/$")
+    def quiz(self, request, slug):
+        """Serve one quiz at its flat URL — same scheme as challenge pages."""
+        from pyverse.quiz.models import Quiz
+
+        quiz = get_object_or_404(Quiz, slug=slug)
+        return TemplateResponse(
+            request,
+            "quiz/quiz_page.html",
+            {
+                "page": self,
+                "quiz": quiz,
+                "topic": quiz.topic,
+                "payload": quiz.to_json_dict(),
+            },
+        )
+
     def get_context(self, request):
         context = super().get_context(request)
 
@@ -47,6 +92,18 @@ class PracticeHubPage(Page):
             CodingProblem.objects.filter(topic__isnull=False, topic__live=True)
             .select_related("topic")
             .order_by(DIFFICULTY_RANK, "title")
+        )
+        # Filter controls are rendered only for axes that actually have values
+        # (spec §5 phasing: no empty Company/Pattern/Technique dropdowns).
+        problems = list(context["problems"])
+        context["company_options"] = sorted(
+            {name for problem in problems for name in problem.companies.names()},
+        )
+        context["pattern_options"] = sorted(
+            {name for problem in problems for name in problem.patterns.names()},
+        )
+        context["technique_options"] = sorted(
+            {name for problem in problems for name in problem.techniques.names()},
         )
         context["practice_topics"] = (
             PracticeTopicPage.objects.live().public().order_by("title")
@@ -64,6 +121,16 @@ class PracticeHubPage(Page):
             }
             for topic in PracticeTopicPage.objects.live().public().order_by("title")
         ]
+        # Quizzes are a first-class Practice surface too (Quiz Suite): listed
+        # here and on Tracks, graded client-side, and recorded in the same
+        # progress store as challenges.
+        from pyverse.quiz.models import Quiz
+
+        context["quizzes"] = (
+            Quiz.objects.filter(topic__isnull=False, topic__live=True)
+            .select_related("topic")
+            .order_by("title")
+        )
         context["top_level_topics"] = (
             PracticeTopicPage.objects.child_of(self).live().order_by("title")
         )
@@ -231,46 +298,6 @@ class PracticeTopicPage(RoutablePageMixin, Page):
             for a in self.get_ancestors().specific()
             if isinstance(a, self._practice_types())
         ]
-
-    # ------------------------------------------------------------------
-    # Challenge pages — /practice/<topic>/<slug>/
-    # ------------------------------------------------------------------
-    def route(self, request, path_components):
-        """Resolve a single unmatched segment as a coding problem's slug.
-
-        Child topics are real Wagtail pages whose slugs are equally
-        slug-shaped, so they must win: the problem lookup only runs when no
-        child page claims that segment. Anything longer than one segment
-        falls through to Wagtail's own page walk.
-        """
-        if len(path_components) == 1:
-            slug = path_components[0]
-            if not self.get_children().filter(slug=slug).exists():
-                from pyverse.coding.models import CodingProblem
-
-                problem = CodingProblem.objects.filter(topic=self, slug=slug).first()
-                if problem is not None:
-                    return RouteResult(
-                        self, args=(self.serve_problem, (problem,), {}),
-                    )
-        return super().route(request, path_components)
-
-    def serve_problem(self, request, problem):
-        """Render one coding problem at its canonical URL.
-
-        Only problems whose *owning* topic is this page resolve here, so a
-        problem linked from ancestor topics still has exactly one URL.
-        """
-        return TemplateResponse(
-            request,
-            "coding/problem_page.html",
-            {
-                "page": self,
-                "problem": problem,
-                "practice_breadcrumb": self.get_practice_breadcrumb(),
-                "payload": problem.grading_payload(),
-            },
-        )
 
     # ------------------------------------------------------------------
     # Context

@@ -253,9 +253,9 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
       <header class="header">
         <div class="logo">
           <div class="logo-icon">L</div>
-          LeetWasm <span class="logo-sep">/ {{ page.title }}</span>
-          <a class="crumb" href="{{ page.url }}">&larr; all problems</a>
-          <a class="crumb" href="/practice/">practice</a>
+          LeetWasm <span class="logo-sep">/ {{ problem.slug }}</span>
+          <a class="crumb" href="/practice/">&larr; all problems</a>
+          {% if topic %}<a class="crumb" href="{{ topic.url }}">{{ topic.title }}</a>{% endif %}
         </div>
         <div class="status-pill">
           <span class="sdot loading" id="sdot"></span>

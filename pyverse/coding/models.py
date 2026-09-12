@@ -1,12 +1,42 @@
 from django.db import models
 from django.utils.text import slugify
+from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
+from taggit.managers import TaggableManager
+from taggit.models import TaggedItemBase
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.fields import RichTextField
 from wagtail.fields import StreamField
 
 from pyverse.taxonomy import Difficulty
+
+
+# Each axis needs its own through model: taggit refuses two TaggableManagers
+# sharing one, and separate tables keep company/pattern/technique tags from
+# being conflated in queries.
+class ProblemCompany(TaggedItemBase):
+    content_object = ParentalKey(
+        "coding.CodingProblem",
+        related_name="tagged_companies",
+        on_delete=models.CASCADE,
+    )
+
+
+class ProblemPattern(TaggedItemBase):
+    content_object = ParentalKey(
+        "coding.CodingProblem",
+        related_name="tagged_patterns",
+        on_delete=models.CASCADE,
+    )
+
+
+class ProblemTechnique(TaggedItemBase):
+    content_object = ParentalKey(
+        "coding.CodingProblem",
+        related_name="tagged_techniques",
+        on_delete=models.CASCADE,
+    )
 
 
 class Comparator(models.TextChoices):
@@ -226,6 +256,39 @@ class CodingProblem(ClusterableModel):
         blank=True,
         help_text="Boilerplate/stub code pre-filled into the student's editor when they open this problem.",
     )
+    # Tag axes (spec §5). Company and Pattern are interview-prep browsing;
+    # Technique is idiomatic-Python browsing. They are taggit tags rather than
+    # choice fields because a problem genuinely carries several of each, and a
+    # closed vocabulary would need a migration per new pattern.
+    companies = TaggableManager(
+        through=ProblemCompany,
+        related_name="problem_companies",
+        blank=True,
+        verbose_name="Companies",
+        help_text=(
+            "Interview-style relevance (e.g. Google, Amazon, Startup). "
+            "Adds a Company filter to the Practice landing."
+        ),
+    )
+    patterns = TaggableManager(
+        through=ProblemPattern,
+        related_name="problem_patterns",
+        blank=True,
+        verbose_name="Patterns",
+        help_text=(
+            "Algorithmic approach (e.g. Two Pointers, Sliding Window, DFS/BFS)."
+        ),
+    )
+    techniques = TaggableManager(
+        through=ProblemTechnique,
+        related_name="problem_techniques",
+        blank=True,
+        verbose_name="Techniques",
+        help_text=(
+            "Python-level idioms this problem exercises (e.g. Enumeration, "
+            "Dict Comprehension)."
+        ),
+    )
     test_cases = StreamField(
         [("test_case", TestCaseBlock())],
         use_json_field=True,
@@ -251,6 +314,9 @@ class CodingProblem(ClusterableModel):
         FieldPanel("editorial_approaches"),
         FieldPanel("solution_code"),
         FieldPanel("solution_explanation"),
+        FieldPanel("companies"),
+        FieldPanel("patterns"),
+        FieldPanel("techniques"),
     ]
 
     class Meta:
@@ -275,19 +341,31 @@ class CodingProblem(ClusterableModel):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        """Canonical URL: nested under this problem's owning topic.
+        """Canonical URL: flat, under the Practice hub.
 
-        One URL per problem, because `topic` is a single FK — browsing an
-        ancestor topic links here rather than minting a second path.
+        Was `/practice/<topic>/<slug>/`; every published nested URL is kept
+        alive by a permanent redirect (see the `coding` data migration), so the
+        move costs no inbound links.
         """
-        topic = self.topic
-        if topic is None or not topic.live:
-            return ""
-        return f"{topic.url}{self.slug}/"
+        return f"/practice/problem/{self.slug}/"
 
     @property
     def visible_test_cases(self):
         return [case for case in self.test_case_payload() if not case["hidden"]]
+
+    # Tag axes, flattened for templates and the client-side filters. Sorted so
+    # the emitted attribute is stable between renders.
+    @property
+    def company_names(self):
+        return ",".join(sorted(self.companies.names()))
+
+    @property
+    def pattern_names(self):
+        return ",".join(sorted(self.patterns.names()))
+
+    @property
+    def technique_names(self):
+        return ",".join(sorted(self.techniques.names()))
 
     def test_case_payload(self):
         """Test cases as plain JSON-safe dicts, for the client-side grader.
