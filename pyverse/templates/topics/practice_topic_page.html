@@ -7,7 +7,6 @@
 
     {# ── Breadcrumb as file path ──────────────────────────────────── #}
     <div class="pe-path">
-      <a href="/">practice</a>
       {% for crumb in practice_breadcrumb %}
         <span class="pe-sep">/</span>
         <a href="{{ crumb.url }}">{{ crumb.slug }}</a>
@@ -40,7 +39,8 @@
     {# ── Tab bar ──────────────────────────────────────────────────── #}
     <div class="pe-tabbar">
       <a
-        class="pe-tab pe-tab--coding{% if active_type == 'coding' %} pe-tab--active{% endif %}"
+        class="pe-tab pe-tab--coding"
+        {% if active_type == 'coding' %}data-active="true"{% endif %}
         href="?type=coding"
       >
         <span class="pe-dot"></span>
@@ -48,7 +48,8 @@
         <span class="pe-count">{{ coding_problems_page.paginator.count }}</span>
       </a>
       <a
-        class="pe-tab pe-tab--quiz{% if active_type == 'quiz' %} pe-tab--active{% endif %}"
+        class="pe-tab pe-tab--quiz"
+        {% if active_type == 'quiz' %}data-active="true"{% endif %}
         href="?type=quiz"
       >
         <span class="pe-dot"></span>

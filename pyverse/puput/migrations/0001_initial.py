@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.db import models, migrations
 import wagtail.fields
-import puput.routes
+import pyverse.puput.routes
 import datetime
 import django.db.models.deletion
 import modelcluster.contrib.taggit
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Blog',
             },
-            bases=(puput.routes.BlogRoutes, 'wagtailcore.page'),
+            bases=(pyverse.puput.routes.BlogRoutes, 'wagtailcore.page'),
         ),
         migrations.CreateModel(
             name='Category',

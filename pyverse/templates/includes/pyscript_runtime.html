@@ -1,0 +1,162 @@
+{% comment %}
+Canonical client-side Python runtime + grading harness (spec §12, §18).
+
+One PyScript version for the whole site, pinned here and nowhere else:
+2025.7.3 — the version the shared grader prototype (`web_grader.html`) runs
+on. Do not add a second runtime tag or a second version; extend this file.
+
+Contract for any page that includes this partial:
+  * Render a `<script type="application/json" id="pyverse-payload">` element
+    with `{"fn": "<function name>", "cases": [{"input": "...", "expected":
+    "...", "hidden": false}, ...]}` — `json_script` is the way to emit it.
+  * Set `window._pendingCode` (the student's source) before calling
+    `window._pyExec(isSubmit, customJson)`.
+  * `customJson` is `{"args": "<python source for the argument list>"}` for a
+    single ad-hoc run; `"{}"` is fine when submitting.
+  * `_pyExec` returns a Python tuple, so JS reads `[0]` (result JSON) and
+    `[1]` (captured stdout log).
+  * Poll `document.body.dataset.pyverseReady === "1"` before enabling the
+    Run/Submit buttons — Pyodide loads asynchronously and offline it never
+    arrives.
+{% endcomment %}
+<link
+  rel="stylesheet"
+  href="https://pyscript.net/releases/2025.7.3/core.css"
+/>
+<script
+  defer
+  type="module"
+  src="https://pyscript.net/releases/2025.7.3/core.js"
+></script>
+
+<script type="py">
+import io
+import json
+import sys
+import time
+import traceback
+
+from js import document, window
+
+# Keeps PyScript's own default output panels out of the page layout.
+_hide = document.createElement("style")
+_hide.textContent = "py-config, py-script, .py-error, .py-terminal { display: none !important; }"
+document.head.appendChild(_hide)
+
+
+def _payload():
+    """Read the problem payload the page rendered for us."""
+    return json.loads(document.getElementById("pyverse-payload").textContent)
+
+
+def _call(fn, args_src):
+    """Call the student's function with arguments written as Python source."""
+    return eval("__fn(" + (args_src or "") + ")", {"__fn": fn})
+
+
+def _matches(result, expected_src):
+    """Compare against the authored expected value.
+
+    Expected values are authored as Python source (`[0, 1]`, `"abc"`, `True`),
+    so they are evaluated rather than string-compared. If that fails — an
+    author wrote prose instead of a literal — fall back to repr comparison so
+    the case still grades instead of erroring.
+    """
+    try:
+        expected = eval(expected_src, {})
+    except Exception:
+        return repr(result).strip() == expected_src.strip()
+
+    if isinstance(result, bool) or isinstance(expected, bool):
+        return result == expected
+    if isinstance(result, (int, float)) and isinstance(expected, (int, float)):
+        return abs(result - expected) <= 1e-9
+    return result == expected
+
+
+def exec_solution(is_submit, custom_json):
+    """Run or grade the code currently in the editor. Called from JS."""
+    payload = _payload()
+    fn_name = payload["fn"]
+    cases = payload["cases"]
+    status = "RUNTIME_ERROR"
+    latency = 0.0
+    passed = 0
+
+    log = io.StringIO()
+    real_stdout = sys.stdout
+    sys.stdout = log
+    try:
+        ns = {}
+        exec(compile(window._pendingCode or "", "<editor>", "exec"), ns)
+        fn = ns.get(fn_name)
+        if not callable(fn):
+            raise NameError(f"{fn_name}() was not defined — check your function name.")
+
+        if not is_submit:
+            args_src = json.loads(custom_json).get("args", "")
+            print(f"Call   : {fn_name}({args_src})")
+            started = time.perf_counter()
+            result = _call(fn, args_src)
+            latency = (time.perf_counter() - started) * 1000
+            print(f"Output : {result!r}")
+            status = "SUCCESS"
+        else:
+            total = len(cases)
+            print(f"Running {total} test case{'' if total == 1 else 's'}…\n")
+            for index, case in enumerate(cases, start=1):
+                args_src = case["input"]
+                label = "<hidden case>" if case["hidden"] else f"{fn_name}({args_src})"
+                started = time.perf_counter()
+                error = None
+                result = None
+                try:
+                    result = _call(fn, args_src)
+                except Exception as exc:
+                    error = f"{type(exc).__name__}: {exc}"
+                latency += (time.perf_counter() - started) * 1000
+
+                if error:
+                    ok = False
+                    print(f"  [FAIL] case {index}/{total}  {label}")
+                    print(f"         raised {error}")
+                else:
+                    ok = _matches(result, case["expected"])
+                    print(f"  [{'pass' if ok else 'FAIL'}] case {index}/{total}  {label}")
+                    if not ok:
+                        if case["hidden"]:
+                            print("         (hidden case failed)")
+                        else:
+                            print(
+                                f"         expected {case['expected']}, "
+                                f"got {result!r}"
+                            )
+                passed += 1 if ok else 0
+
+            status = "ACCEPTED" if passed == total else "WRONG_ANSWER"
+            print(f"\n  {passed}/{total} cases passed.")
+    except SyntaxError as exc:
+        print(f"SyntaxError: {exc}")
+    except Exception:
+        print(traceback.format_exc())
+    finally:
+        sys.stdout = real_stdout
+
+    return (
+        json.dumps(
+            {
+                "status": status,
+                "latency": latency,
+                "passed": passed,
+                "total": len(cases),
+            }
+        ),
+        log.getvalue(),
+    )
+
+
+import js
+
+js.window._pyExec = exec_solution
+document.body.dataset.pyverseReady = "1"
+</script>

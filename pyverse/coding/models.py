@@ -1,8 +1,11 @@
 from django.db import models
+from django.utils.text import slugify
 from modelcluster.models import ClusterableModel
 from wagtail.admin.panels import FieldPanel
-from wagtail.fields import StreamField
+from wagtail.fields import RichTextField, StreamField
 from wagtail import blocks
+
+from pyverse.taxonomy import Difficulty
 
 
 class TestCaseBlock(blocks.StructBlock):
@@ -61,6 +64,29 @@ class CodingProblem(ClusterableModel):
         max_length=255,
         help_text='The problem\'s display title, shown in listings and admin choosers (e.g. "Two Sum").',
     )
+    slug = models.SlugField(
+        max_length=200,
+        unique=True,
+        blank=True,
+        help_text=(
+            "URL segment for this challenge's canonical page "
+            "(/practice/<topic>/<slug>/). Left blank, it is generated from "
+            "the title."
+        ),
+    )
+    difficulty = models.CharField(
+        max_length=10,
+        choices=Difficulty.choices,
+        default=Difficulty.EASY,
+        help_text="Easy / Medium / Hard — the only difficulty axis used site-wide.",
+    )
+    description = RichTextField(
+        blank=True,
+        help_text=(
+            "The problem statement shown above the editor on the challenge "
+            "page: what the function must do, constraints, examples."
+        ),
+    )
     function_name = models.CharField(
         max_length=100,
         help_text=(
@@ -83,6 +109,9 @@ class CodingProblem(ClusterableModel):
     panels = [
         FieldPanel("topic"),
         FieldPanel("title"),
+        FieldPanel("slug"),
+        FieldPanel("difficulty"),
+        FieldPanel("description"),
         FieldPanel("function_name"),
         FieldPanel("starter_code"),
         FieldPanel("test_cases"),
@@ -94,3 +123,48 @@ class CodingProblem(ClusterableModel):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title)[:200] or "problem"
+            slug, suffix = base, 2
+            while (
+                CodingProblem.objects.filter(slug=slug)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                slug = f"{base}-{suffix}"[:200]
+                suffix += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        """Canonical URL: nested under this problem's owning topic.
+
+        One URL per problem, because `topic` is a single FK — browsing an
+        ancestor topic links here rather than minting a second path.
+        """
+        topic = self.topic
+        if topic is None or not topic.live:
+            return ""
+        return f"{topic.url}{self.slug}/"
+
+    @property
+    def visible_test_cases(self):
+        return [case for case in self.test_case_payload() if not case["hidden"]]
+
+    def test_case_payload(self):
+        """Test cases as plain JSON-safe dicts, for the client-side grader.
+
+        `input` is Python source for the argument list (e.g. "[1, 2], 5") and
+        is evaluated in the student's namespace, which is why it is authored
+        as source rather than split into typed fields.
+        """
+        return [
+            {
+                "input": child.value["input"],
+                "expected": child.value["expected_output"],
+                "hidden": bool(child.value["is_hidden"]),
+            }
+            for child in self.test_cases
+        ]

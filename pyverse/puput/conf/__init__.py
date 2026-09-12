@@ -3,7 +3,7 @@
 from django.conf import settings as django_settings
 from django.utils.functional import LazyObject
 
-from puput.conf import defaults as app_settings
+from pyverse.puput.conf import defaults as app_settings
 
 
 class LazySettings(LazyObject):

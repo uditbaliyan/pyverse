@@ -6,7 +6,7 @@
 </div>
 {% else %}
 <p class="pe-empty">No quizzes here yet — check back soon, or browse a subtopic above.</p>
-{% endif %} {% if quizzes_page.paginator.num_pages > 1 %} {% url "practice_topic" as base_url %}
+{% endif %} {% if quizzes_page.paginator.num_pages > 1 %}
 <div class="pe-pagination">
   {% if quizzes_page.has_previous %}
   <a href="?type=quiz&page={{ quizzes_page.previous_page_number }}">&larr; prev</a>

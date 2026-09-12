@@ -1,13 +1,17 @@
 {% load wagtailcore_tags %}
-<div class="pe-card">
+{# The whole card is a link to the problem's canonical page under its owning
+   topic, so ancestor-topic listings point at one URL per problem. #}
+<a class="pe-card" href="{{ problem.get_absolute_url }}">
   <div class="pe-card-head">
     <p class="pe-card-title">{{ problem.title }}</p>
-    <span class="pe-badge pe-badge--coding">Coding</span>
+    <span class="pe-badge pe-badge--{{ problem.difficulty }}">
+      {{ problem.get_difficulty_display }}
+    </span>
   </div>
   <div class="pe-card-meta">
     def {{ problem.function_name }}(...):
     {% if problem.topic %}&middot; {{ problem.topic.title }}
-    {%endif %} &middot; {{ problem.test_cases|length }} test case{{
+    {% endif %}&middot; {{ problem.test_cases|length }} test case{{
     problem.test_cases|length|pluralize }}
   </div>
-</div>
+</a>

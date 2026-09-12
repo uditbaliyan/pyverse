@@ -11,7 +11,7 @@ class CodingProblemViewSet(SnippetViewSet):
     menu_label = "Coding Problems"
     menu_name = "coding-problems"
     add_to_admin_menu = True
-    list_display = ("title", "function_name", "topic")
+    list_display = ("title", "difficulty", "function_name", "topic")
     # Enables the AJAX admin chooser (used by the `lms` app when linking
     # LessonSteps to problems) to search by title at 10k+ scale without
     # loading the full queryset client-side.

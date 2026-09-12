@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block title %}{{ problem.title }} · {{ page.title }} · PyVerse{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+  />
+{% endblock css %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+{% endblock javascript %}
+
+{% block content %}
+  <div class="pp-root">
+    <div class="pp-shell">
+      {# ── Path breadcrumb ───────────────────────────────────────────── #}
+      <div class="pp-path">
+        {% for crumb in practice_breadcrumb %}
+          <span class="pp-sep">/</span>
+          <a href="{{ crumb.url }}">{{ crumb.slug }}</a>
+        {% endfor %}
+        <span class="pp-sep">/</span>
+        <a href="{{ page.url }}">{{ page.slug }}</a>
+        <span class="pp-sep">/</span>
+        <span>{{ problem.slug }}</span>
+      </div>
+
+      <header class="pp-head">
+        <h1 class="pp-title">{{ problem.title }}</h1>
+        <span class="pp-badge pp-badge--{{ problem.difficulty }}">
+          {{ problem.get_difficulty_display }}
+        </span>
+      </header>
+
+      <div class="pp-grid">
+        {# ── Statement ──────────────────────────────────────────────── #}
+        <section class="pp-statement">
+          {% if problem.description %}
+            <div class="pp-prose">{{ problem.description|richtext }}</div>
+          {% else %}
+            <p class="pp-empty">No statement has been written for this challenge yet.</p>
+          {% endif %}
+
+          <h2 class="pp-h2">Implement</h2>
+          <pre class="pp-sig">def {{ problem.function_name }}(...) -&gt; ...</pre>
+
+          <h2 class="pp-h2">Visible test cases</h2>
+          {% if problem.visible_test_cases %}
+            <table class="pp-cases">
+              <thead>
+                <tr><th>Input</th><th>Expected output</th></tr>
+              </thead>
+              <tbody>
+                {% for case in problem.visible_test_cases %}
+                  <tr>
+                    <td><code>{{ problem.function_name }}({{ case.input }})</code></td>
+                    <td><code>{{ case.expected }}</code></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="pp-empty">All test cases for this challenge are hidden.</p>
+          {% endif %}
+        </section>
+
+        {# ── Work area ──────────────────────────────────────────────── #}
+        <section class="pp-work">
+          <div class="pp-work-head">
+            <span class="pp-file">solution.py</span>
+            <span class="pp-runtime" id="pp-runtime">loading Python runtime…</span>
+          </div>
+
+          <textarea id="pp-editor" spellcheck="false">{{ problem.starter_code }}</textarea>
+
+          <div class="pp-controls">
+            <label class="pp-args-label" for="pp-args">
+              Run arguments
+              <span class="pp-hint">(Python source, e.g. <code>[1, 2], 5</code>)</span>
+            </label>
+            <input
+              id="pp-args"
+              class="pp-args"
+              type="text"
+              value="{% if problem.visible_test_cases %}{{ problem.visible_test_cases.0.input }}{% endif %}"
+            />
+            <div class="pp-buttons">
+              <button id="pp-run" type="button" disabled>Run</button>
+              <button id="pp-submit" type="button" class="pp-primary" disabled>Submit</button>
+              <button id="pp-reset" type="button" class="pp-ghost">Reset</button>
+              <span class="pp-verdict" id="pp-verdict"></span>
+              <span class="pp-latency" id="pp-latency"></span>
+            </div>
+          </div>
+
+          <pre class="pp-out" id="pp-out">Press Run to try the visible example, or Submit to grade every test case.</pre>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  {{ payload|json_script:"pyverse-payload" }}
+  {% include "includes/pyscript_runtime.html" %}
+
+  <style>
+    .pp-root {
+      --pp-ink: #1f2421;
+      --pp-mute: #6b6a62;
+      --pp-line: #d9d5cb;
+      --pp-paper: #efede6;
+      --pp-surface: #ffffff;
+      --pp-coding: #2d5f5d;
+      --pp-green: #1f7a4d;
+      --pp-red: #b23a3a;
+      --pp-amber: #9a6b16;
+      background: var(--pp-paper);
+      color: var(--pp-ink);
+      font-family: "IBM Plex Sans", -apple-system, sans-serif;
+      line-height: 1.55;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+    .pp-shell { max-width: 1180px; margin: 0 auto; }
+    .pp-path {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      color: var(--pp-mute);
+      margin-bottom: 0.75rem;
+    }
+    .pp-path a { color: inherit; }
+    .pp-path a:hover { color: var(--pp-ink); }
+    .pp-sep { margin: 0 0.35rem; opacity: 0.5; }
+    .pp-head { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+    .pp-title {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.9rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .pp-badge {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 3px;
+    }
+    .pp-badge--easy { background: rgba(31, 122, 77, 0.12); color: var(--pp-green); }
+    .pp-badge--medium { background: rgba(154, 107, 22, 0.14); color: var(--pp-amber); }
+    .pp-badge--hard { background: rgba(178, 58, 58, 0.12); color: var(--pp-red); }
+
+    .pp-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 2rem;
+      align-items: start;
+      margin-top: 1.75rem;
+    }
+    @media (max-width: 900px) {
+      .pp-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .pp-prose :is(p, ul, ol) { margin: 0 0 1em; }
+    .pp-prose { max-width: 68ch; }
+    .pp-prose code {
+      font-family: "IBM Plex Mono", monospace;
+      background: var(--pp-surface);
+      border: 1px solid var(--pp-line);
+      border-radius: 3px;
+      padding: 0.1em 0.35em;
+      font-size: 0.9em;
+    }
+    .pp-h2 {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--pp-mute);
+      margin: 1.75rem 0 0.6rem;
+    }
+    .pp-sig {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+      background: var(--pp-surface);
+      border: 1px solid var(--pp-line);
+      border-radius: 6px;
+      padding: 0.75rem 0.9rem;
+      margin: 0;
+      overflow-x: auto;
+    }
+    .pp-cases {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      background: var(--pp-surface);
+      border: 1px solid var(--pp-line);
+      border-radius: 6px;
+    }
+    .pp-cases th,
+    .pp-cases td {
+      text-align: left;
+      padding: 0.5rem 0.7rem;
+      border-bottom: 1px solid var(--pp-line);
+    }
+    .pp-cases th { color: var(--pp-mute); font-weight: 500; }
+    .pp-cases tr:last-child td { border-bottom: none; }
+    .pp-empty {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+      color: var(--pp-mute);
+    }
+
+    .pp-work {
+      background: var(--pp-surface);
+      border: 1px solid var(--pp-line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .pp-work-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.55rem 0.9rem;
+      border-bottom: 1px solid var(--pp-line);
+      background: var(--pp-paper);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+    }
+    .pp-file { color: var(--pp-coding); font-weight: 600; }
+    .pp-runtime { color: var(--pp-mute); }
+    .pp-runtime[data-state="ready"] { color: var(--pp-green); }
+    .pp-runtime[data-state="failed"] { color: var(--pp-red); }
+
+    #pp-editor { display: none; }
+    .CodeMirror {
+      height: 340px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .pp-controls { padding: 0.9rem; border-top: 1px solid var(--pp-line); }
+    .pp-args-label {
+      display: block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--pp-mute);
+      margin-bottom: 0.35rem;
+    }
+    .pp-hint { text-transform: none; letter-spacing: 0; }
+    .pp-args {
+      width: 100%;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--pp-line);
+      border-radius: 5px;
+      background: var(--pp-paper);
+      color: var(--pp-ink);
+    }
+    .pp-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.8rem;
+    }
+    .pp-buttons button {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      padding: 0.42rem 0.95rem;
+      border-radius: 5px;
+      border: 1px solid var(--pp-line);
+      background: var(--pp-surface);
+      color: var(--pp-ink);
+      cursor: pointer;
+    }
+    .pp-buttons button:hover:not(:disabled) { border-color: var(--pp-coding); }
+    .pp-buttons button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .pp-buttons .pp-primary {
+      background: var(--pp-coding);
+      border-color: var(--pp-coding);
+      color: #fff;
+    }
+    .pp-buttons .pp-ghost { color: var(--pp-mute); }
+    .pp-verdict { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; }
+    .pp-verdict[data-state="ACCEPTED"],
+    .pp-verdict[data-state="SUCCESS"] { color: var(--pp-green); font-weight: 600; }
+    .pp-verdict[data-state="WRONG_ANSWER"] { color: var(--pp-red); font-weight: 600; }
+    .pp-verdict[data-state="RUNTIME_ERROR"] { color: var(--pp-amber); font-weight: 600; }
+    .pp-latency {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+      color: var(--pp-mute);
+      margin-left: auto;
+    }
+    .pp-out {
+      margin: 0;
+      padding: 0.9rem;
+      border-top: 1px solid var(--pp-line);
+      background: #1f2421;
+      color: #e8e6df;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      min-height: 120px;
+      max-height: 320px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .pp-out .pass { color: #7fd6a2; }
+    .pp-out .fail { color: #f08b8b; }
+    .pp-out .err { color: #f0c27b; }
+    .pp-out .dim { color: #9a988f; }
+    .pp-out .busy { color: #9a988f; }
+  </style>
+{% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    (function () {
+      const runBtn = document.getElementById("pp-run");
+      const submitBtn = document.getElementById("pp-submit");
+      const resetBtn = document.getElementById("pp-reset");
+      const argsEl = document.getElementById("pp-args");
+      const outEl = document.getElementById("pp-out");
+      const verdictEl = document.getElementById("pp-verdict");
+      const latencyEl = document.getElementById("pp-latency");
+      const runtimeEl = document.getElementById("pp-runtime");
+      const ta = document.getElementById("pp-editor");
+
+      const starter = ta.value;
+      const editor = CodeMirror.fromTextArea(ta, {
+        mode: "python",
+        lineNumbers: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: false,
+        smartIndent: true,
+        lineWrapping: false,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        styleActiveLine: true,
+        extraKeys: {
+          Tab: (cm) =>
+            cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection("    ", "end"),
+          "Shift-Tab": (cm) => cm.indentSelection("subtract"),
+          "Ctrl-Enter": () => trigger(false),
+          "Cmd-Enter": () => trigger(false),
+          "Ctrl-Shift-Enter": () => trigger(true),
+          "Cmd-Shift-Enter": () => trigger(true),
+        },
+      });
+
+      function escapeHtml(text) {
+        return text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function decorate(log) {
+        let html = escapeHtml(log);
+        html = html.replace(/\[pass\]/g, '<span class="pass">[pass]</span>');
+        html = html.replace(/\[FAIL\]/g, '<span class="fail">[FAIL]</span>');
+        html = html.replace(/^(SyntaxError.*|RuntimeError.*|Traceback.*)/gm, '<span class="err">$1</span>');
+        html = html.replace(/(\d+\/\d+ cases passed\.)/g, '<span class="dim">$1</span>');
+        return html;
+      }
+
+      function setBusy(busy) {
+        runBtn.disabled = busy || !window._pyExec;
+        submitBtn.disabled = busy || !window._pyExec;
+        resetBtn.disabled = busy;
+      }
+
+      function trigger(isSubmit) {
+        if (!window._pyExec) return;
+        setBusy(true);
+        verdictEl.textContent = "";
+        verdictEl.removeAttribute("data-state");
+        latencyEl.textContent = "";
+        outEl.innerHTML = '<span class="busy">⚡ Running…</span>';
+
+        let customJson = "{}";
+        if (!isSubmit) {
+          customJson = JSON.stringify({ args: argsEl.value.trim() });
+        }
+        window._pendingCode = editor.getValue();
+
+        // Yield to the browser so the busy state paints before Python blocks.
+        setTimeout(() => {
+          try {
+            const result = window._pyExec(isSubmit, customJson);
+            const meta = JSON.parse(result[0]);
+            outEl.innerHTML = decorate(result[1]);
+
+            const labels = {
+              ACCEPTED: "✓ Accepted",
+              WRONG_ANSWER: "✗ Wrong Answer",
+              RUNTIME_ERROR: "⚠ Runtime Error",
+              SUCCESS: "✓ Ran",
+            };
+            verdictEl.textContent = labels[meta.status] || meta.status;
+            verdictEl.dataset.state = meta.status;
+            if (meta.latency) {
+              latencyEl.textContent = meta.latency.toFixed(2) + " ms";
+            }
+          } catch (err) {
+            outEl.innerHTML = '<span class="err">Execution bridge error: ' + escapeHtml(String(err)) + "</span>";
+          }
+          setBusy(false);
+        }, 20);
+      }
+
+      runBtn.addEventListener("click", () => trigger(false));
+      submitBtn.addEventListener("click", () => trigger(true));
+      resetBtn.addEventListener("click", () => {
+        editor.setValue(starter);
+        outEl.textContent = "Editor reset to the starter code.";
+        verdictEl.textContent = "";
+        verdictEl.removeAttribute("data-state");
+        latencyEl.textContent = "";
+      });
+
+      // Pyodide loads asynchronously; offline it never arrives, so stop waiting
+      // and say so instead of leaving the buttons greyed out forever.
+      const started = Date.now();
+      (function waitForRuntime() {
+        if (document.body.dataset.pyverseReady === "1") {
+          runtimeEl.textContent = "Pyodide ready";
+          runtimeEl.dataset.state = "ready";
+          setBusy(false);
+          return;
+        }
+        if (Date.now() - started > 45000) {
+          runtimeEl.textContent = "Python runtime failed to load";
+          runtimeEl.dataset.state = "failed";
+          outEl.innerHTML =
+            '<span class="err">The Pyodide runtime could not be downloaded. ' +
+            "Check your connection and reload the page.</span>";
+          return;
+        }
+        setTimeout(waitForRuntime, 200);
+      })();
+    })();
+  </script>
+{% endblock inline_javascript %}

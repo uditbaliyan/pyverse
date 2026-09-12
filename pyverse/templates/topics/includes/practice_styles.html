@@ -247,13 +247,38 @@
     }
   }
 
-  @media (max-width: 560px) {
-    .pe-title {
-      font-size: 1.5rem;
-    }
-    .pe-tab {
-      padding: 0.55rem 0.8rem 0.45rem;
-      font-size: 0.78rem;
+  /* A whole card that is a link (coding problem → its challenge page) */
+  a.pe-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+  a.pe-card:hover {
+    border-color: var(--pe-coding);
+    transform: translateY(-1px);
+  }
+
+  /* Difficulty badges — one vocabulary site-wide (Easy / Medium / Hard) */
+  .pe-badge--easy {
+    background: rgba(31, 122, 77, 0.12);
+    color: #1f7a4d;
+  }
+  .pe-badge--medium {
+    background: rgba(154, 107, 22, 0.14);
+    color: #9a6b16;
+  }
+  .pe-badge--hard {
+    background: rgba(178, 58, 58, 0.12);
+    color: var(--pe-hidden);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    a.pe-card,
+    .pe-topic-tile {
+      transition: none;
     }
   }
 </style>

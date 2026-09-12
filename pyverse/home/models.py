@@ -270,7 +270,6 @@ class HomePage(SEOFields, Page):
     subpage_types = [
         "lms.LMSIndexPage",
         "puput.BlogFolderPage",
-        "home.PricingPage",
         "home.StandardPage",
         "topics.PracticeHubPage",
     ]
@@ -437,59 +436,3 @@ class StandardPage(SEOFields, Page):
     class Meta:
         verbose_name = "Standard Page"
         verbose_name_plural = "Standard Pages"
-
-
-# ════════════════════════════════════════════════════════════
-#  PRICING PAGE
-# ════════════════════════════════════════════════════════════
-
-
-class PricingPage(SEOFields, Page):
-    max_count = 1
-    parent_page_types = ["home.HomePage"]
-    subpage_types = []
-
-    intro = RichTextField(blank=True)
-
-    content_panels = Page.content_panels + [
-        FieldPanel("intro"),
-        InlinePanel("pricing_tiers", label="Pricing Tiers", min_num=1, max_num=4),
-        FieldPanel("og_image"),
-    ]
-
-    class Meta:
-        verbose_name = "Pricing Page"
-
-
-class PricingTier(LinkFields, Orderable):
-    """max_count REMOVED — the old max_count=1 was a bug that limited you to one tier total."""
-
-    page = ParentalKey(
-        PricingPage, on_delete=models.CASCADE, related_name="pricing_tiers"
-    )
-
-    plan_name = models.CharField(
-        max_length=100, help_text="e.g. Starter, Pro, Enterprise"
-    )
-    price = models.CharField(max_length=50, help_text="e.g. Free, $19/mo, Custom")
-    original_price = models.CharField(
-        max_length=50,
-        blank=True,
-        help_text="Strikethrough price, e.g. $39/mo (optional)",
-    )
-    features = RichTextField(help_text="Use a bulleted list for features.")
-    is_popular = models.BooleanField(default=False)
-    cta_text = models.CharField(max_length=100, blank=True, default="Get Started")
-
-    panels = [
-        FieldPanel("plan_name"),
-        FieldPanel("price"),
-        FieldPanel("original_price"),
-        FieldPanel("features"),
-        FieldPanel("is_popular"),
-        FieldPanel("cta_text"),
-        MultiFieldPanel(LinkFields.link_panels, heading="CTA Link"),
-    ]
-
-    class Meta:
-        ordering = ["sort_order"]

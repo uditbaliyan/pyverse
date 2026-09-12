@@ -1,8 +1,11 @@
 from django.core.paginator import Paginator
 from django.db import models
+from django.template.response import TemplateResponse
 from wagtail.admin.panels import FieldPanel
+from wagtail.contrib.routable_page.models import RoutablePageMixin
 from wagtail.fields import RichTextField
 from wagtail.models import Page
+from wagtail.url_routing import RouteResult
 
 
 class PracticeHubPage(Page):
@@ -37,7 +40,7 @@ class PracticeHubPage(Page):
         return context
 
 
-class PracticeTopicPage(Page):
+class PracticeTopicPage(RoutablePageMixin, Page):
     """
     A single node in the free-practice topic tree.  Topics may nest to
     arbitrary depth (e.g. "Arrays" → "Two Pointers").  Each topic
@@ -95,6 +98,49 @@ class PracticeTopicPage(Page):
             for a in self.get_ancestors().specific()
             if isinstance(a, self._practice_types())
         ]
+
+    # ------------------------------------------------------------------
+    # Challenge pages — /practice/<topic>/<slug>/
+    # ------------------------------------------------------------------
+    def route(self, request, path_components):
+        """Resolve a single unmatched segment as a coding problem's slug.
+
+        Child topics are real Wagtail pages whose slugs are equally
+        slug-shaped, so they must win: the problem lookup only runs when no
+        child page claims that segment. Anything longer than one segment
+        falls through to Wagtail's own page walk.
+        """
+        if len(path_components) == 1:
+            slug = path_components[0]
+            if not self.get_children().filter(slug=slug).exists():
+                from pyverse.coding.models import CodingProblem
+
+                problem = CodingProblem.objects.filter(topic=self, slug=slug).first()
+                if problem is not None:
+                    return RouteResult(
+                        self, args=(self.serve_problem, (problem,), {})
+                    )
+        return super().route(request, path_components)
+
+    def serve_problem(self, request, problem):
+        """Render one coding problem at its canonical URL.
+
+        Only problems whose *owning* topic is this page resolve here, so a
+        problem linked from ancestor topics still has exactly one URL.
+        """
+        return TemplateResponse(
+            request,
+            "coding/problem_page.html",
+            {
+                "page": self,
+                "problem": problem,
+                "practice_breadcrumb": self.get_practice_breadcrumb(),
+                "payload": {
+                    "fn": problem.function_name,
+                    "cases": problem.test_case_payload(),
+                },
+            },
+        )
 
     # ------------------------------------------------------------------
     # Context
