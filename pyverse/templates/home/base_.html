@@ -80,6 +80,11 @@
         text-decoration: underline;
         text-underline-offset: 3px;
       }
+      /* Current section, marked by the shared nav partial. */
+      nav a.nav-active {
+        background: #1a1a1a;
+        color: #f5eeda;
+      }
     </style>
 
     {% block extra_head %}{% endblock %}
@@ -104,15 +109,7 @@
 
         {# ── desktop links ────────────────────────────────────── #}
         <div class="hidden md:flex items-center gap-0.5">
-          {% for item in settings.home.SiteSettings.nav_items.all %}
-          <a
-            href="{{ item.url }}"
-            class="font-mono text-[12px] px-3 py-2 text-ink no-underline hover:bg-ink hover:text-bg transition-colors"
-            {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
-          >
-            {{ item.label }}
-          </a>
-          {% endfor %}
+          {% include "partials/_site_nav_items.html" with nav_link_class="font-mono text-[12px] px-3 py-2 text-ink no-underline hover:bg-ink hover:text-bg transition-colors" %}
         </div>
 
         {# ── desktop CTA ──────────────────────────────────────── #}
@@ -147,15 +144,7 @@
         id="mobile-menu"
         class="md:hidden hidden border-t-[3px] border-ink bg-bg px-7 py-4 flex flex-col gap-0"
       >
-        {% for item in settings.home.SiteSettings.nav_items.all %}
-        <a
-          href="{{ item.url }}"
-          class="font-mono text-[13px] py-3 text-ink no-underline border-b border-ink/10"
-          {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
-        >
-          {{ item.label }}
-        </a>
-        {% endfor %} {% if settings.home.SiteSettings.nav_cta_text %}
+        {% include "partials/_site_nav_items.html" with nav_link_class="font-mono text-[13px] py-3 text-ink no-underline border-b border-ink/10" %} {% if settings.home.SiteSettings.nav_cta_text %}
         <a
           href="{{ settings.home.SiteSettings.nav_cta_url }}"
           class="mt-3 font-mono font-bold text-[13px] px-4 py-3 border-[3px] border-ink bg-red text-[#F5EEDA] no-underline text-center hover:bg-[#963026] transition-colors"

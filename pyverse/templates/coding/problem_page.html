@@ -257,6 +257,9 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
           <a class="crumb" href="/practice/">&larr; all problems</a>
           {% if topic %}<a class="crumb" href="{{ topic.url }}">{{ topic.title }}</a>{% endif %}
         </div>
+        <nav class="pe-nav" aria-label="Main">
+          {% include "partials/_site_nav_items.html" with nav_link_class="" %}
+        </nav>
         <div class="status-pill">
           <span class="sdot loading" id="sdot"></span>
           <span id="stxt">Loading PyScript runtime…</span>

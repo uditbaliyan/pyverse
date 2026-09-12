@@ -16,6 +16,14 @@
   {% block css %}
     {% tailwind_css %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+    <style>
+      /* Current section, marked by the shared nav partial. */
+      nav .nav-active {
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 4px;
+      }
+    </style>
   {% endblock css %}
 
   {% block javascript %}

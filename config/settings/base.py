@@ -222,6 +222,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "pyverse.users.context_processors.allauth_settings",
+                "pyverse.home.context_processors.site_nav",
             ],
         },
     },
