@@ -1,11 +1,16 @@
 {% load tailwind_tags %}
 {% load static %}
+{% load seo_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PyVerse // Poster Build</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {# This view renders no Wagtail page, so title/description are explicit; #}
+  {# canonical/OG/Twitter/robots still come from the shared SEO tag. #}
+  {% seo_meta title="PyVerse // Poster Build" description="PyVerse is a free, client-side Python learning platform: trace what your code actually does, drill the patterns, and solve graded practice challenges — no signup, everything runs in your browser." as seo %}
+  <title>{{ seo.title }}</title>
+  {% include "partials/_seo_meta.html" %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   {% tailwind_css %}

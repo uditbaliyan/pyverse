@@ -35,6 +35,11 @@ LANGUAGE_CODE = "en-us"
 # ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
+# Absolute origin used for canonical links, OpenGraph URLs and sitemap entries.
+# Set this in production: a static export has no request host to fall back on.
+# Left blank, the django.contrib.sites domain is used — the same record Django's
+# sitemap view reads, so canonical URLs and <loc> entries cannot drift apart.
+PYVERSE_CANONICAL_BASE_URL = env("PYVERSE_CANONICAL_BASE_URL", default="")
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz

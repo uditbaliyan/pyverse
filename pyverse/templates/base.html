@@ -1,19 +1,17 @@
-{% load static tailwind_tags i18n %}
+{% load static tailwind_tags i18n seo_tags %}
 <!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
+  {% seo_meta as seo %}
   <meta charset="utf-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge" />
-  <title>
-    {% block title %}
-      PyVerse
-    {% endblock title %}
-  </title>
+  <title>{% block title %}{{ seo.title }}{% endblock title %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Behold My Awesome Project!" />
   <meta name="author" content="Udit Baliyan" />
   <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
+
+  {% include "partials/_seo_meta.html" %}
 
   {% block css %}
     {% tailwind_css %}

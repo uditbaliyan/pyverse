@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps import views as sitemap_views
 from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
@@ -9,7 +10,25 @@ from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
 
+from pyverse.seo import CodingProblemSitemap
+from pyverse.seo import LivePageSitemap
+from pyverse.seo import robots_txt
+
+SITEMAPS = {
+    "pages": LivePageSitemap,
+    "problems": CodingProblemSitemap,
+}
+
 urlpatterns = [
+    # Crawler plumbing, in front of everything else so the Wagtail catch-all
+    # below never swallows it. Both are what the static export freezes verbatim.
+    path("robots.txt", robots_txt, name="robots_txt"),
+    path(
+        "sitemap.xml",
+        sitemap_views.sitemap,
+        {"sitemaps": SITEMAPS},
+        name="sitemap",
+    ),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),

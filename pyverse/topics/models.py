@@ -118,7 +118,7 @@ class PracticeTopicPage(RoutablePageMixin, Page):
                 problem = CodingProblem.objects.filter(topic=self, slug=slug).first()
                 if problem is not None:
                     return RouteResult(
-                        self, args=(self.serve_problem, (problem,), {})
+                        self, args=(self.serve_problem, (problem,), {}),
                     )
         return super().route(request, path_components)
 
@@ -175,9 +175,9 @@ class PracticeTopicPage(RoutablePageMixin, Page):
                 "practice_breadcrumb": self.get_practice_breadcrumb(),
                 "active_type": active_type,
                 "coding_problems_page": Paginator(problems_qs, 20).get_page(
-                    page_number
+                    page_number,
                 ),
                 "quizzes_page": Paginator(quizzes_qs, 20).get_page(page_number),
-            }
+            },
         )
         return context

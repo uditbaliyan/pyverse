@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
+{% comment %}
+Sitemap template for django.contrib.sitemaps' view (see config/urls.py).
 
+`urlset` entries carry location always, and lastmod/changefreq/priority only
+when the Sitemap class defines them — Django no longer emits changefreq or
+priority for a default Sitemap, and an empty <changefreq></changefreq> element
+is invalid, so every optional element is guarded.
+{% endcomment %}
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    {% for url in urlset %}
-        <url>
-            <loc>{{ url.location }}</loc>
-            <lastmod>{{ url.lastmod }}</lastmod>
-            <changefreq>{{ url.changefreq }}</changefreq>
-            <priority>{{ url.priority }}</priority>
-        </url>
-    {% endfor %}
+{% spaceless %}
+  {% for url in urlset %}
+    <url>
+    <loc>{{ url.location }}</loc>
+    {% if url.lastmod %}<lastmod>{{ url.lastmod|date:"Y-m-d" }}</lastmod>{% endif %}
+    {% if url.changefreq %}<changefreq>{{ url.changefreq }}</changefreq>{% endif %}
+    {% if url.priority %}<priority>{{ url.priority }}</priority>{% endif %}
+    </url>
+  {% endfor %}
+{% endspaceless %}
 </urlset>

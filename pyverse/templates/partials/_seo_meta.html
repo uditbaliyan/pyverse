@@ -1,0 +1,22 @@
+{% comment %}
+Crawler + social metadata, shared by every page. Expects `seo` in context —
+`{% seo_meta as seo %}` in base.html produces it. The `<title>` is rendered in
+base.html itself so page templates can still override it with `{% block title %}`.
+{% endcomment %}
+{% if seo.description %}<meta name="description" content="{{ seo.description }}" />{% endif %}
+{% if seo.canonical %}<link rel="canonical" href="{{ seo.canonical }}" />{% endif %}
+{% if seo.robots %}<meta name="robots" content="{{ seo.robots }}" />{% endif %}
+
+<meta property="og:type" content="{{ seo.og_type }}" />
+<meta property="og:site_name" content="{{ seo.site_name }}" />
+<meta property="og:title" content="{{ seo.title }}" />
+{% if seo.description %}<meta property="og:description" content="{{ seo.description }}" />{% endif %}
+{% if seo.canonical %}<meta property="og:url" content="{{ seo.canonical }}" />{% endif %}
+{% if seo.image %}<meta property="og:image" content="{{ seo.image }}" />{% endif %}
+
+<meta name="twitter:card" content="{% if seo.image %}summary_large_image{% else %}summary{% endif %}" />
+<meta name="twitter:title" content="{{ seo.title }}" />
+{% if seo.description %}<meta name="twitter:description" content="{{ seo.description }}" />{% endif %}
+{% if seo.image %}<meta name="twitter:image" content="{{ seo.image }}" />{% endif %}
+
+{% if seo.json_ld %}<script type="application/ld+json">{{ seo.json_ld|safe }}</script>{% endif %}

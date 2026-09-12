@@ -1,4 +1,4 @@
-{% load wagtailcore_tags wagtailimages_tags wagtailsettings_tags %} {% get_settings %}
+{% load wagtailcore_tags wagtailimages_tags wagtailsettings_tags seo_tags %} {% get_settings %}
 
 <!doctype html>
 <html lang="en">
@@ -6,32 +6,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    {# ── title & description ──────────────────────────────── #}
-    <title>
-      {% firstof page.seo_title page.title %} — {{
-      settings.home.SiteSettings.logo_text|default:"PYVERSE" }}
-    </title>
-    <meta name="description" content="{% firstof page.search_description '' %}" />
-
-    {# ── canonical ────────────────────────────────────────── #}
-    <link rel="canonical" href="{{ request.build_absolute_uri }}" />
-
-    {# ── Open Graph ───────────────────────────────────────── #}
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
-    <meta property="og:title" content="{% firstof page.seo_title page.title %}" />
-    <meta property="og:description" content="{% firstof page.search_description '' }" />
-    {% firstof page.og_image settings.home.SiteSettings.default_og_image as og_raw %}
-    {% if og_raw %}
-    {% image og_raw width-1200 as og_img %}
-    <meta property="og:image" content="{{ self.site.root_url }}{{ og_img.url }}" />
-    {% endif %} {# ── Twitter Card ─────────────────────────────────────── #}
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="{% firstof page.seo_title page.title %}" />
-    <meta name="twitter:description" content="{% firstof page.search_description '' }" />
-    {% if og_img %}
-    <meta name="twitter:image" content="{{ self.site.root_url }}{{ og_img.url }}" />
-    {% endif %} {# ── fonts & tailwind (adjust paths to your setup) ────── #}
+    {# ── title, description, canonical, OG/Twitter, JSON-LD ── #}
+    {# Every value comes from the shared tag (pyverse/seo.py), so this #}
+    {# brutalist shell and the site base can't disagree about the origin, #}
+    {# and `seo_title` / `search_description` are honoured in one place. #}
+    {% seo_meta as seo %}
+    <title>{% block title %}{{ seo.title }}{% endblock title %}</title>
+    {% include "partials/_seo_meta.html" %}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

@@ -1,9 +1,10 @@
 from django.db import models
 from django.utils.text import slugify
 from modelcluster.models import ClusterableModel
-from wagtail.admin.panels import FieldPanel
-from wagtail.fields import RichTextField, StreamField
 from wagtail import blocks
+from wagtail.admin.panels import FieldPanel
+from wagtail.fields import RichTextField
+from wagtail.fields import StreamField
 
 from pyverse.taxonomy import Difficulty
 
