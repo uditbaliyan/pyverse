@@ -5,7 +5,6 @@ from django.contrib.sitemaps import views as sitemap_views
 from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
-from django.views.generic import TemplateView
 from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
@@ -29,11 +28,9 @@ urlpatterns = [
         {"sitemaps": SITEMAPS},
         name="sitemap",
     ),
-    path(
-        "about/",
-        TemplateView.as_view(template_name="pages/about.html"),
-        name="about",
-    ),
+    # /about/ is served by Wagtail: the live StandardPage with that slug. A
+    # TemplateView used to intercept the same path here, which made the
+    # CMS-managed page unreachable at its own URL.
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
