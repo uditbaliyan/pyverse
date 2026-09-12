@@ -271,3 +271,6 @@ dump.rdb
 pyverse/media/
 
 .pytest_cache/
+
+# Static export output (`manage.py distill-local`)
+/_site/

@@ -47,4 +47,31 @@ Moved to [Live reloading and SASS compilation](https://cookiecutter-django.readt
 
 ## Deployment
 
-The following details how to deploy this application.
+The production site is a **static export** — Wagtail and the database exist only
+while authoring. Nothing in `pyverse/` runs in production.
+
+### Static export
+
+```bash
+DJANGO_SETTINGS_MODULE=config.settings.distill \
+PYVERSE_CANONICAL_BASE_URL=https://pyverse.com \
+python manage.py distill-local _site --collectstatic --force
+```
+
+- `config/settings/distill.py` turns off `DEBUG` and drops the dev-only apps
+  (debug toolbar, browser reload) so their markup can never be frozen into a
+  public build.
+- `PYVERSE_CANONICAL_BASE_URL` fixes the origin used by canonical links,
+  OpenGraph URLs and `sitemap.xml`. Without it the `django.contrib.sites`
+  domain is used, which cannot know the scheme.
+- `pyverse/freeze.py` decides *what* gets written, from the same querysets
+  `sitemap.xml` uses: every live page under the site root, every challenge page,
+  plus `sitemap.xml`, `robots.txt` and a top-level `404.html` for hosts that
+  serve one (Netlify, GitHub Pages, Cloudflare Pages).
+- Output is `_site/` (gitignored): HTML tree + `static/` + `media/`. Serve it
+  with any static host; there is no server-side component.
+
+`_site/404.html` only works on hosts that use a root `404.html`; map it
+explicitly if the host wants a different filename.
+
+### Deploying

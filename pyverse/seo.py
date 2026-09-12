@@ -340,6 +340,33 @@ def robots_txt(request):
     return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
 
 
+# ── What exists (shared by the sitemap and the static export) ───────────
+def live_pages():
+    """Live, publicly served pages under the configured site root.
+
+    `path__startswith(root.path)` includes the root itself and excludes pages
+    above it — those are not routable (the cookiecutter "Welcome" page is a
+    live page whose URL 404s), so they must be neither advertised in the
+    sitemap nor written to the static export.
+    """
+    site = _default_wagtail_site()
+    queryset = Page.objects.live().public()
+    if site is not None and site.root_page_id:
+        queryset = queryset.filter(path__startswith=site.root_page.path)
+    return queryset.order_by("path")
+
+
+def live_problems():
+    """Coding problems reachable at a canonical challenge URL."""
+    from pyverse.coding.models import CodingProblem
+
+    return (
+        CodingProblem.objects.filter(topic__isnull=False, topic__live=True)
+        .select_related("topic")
+        .order_by("slug")
+    )
+
+
 # ── sitemap.xml ─────────────────────────────────────────────────────────
 class _CanonicalOrigin:
     """Pin <loc> to the same origin the canonical tags use."""
@@ -352,19 +379,8 @@ class _CanonicalOrigin:
 
 
 class LivePageSitemap(_CanonicalOrigin, Sitemap):
-    """Live, publicly served pages under the configured site root.
-
-    `path__startswith(root.path)` includes the root itself and excludes pages
-    above it — those are not routable (the cookiecutter "Welcome" page is a
-    live page whose URL 404s) and must never be advertised.
-    """
-
     def items(self):
-        site = _default_wagtail_site()
-        queryset = Page.objects.live().public()
-        if site is not None and site.root_page_id:
-            queryset = queryset.filter(path__startswith=site.root_page.path)
-        return queryset.order_by("path")
+        return live_pages()
 
     def lastmod(self, obj):
         return obj.last_published_at or obj.latest_revision_created_at
@@ -374,19 +390,18 @@ class LivePageSitemap(_CanonicalOrigin, Sitemap):
 
 
 class CodingProblemSitemap(_CanonicalOrigin, Sitemap):
-    """Challenge pages, which are routed sub-paths rather than Page rows."""
-
     def items(self):
-        from pyverse.coding.models import CodingProblem
-
-        return (
-            CodingProblem.objects.filter(topic__isnull=False, topic__live=True)
-            .select_related("topic")
-            .order_by("slug")
-        )
+        return live_problems()
 
     def lastmod(self, obj):
         return obj.topic.last_published_at
 
     def location(self, obj):
         return obj.get_absolute_url()
+
+
+# What `/sitemap.xml` serves, and the same set the static export walks.
+SITEMAPS = {
+    "pages": LivePageSitemap,
+    "problems": CodingProblemSitemap,
+}

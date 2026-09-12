@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -9,14 +10,8 @@ from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
 
-from pyverse.seo import CodingProblemSitemap
-from pyverse.seo import LivePageSitemap
+from pyverse.seo import SITEMAPS
 from pyverse.seo import robots_txt
-
-SITEMAPS = {
-    "pages": LivePageSitemap,
-    "problems": CodingProblemSitemap,
-}
 
 urlpatterns = [
     # Crawler plumbing, in front of everything else so the Wagtail catch-all
@@ -28,17 +23,11 @@ urlpatterns = [
         {"sitemaps": SITEMAPS},
         name="sitemap",
     ),
-    # /about/ is served by Wagtail: the live StandardPage with that slug. A
-    # TemplateView used to intercept the same path here, which made the
-    # CMS-managed page unreachable at its own URL.
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
     path("users/", include("pyverse.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
-    # === ADD THIS LINE RIGHT HERE ===
-    # This intercepts the reload event before Wagtail tries to catch it!
-    path("__reload__/", include("django_browser_reload.urls")),
     # Your stuff: custom urls includes go here
     # ...
     #
@@ -50,6 +39,13 @@ urlpatterns = [
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 
+# django-browser-reload is dev-only; including its URLs unconditionally also
+# made the namespace non-unique (urls.W005) when DEBUG added them a second time.
+if apps.is_installed("django_browser_reload"):
+    urlpatterns.insert(
+        0,
+        path("__reload__/", include("django_browser_reload.urls")),
+    )
 
 if settings.DEBUG:
     # This allows the error pages to be debugged during development, just visit
@@ -71,7 +67,6 @@ if settings.DEBUG:
             kwargs={"exception": Exception("Page not Found")},
         ),
         path("500/", default_views.server_error),
-        path("__reload__/", include("django_browser_reload.urls")),
     ]
     if "debug_toolbar" in settings.INSTALLED_APPS:
         import debug_toolbar
@@ -80,3 +75,13 @@ if settings.DEBUG:
             path("__debug__/", include(debug_toolbar.urls)),
             *urlpatterns,
         ]
+
+
+# Static-export routes (django-distill): `manage.py distill-local`.
+# Registered only for the export, because the `<path:path>` entry below would
+# otherwise shadow normal serving. The URLs themselves are enumerated in
+# pyverse/freeze.py from the same querysets `sitemap.xml` uses.
+if getattr(settings, "DISTILL_ENABLED", False):
+    from pyverse.freeze import freeze_urlpatterns
+
+    urlpatterns += freeze_urlpatterns
