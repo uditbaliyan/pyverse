@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyVerse — Learn Python on a Machine That Remembers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4F4F0;
+    --charcoal:#222222;
+    --sage:#7C8A6E;
+    --sage-dim: #E4E7DE;
+    --line: rgba(34,34,34,0.16);
+    --shadow-off: 4px 4px 0px 0px #222222;
+    --shadow-off-sm: 2px 2px 0px 0px #222222;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background-color:var(--cream);
+    background-image: radial-gradient(var(--line) 1px, transparent 0);
+    background-size: 22px 22px;
+    color:var(--charcoal);
+    font-family:'Inter', sans-serif;
+    cursor:default;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .mono{ font-family:'Space Mono', monospace; }
+
+  a, button, .interactive{ cursor: crosshair; }
+
+  ::selection{ background:var(--sage); color:var(--cream); }
+
+  :focus-visible{
+    outline: 2px dashed var(--charcoal);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--cream);
+    border-bottom: 1px solid var(--charcoal);
+  }
+  .nav-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 16px 0;
+  }
+  .logo{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    display:flex; align-items:center; gap:8px;
+  }
+  .logo .dot{
+    width:9px; height:9px;
+    background:var(--sage);
+    display:inline-block;
+    animation: blink 1.6s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0.15; } }
+
+  .clock{
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    border: 1px solid var(--charcoal);
+    padding: 6px 12px;
+    background: #fff;
+    box-shadow: var(--shadow-off-sm);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding: 96px 0 72px;
+    display:grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 56px;
+    align-items:center;
+  }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sage);
+    border-bottom: 1px solid var(--sage);
+    display:inline-block;
+    padding-bottom: 4px;
+    margin-bottom: 22px;
+  }
+  h1{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    margin-bottom: 22px;
+  }
+  h1 .glow{ color: var(--sage); }
+  .hero p.lede{
+    font-size: 17px;
+    max-width: 46ch;
+    color: #444;
+    margin-bottom: 34px;
+  }
+
+  .btn{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    text-transform:uppercase;
+    background: var(--charcoal);
+    color: var(--cream);
+    border: 1px solid var(--charcoal);
+    padding: 15px 26px;
+    box-shadow: var(--shadow-off);
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    transition: transform .05s ease;
+  }
+  .btn:active{
+    transform: translate(3px, 3px);
+    box-shadow: none;
+  }
+  .btn.secondary{
+    background: transparent;
+    color: var(--charcoal);
+  }
+
+  .cta-row{ display:flex; gap:16px; flex-wrap:wrap; }
+
+  /* boot terminal box in hero */
+  .boot-box{
+    border: 1px solid var(--charcoal);
+    background: #101410;
+    color: #C9D6C2;
+    box-shadow: var(--shadow-off);
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    padding: 22px;
+    min-height: 220px;
+  }
+  .boot-box .bar{
+    display:flex; gap:6px; margin-bottom:16px;
+  }
+  .boot-box .bar span{
+    width:9px; height:9px; border-radius:50%;
+    background:#3a423a; display:inline-block;
+  }
+  #boot-text{ white-space: pre-wrap; }
+  .cursor-blink{
+    display:inline-block;
+    width:8px; height:14px;
+    background:var(--sage);
+    animation: blink 1s steps(1) infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  /* ---------- SECTION HEADERS ---------- */
+  .section{ padding: 64px 0; border-top: 1px solid var(--line); }
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom: 40px;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .section-head h2{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: 1.7rem;
+    letter-spacing: -0.01em;
+  }
+  .section-head p{
+    font-size: 14px;
+    color:#555;
+    max-width: 40ch;
+  }
+
+  /* ---------- FEATURE GRID ---------- */
+  .grid3{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--charcoal);
+    border-left: 1px solid var(--charcoal);
+  }
+  .card{
+    border-right: 1px solid var(--charcoal);
+    border-bottom: 1px solid var(--charcoal);
+    background: var(--cream);
+    padding: 30px 26px;
+    transition: background .12s ease, color .12s ease;
+  }
+  .card:hover{
+    background: var(--charcoal);
+    color: var(--cream);
+  }
+  .card:hover svg *{ stroke: var(--cream); }
+  .card:hover .card-tag{ color: var(--sage); }
+  .card svg{ width:40px; height:40px; margin-bottom:18px; }
+  .card svg *{ stroke: var(--charcoal); transition: stroke .12s ease; }
+  .card-tag{
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--sage);
+    display:block;
+    margin-bottom: 10px;
+  }
+  .card h3{
+    font-family:'Space Mono', monospace;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .card p{ font-size: 13.5px; color: inherit; opacity: 0.85; }
+
+  /* ---------- LIVE FEED TERMINAL ---------- */
+  .feed{
+    border: 1px solid var(--charcoal);
+    box-shadow: var(--shadow-off);
+    background: #fff;
+  }
+  .feed-head{
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 1px solid var(--charcoal);
+    padding: 12px 18px;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .feed-head .rec{
+    display:flex; align-items:center; gap:8px; color:#8a1f1f;
+  }
+  .rec .rdot{
+    width:8px; height:8px; background:#B5473A; border-radius:50%;
+    animation: blink 1.4s steps(1) infinite;
+  }
+  .feed-body{
+    padding: 22px;
+    font-family:'Space Mono', monospace;
+    font-size: 13.5px;
+    min-height: 180px;
+    background:
+      linear-gradient(var(--cream) 0 0);
+  }
+  #feed-text{ white-space: pre-wrap; color:#333; }
+  #feed-text .ok{ color: var(--sage); }
+
+  /* ---------- BLUEPRINT DIVIDER ---------- */
+  .blueprint{
+    display:flex; justify-content:center; padding: 8px 0 8px;
+    opacity: 0.85;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top: 1px solid var(--charcoal);
+    padding: 34px 0;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    display:flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    color:#555;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 860px){
+    .hero{ grid-template-columns: 1fr; padding-top: 56px; }
+    .grid3{ grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav-inner">
+    <div class="logo"><span class="dot"></span>PYVERSE<span style="color:var(--sage)">_</span></div>
+    <div class="clock mono" id="clock">00:00:00</div>
+  </div>
+</header>
+
+<section class="wrap hero">
+  <div>
+    <span class="eyebrow">Terminal Build · Python Curriculum</span>
+    <h1>Learn python on<br>a machine that<br><span class="glow">remembers</span>.</h1>
+    <p class="lede">A self-paced lab that runs entirely on your machine — no server round-trips, no spinners. Every loop, object, and stack frame rendered the way an old workstation would show its work: visibly.</p>
+    <div class="cta-row">
+      <button class="btn" id="boot-btn">Boot Session →</button>
+      <button class="btn secondary">Read the Manual</button>
+    </div>
+  </div>
+
+  <div class="boot-box mono">
+    <div class="bar"><span></span><span></span><span></span></div>
+    <div id="boot-text"></div>
+  </div>
+</section>
+
+<section class="section wrap" id="features">
+  <div class="section-head">
+    <h2>Three instruments,<br>one workbench.</h2>
+    <p>Each module isolates one part of learning to code: seeing it, drilling it, breaking it.</p>
+  </div>
+
+  <div class="grid3">
+    <div class="card interactive">
+      <svg viewBox="0 0 40 40" fill="none"><rect x="4" y="4" width="14" height="14" stroke-width="1.6"/><rect x="22" y="4" width="14" height="14" stroke-width="1.6"/><path d="M11 18v6M29 18v6M11 24h18v-6" stroke-width="1.6"/><rect x="4" y="24" width="14" height="12" stroke-width="1.6"/></svg>
+      <span class="card-tag">Module 01</span>
+      <h3>Trace Viewer</h3>
+      <p>Step through execution frame by frame. Watch variables enter scope, objects get allocated, and pointers resolve — nothing hidden behind a green checkmark.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 40 40" fill="none"><path d="M4 8h32M4 8v24h32V8" stroke-width="1.6"/><path d="M9 14h4M9 20h10M9 26h6" stroke-width="1.6"/></svg>
+      <span class="card-tag">Module 02</span>
+      <h3>Syntax Drills</h3>
+      <p>Character-level typing exercises tuned to real Python idioms. Correct keystrokes register instantly; mistakes are marked, not hidden.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 40 40" fill="none"><rect x="4" y="4" width="32" height="32" stroke-width="1.6"/><path d="M11 14l6 6-6 6M22 26h7" stroke-width="1.6"/></svg>
+      <span class="card-tag">Module 03</span>
+      <h3>Sandbox Lab</h3>
+      <p>A local, browser-isolated runtime for open-ended problems. Write, run, and assert — all client-side, nothing leaves the machine.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section wrap" id="feed">
+  <div class="section-head">
+    <h2>Live workbench feed</h2>
+    <p>A running log of what the sandbox is doing right now, in this demo.</p>
+  </div>
+
+  <div class="feed">
+    <div class="feed-head">
+      <span>/ sandbox_output.log</span>
+      <span class="rec"><span class="rdot"></span>local</span>
+    </div>
+    <div class="feed-body">
+      <div id="feed-text"></div>
+    </div>
+  </div>
+</section>
+
+<div class="blueprint">
+  <svg width="220" height="60" viewBox="0 0 220 60" fill="none">
+    <rect x="10" y="10" width="200" height="40" stroke="#222" stroke-width="1" opacity="0.5"/>
+    <line x1="10" y1="30" x2="210" y2="30" stroke="#222" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>
+    <circle cx="30" cy="30" r="4" stroke="#222" stroke-width="1" opacity="0.6"/>
+    <circle cx="190" cy="30" r="4" stroke="#222" stroke-width="1" opacity="0.6"/>
+  </svg>
+</div>
+
+<footer class="wrap">
+  <span>PYVERSE © 2026 — RUNS LOCALLY, TEACHES PATIENTLY</span>
+  <span>NO SERVER STORAGE // 100% CLIENT-SIDE</span>
+</footer>
+
+<script>
+  // Clock
+  function tick(){
+    const d = new Date();
+    const p = n => String(n).padStart(2,'0');
+    document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // Boot sequence typewriter in hero
+  const bootLines = [
+    "PyVerse OS v2.6",
+    "loading interpreter... ok",
+    "mounting local sandbox... ok",
+    "",
+    ">>> for i in range(3):",
+    "...     print(i, 'booting')",
+    "0 booting",
+    "1 booting",
+    "2 booting",
+    "",
+    "ready."
+  ];
+  const bootEl = document.getElementById('boot-text');
+  function typeBoot(){
+    bootEl.innerHTML = '';
+    let li = 0, ci = 0;
+    function step(){
+      if(li >= bootLines.length){
+        bootEl.innerHTML += '<span class="cursor-blink"></span>';
+        return;
+      }
+      const line = bootLines[li];
+      if(ci <= line.length){
+        bootEl.textContent = bootLines.slice(0, li).join('\n') + (li>0?'\n':'') + line.slice(0, ci);
+        ci++;
+        setTimeout(step, line.length === 0 ? 40 : 16);
+      } else {
+        li++; ci = 0;
+        setTimeout(step, 90);
+      }
+    }
+    step();
+  }
+  typeBoot();
+  document.getElementById('boot-btn').addEventListener('click', typeBoot);
+
+  // Live feed simulation
+  const feedLines = [
+    "[12:04:01] sandbox: initialized pyodide runtime",
+    "[12:04:02] user: defined function fibonacci(n)",
+    "[12:04:03] trace: frame pushed — fibonacci(5)",
+    "[12:04:03] trace: frame pushed — fibonacci(4)",
+    "[12:04:04] assert: fibonacci(5) == 5 ... OK",
+    "[12:04:05] assert: fibonacci(8) == 21 ... OK",
+    "[12:04:06] sandbox: 2/2 assertions passed"
+  ];
+  const feedEl = document.getElementById('feed-text');
+  function typeFeed(){
+    feedEl.innerHTML = '';
+    let li = 0;
+    function addLine(){
+      if(li >= feedLines.length) return;
+      const line = feedLines[li];
+      const span = document.createElement('div');
+      if(line.includes('OK') || line.includes('passed')){
+        span.innerHTML = line.replace(/(OK|passed)/, '<span class="ok">$1</span>');
+      } else {
+        span.textContent = line;
+      }
+      feedEl.appendChild(span);
+      li++;
+      setTimeout(addLine, 480);
+    }
+    addLine();
+  }
+
+  // trigger feed typing when it scrolls into view
+  const feedSection = document.getElementById('feed');
+  let feedStarted = false;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting && !feedStarted){
+        feedStarted = true;
+        typeFeed();
+      }
+    });
+  }, { threshold: 0.3 });
+  observer.observe(feedSection);
+</script>
+
+</body>
+</html>

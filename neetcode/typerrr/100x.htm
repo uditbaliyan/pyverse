@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyMonkeyType Premium</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg-color: #323437;
+            --sub-color: #646669;
+            --main-color: #d1d0c5;
+            --error-color: #ca4754;
+            --error-extra: #7e2a33;
+            --cursor-color: #f2c744;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            color: var(--main-color);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none;
+        }
+
+        header {
+            width: 100%; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(100, 102, 105, 0.2);
+        }
+        .logo { font-size: 24px; font-weight: 700; letter-spacing: -1px; color: var(--main-color); }
+        .logo span { color: var(--cursor-color); }
+
+        #stats-container { display: flex; gap: 60px; margin-top: 40px; }
+        .stat { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 14px; color: var(--sub-color); margin-bottom: 5px; text-transform: lowercase; }
+        .stat-value { font-size: 40px; font-weight: 600; line-height: 1; transition: color 0.2s; }
+        .stat-value.low { color: var(--error-color); }
+
+        #chart-container {
+            margin-top: 20px; width: 400px; height: 60px;
+            opacity: 0.5; transition: opacity 0.3s;
+        }
+        #chart-container.active { opacity: 1; }
+        svg { width: 100%; height: 100%; fill: none; stroke: var(--cursor-color); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(242, 199, 68, 0.3)); }
+
+        #typing-area {
+            position: relative; margin-top: 40px; width: 850px; max-width: 90vw; height: 200px;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+        }
+
+        #text-container {
+            position: relative; font-size: 24px; line-height: 2.8;
+            white-space: pre-wrap; word-break: break-all;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            transform: translateY(0);
+        }
+        #text-container.fade-out { opacity: 0; transform: translateY(10px); }
+
+        .char { color: var(--sub-color); position: relative; }
+        .char.correct { color: var(--main-color); }
+        .char.incorrect { color: var(--error-color); background-color: var(--error-extra); border-radius: 2px; }
+
+        #cursor {
+            position: absolute; width: 2px; height: 28px;
+            background-color: var(--cursor-color); border-radius: 99px;
+            top: 8px; left: 0;
+            transition: none;
+            z-index: 10; box-shadow: 0 0 10px rgba(242, 199, 68, 0.5);
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: 0; } 100% { opacity: 1; } }
+
+        #overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(50, 52, 55, 0.8); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 1; transition: opacity 0.3s; cursor: pointer;
+        }
+        #overlay.hidden { opacity: 0; pointer-events: none; }
+        #overlay span { font-size: 24px; color: var(--sub-color); letter-spacing: 1px; }
+
+        footer {
+            position: absolute; bottom: 30px; font-size: 14px;
+            color: var(--sub-color); opacity: 0.6;
+        }
+        footer kbd {
+            background: rgba(100, 102, 105, 0.2); padding: 2px 6px;
+            border-radius: 4px; border-bottom: 2px solid rgba(100, 102, 105, 0.4);
+            font-family: inherit; margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">py<span>monkey</span>type</div>
+    </header>
+
+    <div id="stats-container">
+        <div class="stat">
+            <div class="stat-label">wpm</div>
+            <div class="stat-value" id="wpm">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">accuracy</div>
+            <div class="stat-value" id="accuracy">100%</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">time</div>
+            <div class="stat-value" id="time">0s</div>
+        </div>
+    </div>
+
+    <div id="chart-container">
+        <svg id="wpm-chart" viewBox="0 0 100 30" preserveAspectRatio="none">
+            <polyline id="chart-line" points=""></polyline>
+        </svg>
+    </div>
+
+    <div id="typing-area">
+        <div id="text-container"></div>
+        <div id="cursor"></div>
+    </div>
+
+    <div id="overlay">
+        <span>Click to focus</span>
+    </div>
+
+    <footer>
+        <kbd>tab</kbd> restart
+    </footer>
+
+    <script type="mpy">
+        import random
+        from js import document, window
+
+        snippets = [
+            "from dataclasses import dataclass\n\n@dataclass\nclass User:\n    name: str\n    age: int\n    active: bool = True",
+            "from typing import Optional\n\ndef fetch_data(id: int) -> Optional[dict]:\n    if id > 0:\n        return {'id': id, 'status': 'ok'}\n    return None",
+            "import asyncio\n\nasync def main():\n    tasks = [asyncio.sleep(1) for _ in range(5)]\n    await asyncio.gather(*tasks)\n    print('Done')",
+            "def fibonacci(n: int) -> list[int]:\n    a, b = 0, 1\n    result = []\n    for _ in range(n):\n        result.append(a)\n        a, b = b, a + b\n    return result",
+            "# Walrus operator example\nif (n := len([1, 2, 3, 4])) > 3:\n    print(f'List is too long ({n} elements)')",
+            "import json\n\nwith open('config.json', 'r') as f:\n    config = json.load(f)\n    db_host = config.get('database', {}).get('host')",
+            "match status:\n    case 200:\n        print('OK')\n    case 404:\n        print('Not Found')\n    case _:\n        print('Unknown Error')"
+        ]
+
+        state = {
+            "text": "",
+            "index": 0,
+            "correct": 0,
+            "incorrect": 0,
+            "start_time": None,
+            "finished": False,
+            "focused": False,
+            "wpm_history": []
+        }
+
+        def update_cursor_position():
+            cursor = document.getElementById("cursor")
+            container = document.getElementById("text-container")
+            spans = container.children
+            
+            # THE FIX: Use JavaScript .length property instead of Python len()
+            if state["index"] < spans.length:
+                target_span = spans[state["index"]]
+                cursor.style.left = f"{target_span.offsetLeft}px"
+                cursor.style.top = f"{target_span.offsetTop}px"
+                
+                area = document.getElementById("typing-area")
+                span_top = target_span.offsetTop
+                scroll_target = span_top - (area.clientHeight / 2) + 30
+                container.style.transform = f"translateY(-{scroll_target}px)"
+
+        def load_snippet(*args):
+            state["text"] = random.choice(snippets)
+            state["index"] = 0
+            state["correct"] = 0
+            state["incorrect"] = 0
+            state["start_time"] = None
+            state["finished"] = False
+            state["wpm_history"] = []
+
+            container = document.getElementById("text-container")
+            container.innerHTML = ""
+            container.style.transform = "translateY(0)"
+
+            for char in state["text"]:
+                span = document.createElement("span")
+                span.className = "char"
+                span.innerText = char
+                container.appendChild(span)
+
+            document.getElementById("chart-line").setAttribute("points", "")
+            document.getElementById("chart-container").classList.remove("active")
+            
+            update_cursor_position()
+            update_stats()
+
+        def handle_keydown(event):
+            if event.key == "Tab":
+                event.preventDefault()
+                cont = document.getElementById("text-container")
+                cont.classList.add("fade-out")
+                
+                def do_reset():
+                    load_snippet()
+                    cont.classList.remove("fade-out")
+                
+                window.setTimeout(do_reset, 150)
+                return
+
+            if event.key == "Escape":
+                document.getElementById("overlay").classList.remove("hidden")
+                state["focused"] = False
+                return
+
+            if state["finished"] or not state["focused"]:
+                return
+
+            if event.key in ["Shift", "Control", "Alt", "Meta", "CapsLock", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]:
+                return
+
+            event.preventDefault()
+
+            if event.key == "Backspace":
+                if state["index"] > 0:
+                    state["index"] -= 1
+                    span = document.getElementById("text-container").children[state["index"]]
+                    
+                    if span.classList.contains("correct"): 
+                        state["correct"] -= 1
+                    elif span.classList.contains("incorrect"): 
+                        state["incorrect"] -= 1
+
+                    span.classList.remove("correct", "incorrect")
+                    update_cursor_position()
+                update_stats()
+                return
+
+            if state["start_time"] is None:
+                state["start_time"] = window.performance.now()
+                document.getElementById("chart-container").classList.add("active")
+
+            typed_char = event.key
+            if typed_char == "Enter": 
+                typed_char = "\n"
+
+            expected_char = state["text"][state["index"]]
+            span = document.getElementById("text-container").children[state["index"]]
+
+            if typed_char == expected_char:
+                span.classList.add("correct")
+                state["correct"] += 1
+            else:
+                span.classList.add("incorrect")
+                state["incorrect"] += 1
+
+            state["index"] += 1
+            update_cursor_position()
+
+            elapsed_sec = (window.performance.now() - state["start_time"]) / 1000.0
+            if elapsed_sec > 0.5:
+                current_wpm = (state["correct"] / 5) / (elapsed_sec / 60)
+                state["wpm_history"].append(current_wpm)
+                update_chart()
+
+            if state["index"] >= len(state["text"]):
+                state["finished"] = True
+                window.setTimeout(lambda: document.getElementById("overlay").classList.remove("hidden"), 500)
+
+            update_stats()
+
+        def update_chart():
+            history = state["wpm_history"]
+            if not history: return
+            
+            max_wpm = max(history)
+            if max_wpm <= 0: max_wpm = 1
+            
+            points = []
+            step = 100 / max(len(history) - 1, 1)
+            for i, wpm in enumerate(history):
+                x = i * step
+                y = 30 - (wpm / max_wpm) * 28
+                points.append(f"{x},{y}")
+            
+            document.getElementById("chart-line").setAttribute("points", " ".join(points))
+
+        def update_stats():
+            wpm = 0
+            accuracy = 100
+            elapsed_sec = 0
+
+            if state["start_time"] is not None:
+                elapsed_sec = (window.performance.now() - state["start_time"]) / 1000.0
+                if elapsed_sec > 0:
+                    wpm = int(round((state["correct"] / 5) / (elapsed_sec / 60)))
+
+            total_typed = state["correct"] + state["incorrect"]
+            if total_typed > 0:
+                accuracy = int(round((state["correct"] / total_typed) * 100))
+
+            wpm_el = document.getElementById("wpm")
+            acc_el = document.getElementById("accuracy")
+            
+            wpm_el.innerText = str(wpm)
+            acc_el.innerText = f"{accuracy}%"
+            document.getElementById("time").innerText = f"{elapsed_sec:.1f}s"
+
+            if accuracy < 90:
+                acc_el.classList.add("low")
+            else:
+                acc_el.classList.remove("low")
+
+        def focus_app(event):
+            document.getElementById("overlay").classList.add("hidden")
+            state["focused"] = True
+
+        document.getElementById("overlay").addEventListener("click", focus_app)
+        window.onkeydown = handle_keydown
+        
+        load_snippet()
+    </script>
+</body>
+</html>

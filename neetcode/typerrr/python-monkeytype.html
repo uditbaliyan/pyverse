@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyMonkeyType - MicroPython Edition</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        :root {
+            --bg-color: #323437;
+            --text-main: #e2e2e2;
+            --sub-text: #646669;
+            --correct-color: #d1d0c5;
+            --incorrect-color: #ca4754;
+            --incorrect-bg: #7e2a33;
+            --cursor-color: #f2c744;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'RobotoMono', 'Fira Code', 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-weight: 400;
+            margin-top: 40px;
+            color: var(--sub-text);
+            letter-spacing: 2px;
+            font-size: 24px;
+        }
+
+        #stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 30px;
+            font-size: 24px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--sub-text);
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        #text-container {
+            margin-top: 50px;
+            width: 800px;
+            max-width: 90vw;
+            font-size: 22px;
+            line-height: 2.5;
+            white-space: pre-wrap; 
+            word-break: break-all;
+            user-select: none;
+        }
+
+        .char { color: var(--sub-text); position: relative; }
+        .char.correct { color: var(--correct-color); }
+        .char.incorrect { color: var(--incorrect-color); background-color: var(--incorrect-bg); border-radius: 2px; }
+        
+        .char.cursor::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 4px; bottom: 4px;
+            width: 2px;
+            background-color: var(--cursor-color);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+        #reset-prompt {
+            margin-top: 40px;
+            font-size: 18px;
+            color: var(--cursor-color);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #reset-prompt.visible { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <h1>python monkeytype</h1>
+
+    <div id="stats">
+        <div class="stat-item">
+            <div class="stat-label">wpm</div>
+            <div class="stat-value" id="wpm">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">accuracy</div>
+            <div class="stat-value" id="accuracy">100%</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">time</div>
+            <div class="stat-value" id="time">0s</div>
+        </div>
+    </div>
+
+    <div id="text-container"></div>
+    <div id="reset-prompt">press tab to restart</div>
+
+    <script type="mpy">
+        import random
+        from js import document, window
+
+        snippets = [
+            "def hello_world():\n    print('Hello, World!')",
+            "import pandas as pd\ndf = pd.read_csv('data.csv')\nprint(df.head())",
+            "for i in range(10):\n    if i % 2 == 0:\n        print(f'{i} is even')",
+            "class Dog:\n    def __init__(self, name):\n        self.name = name\n\n    def bark(self):\n        return 'Woof!'",
+            "squares = [x**2 for x in range(1, 11) if x % 2 == 0]\nprint(squares)",
+            "try:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    print('Cannot divide by zero')",
+            "from typing import List, Dict\n\ndef process_data(items: List[str]) -> Dict:\n    return {item: len(item) for item in items}",
+            "with open('output.txt', 'w') as f:\n    f.write('Hello PyScript!')",
+            "import numpy as np\narr = np.array([[1, 2], [3, 4]])\nprint(np.dot(arr, arr.T))"
+        ]
+
+        current_text = ""
+        current_index = 0
+        correct_chars = 0
+        incorrect_chars = 0
+        start_time = None
+        is_finished = False
+
+        def load_snippet(*args):
+            global current_text, current_index, correct_chars, incorrect_chars, start_time, is_finished
+            is_finished = False
+            current_text = random.choice(snippets)
+            current_index = 0
+            correct_chars = 0
+            incorrect_chars = 0
+            start_time = None
+
+            container = document.getElementById("text-container")
+            container.innerHTML = ""
+
+            for char in current_text:
+                span = document.createElement("span")
+                span.className = "char"
+                span.innerText = char
+                container.appendChild(span)
+
+            if container.children.length > 0:
+                container.children[0].classList.add("cursor")
+
+            document.getElementById("reset-prompt").classList.remove("visible")
+            update_stats()
+
+        def handle_keydown(event):
+            global current_index, correct_chars, incorrect_chars, start_time, is_finished
+
+            if event.key == "Tab":
+                event.preventDefault()
+                load_snippet()
+                return
+
+            if is_finished:
+                return
+
+            if event.key in ["Shift", "Control", "Alt", "Meta", "CapsLock", "Escape"]:
+                return
+
+            event.preventDefault()
+
+            if event.key == "Backspace":
+                if current_index > 0:
+                    current_index -= 1
+                    span = document.getElementById("text-container").children[current_index]
+                    
+                    if span.classList.contains("correct"):
+                        correct_chars -= 1
+                    elif span.classList.contains("incorrect"):
+                        incorrect_chars -= 1
+
+                    span.classList.remove("correct", "incorrect")
+                    span.classList.add("cursor")
+                    
+                    if current_index + 1 < len(current_text):
+                        document.getElementById("text-container").children[current_index + 1].classList.remove("cursor")
+                update_stats()
+                return
+
+            if start_time is None:
+                start_time = window.performance.now()
+
+            typed_char = event.key
+            if typed_char == "Enter":
+                typed_char = "\n"
+
+            expected_char = current_text[current_index]
+            span = document.getElementById("text-container").children[current_index]
+
+            if typed_char == expected_char:
+                span.classList.add("correct")
+                correct_chars += 1
+            else:
+                span.classList.add("incorrect")
+                incorrect_chars += 1
+
+            span.classList.remove("cursor")
+            current_index += 1
+
+            if current_index < len(current_text):
+                document.getElementById("text-container").children[current_index].classList.add("cursor")
+            else:
+                is_finished = True
+                document.getElementById("reset-prompt").classList.add("visible")
+
+            update_stats()
+
+        def update_stats():
+            wpm = 0
+            accuracy = 100
+            elapsed_sec = 0
+
+            if start_time is not None:
+                elapsed_sec = (window.performance.now() - start_time) / 1000.0
+                if elapsed_sec > 0:
+                    wpm = int(round((correct_chars / 5) / (elapsed_sec / 60)))
+
+            total_typed = correct_chars + incorrect_chars
+            if total_typed > 0:
+                accuracy = int(round((correct_chars / total_typed) * 100))
+
+            document.getElementById("wpm").innerText = str(wpm)
+            document.getElementById("accuracy").innerText = f"{accuracy}%"
+            document.getElementById("time").innerText = f"{elapsed_sec:.1f}s"
+
+        # MICROPYTHON FIX: Directly assign the Python function to the window's onkeydown event
+        window.onkeydown = handle_keydown
+        
+        load_snippet()
+    </script>
+</body>
+</html>

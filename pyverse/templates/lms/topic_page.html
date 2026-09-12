@@ -1,0 +1,129 @@
+{% extends "base.html" %} {% load wagtailcore_tags wagtailimages_tags %} {% block content %}
+<main class="topic-page">
+  <!-- Topic Header -->
+  <section
+    class="py-16 px-6 border-b border-neutral-200"
+    {%
+    if
+    page.color
+    %}style="border-top: 4px solid {{ page.color }}"
+    {%
+    endif
+    %}
+  >
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-start gap-4 mb-4">
+        {% if page.icon %}
+        <div
+          class="w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white shrink-0"
+          style="background: {{ page.color|default:'#171717' }}"
+        >
+          <i data-lucide="{{ page.icon }}"></i>
+        </div>
+        {% endif %}
+        <div>
+          <!-- Breadcrumb -->
+          <nav class="text-sm text-neutral-500 mb-2">
+            <a href="{{ page.get_parent.url }}" class="hover:underline">Learning</a>
+            <span class="mx-1">/</span>
+            <span class="text-neutral-900">{{ page.title }}</span>
+          </nav>
+          <h1 class="text-3xl md:text-4xl font-bold">{{ page.title }}</h1>
+        </div>
+      </div>
+      {% if page.description %}
+      <p class="text-neutral-600 max-w-2xl mt-2">{{ page.description }}</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Filters -->
+  <section class="px-6 py-6 border-b border-neutral-100 bg-white sticky top-16 z-30">
+    <div class="max-w-6xl mx-auto flex flex-wrap gap-3 items-center">
+      <span class="text-sm font-medium text-neutral-500 mr-1">Filter:</span>
+
+      <!-- Difficulty -->
+      <div class="flex gap-1">
+        {% for value, label in difficulty_choices %}
+        <a
+          href="?difficulty={% if active_difficulty == value %}{% else %}{{ value }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
+          class="px-3 py-1.5 text-sm rounded-full border transition-colors {% if active_difficulty == value %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-200 text-neutral-600 hover:border-neutral-400{% endif %}"
+        >
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
+
+      <div class="w-px h-6 bg-neutral-200 mx-1 hidden md:block"></div>
+
+      <!-- Type -->
+      <div class="flex gap-1">
+        {% for value, label in type_choices %}
+        <a
+          href="?type={% if active_type == value %}{% else %}{{ value }}{% endif %}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
+          class="px-3 py-1.5 text-sm rounded-full border transition-colors {% if active_type == value %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-200 text-neutral-600 hover:border-neutral-400{% endif %}"
+        >
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
+
+      <div class="w-px h-6 bg-neutral-200 mx-1 hidden md:block"></div>
+
+      <!-- Free filter -->
+      <a
+        href="?free={% if active_free == '1' %}{% else %}1{% endif %}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}"
+        class="px-3 py-1.5 text-sm rounded-full border transition-colors {% if active_free == '1' %}bg-green-600 text-white border-green-600{% else %}border-neutral-200 text-neutral-600 hover:border-neutral-400{% endif %}"
+      >
+        Free only
+      </a>
+    </div>
+  </section>
+
+  <!-- Course Grid -->
+  <section class="py-12 px-6">
+    <div class="max-w-6xl mx-auto">
+      {% if courses_page %}
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for course in courses_page %}
+        {% include "lms/components/course_card.html" with course=course %} {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if courses_page.has_other_pages %}
+      <nav class="flex justify-center gap-2 mt-12">
+        {% if courses_page.has_previous %}
+        <a
+          href="?page={{ courses_page.previous_page_number }}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
+          class="px-4 py-2 border border-neutral-200 rounded-lg text-sm hover:bg-neutral-50"
+        >
+          Previous
+        </a>
+        {% endif %}
+
+        <span class="px-4 py-2 text-sm text-neutral-500">
+          Page {{ courses_page.number }} of {{ courses_page.paginator.num_pages }}
+        </span>
+
+        {% if courses_page.has_next %}
+        <a
+          href="?page={{ courses_page.next_page_number }}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
+          class="px-4 py-2 border border-neutral-200 rounded-lg text-sm hover:bg-neutral-50"
+        >
+          Next
+        </a>
+        {% endif %}
+      </nav>
+      {% endif %} {% else %}
+      <div class="text-center py-20">
+        <i data-lucide="search-x" class="w-12 h-12 text-neutral-300 mx-auto mb-4"></i>
+        <p class="text-neutral-500">No courses match your filters.</p>
+        <a href="{{ page.url }}" class="text-sm text-neutral-900 underline mt-2 inline-block"
+          >Clear filters</a
+        >
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</main>
+{% endblock %}

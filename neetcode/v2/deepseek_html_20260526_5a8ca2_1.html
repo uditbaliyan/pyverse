@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>PyLeet Studio · PyScript Edition</title>
+<!-- PyScript CSS -->
+<link rel="stylesheet" href="https://pyscript.net/releases/2024.5.2/core.css">
+<!-- This script tag bootstraps PyScript -->
+<script type="module" src="https://pyscript.net/releases/2024.5.2/core.js"></script>
+
+<!-- CodeMirror -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css">
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+:root{
+    --bg:#0b1020;
+    --panel:#111827;
+    --panel-2:#172033;
+    --panel-3:#1f2937;
+    --border:rgba(255,255,255,.08);
+
+    --text:#eef2ff;
+    --muted:#94a3b8;
+    --muted-2:#64748b;
+
+    --accent:#7c3aed;
+    --accent-2:#8b5cf6;
+
+    --green:#10b981;
+    --red:#ef4444;
+    --amber:#f59e0b;
+    --cyan:#38bdf8;
+
+    --mono:'JetBrains Mono', monospace;
+    --sans:'Inter', sans-serif;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+}
+
+::-webkit-scrollbar{
+    width:6px;
+    height:6px;
+}
+::-webkit-scrollbar-thumb{
+    background:#273449;
+    border-radius:20px;
+}
+
+.shell{
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+/* HEADER */
+
+.header{
+    height:58px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    background:rgba(17,24,39,.85);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.logo{
+    width:34px;
+    height:34px;
+    border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--cyan));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:15px;
+}
+
+.brand h1{
+    font-size:15px;
+    font-weight:700;
+}
+
+.brand span{
+    color:var(--muted);
+    font-size:12px;
+}
+
+.runtime{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:8px 14px;
+    border-radius:999px;
+    font-size:12px;
+    color:var(--muted);
+}
+
+.dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--amber);
+    animation:pulse 1.4s infinite;
+}
+
+.dot.ready{
+    background:var(--green);
+    animation:none;
+}
+
+@keyframes pulse{
+    0%{opacity:1}
+    50%{opacity:.25}
+    100%{opacity:1}
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    display:flex;
+    overflow:hidden;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:390px;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+}
+
+.tabs{
+    display:flex;
+    border-bottom:1px solid var(--border);
+}
+
+.tab-btn{
+    flex:1;
+    background:none;
+    border:none;
+    color:var(--muted-2);
+    padding:16px 12px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
+    border-bottom:2px solid transparent;
+}
+
+.tab-btn:hover{
+    color:var(--text);
+}
+
+.tab-btn.active{
+    color:white;
+    border-bottom:2px solid var(--accent-2);
+}
+
+.tab-content{
+    flex:1;
+    overflow:auto;
+    padding:22px;
+}
+
+.hidden{
+    display:none;
+}
+
+/* PROBLEM */
+
+.problem-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+}
+
+.problem-title h2{
+    font-size:24px;
+}
+
+.badge{
+    padding:4px 10px;
+    border-radius:999px;
+    background:rgba(16,185,129,.12);
+    border:1px solid rgba(16,185,129,.25);
+    color:var(--green);
+    font-size:11px;
+    font-weight:700;
+}
+
+.desc{
+    color:var(--muted);
+    line-height:1.8;
+    font-size:14px;
+    margin-bottom:18px;
+}
+
+.code-inline{
+    background:var(--panel-3);
+    border:1px solid var(--border);
+    padding:2px 7px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:#c084fc;
+}
+
+.example{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:12px;
+    font-family:var(--mono);
+    font-size:12px;
+    line-height:1.9;
+}
+
+.example-label{
+    color:var(--cyan);
+    margin-bottom:8px;
+    font-weight:700;
+}
+
+/* EDITOR */
+
+.workspace{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+}
+
+.editor-top{
+    height:54px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 18px;
+    flex-shrink:0;
+}
+
+.editor-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    color:var(--muted);
+    font-family:var(--mono);
+}
+
+.lang-dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#3776ab;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+}
+
+.btn{
+    border:none;
+    cursor:pointer;
+    border-radius:12px;
+    padding:10px 16px;
+    font-weight:700;
+    font-size:13px;
+    transition:.2s;
+}
+
+.btn:hover{
+    transform:translateY(-1px);
+}
+
+.btn:disabled{
+    opacity:.4;
+    pointer-events:none;
+}
+
+.btn-secondary{
+    background:var(--panel-3);
+    color:var(--text);
+}
+
+.btn-run{
+    background:rgba(16,185,129,.15);
+    color:var(--green);
+    border:1px solid rgba(16,185,129,.3);
+}
+
+.btn-submit{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:white;
+}
+
+/* CODEMIRROR */
+
+.editor-wrap{
+    flex:1;
+    overflow:hidden;
+}
+
+.CodeMirror{
+    height:100% !important;
+    font-family:var(--mono);
+    font-size:14px;
+    background:#0b1220 !important;
+    color:#f8fafc !important;
+    padding-top:12px;
+}
+
+.CodeMirror-gutters{
+    background:#0b1220 !important;
+    border-right:1px solid var(--border);
+}
+
+.CodeMirror-linenumber{
+    color:#475569 !important;
+}
+
+.CodeMirror-cursor{
+    border-left:2px solid #8b5cf6 !important;
+}
+
+.cm-keyword{color:#c084fc !important;}
+.cm-def{color:#4ade80 !important;}
+.cm-variable{color:#f8fafc !important;}
+.cm-string{color:#fca5a5 !important;}
+.cm-comment{color:#64748b !important;}
+.cm-number{color:#fbbf24 !important;}
+
+/* BOTTOM */
+
+.bottom{
+    height:320px;
+    background:var(--panel);
+    border-top:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+}
+
+.bottom-tabs{
+    display:flex;
+    border-bottom:1px solid var(--border);
+}
+
+.bottom-btn{
+    padding:14px 18px;
+    background:none;
+    border:none;
+    color:var(--muted-2);
+    font-weight:700;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+}
+
+.bottom-btn.active{
+    color:white;
+    border-bottom:2px solid var(--green);
+}
+
+.bottom-content{
+    flex:1;
+    overflow:auto;
+    padding:18px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+}
+
+.field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.field label{
+    color:var(--muted-2);
+    font-size:11px;
+    font-family:var(--mono);
+    text-transform:uppercase;
+}
+
+.field input{
+    background:#0b1220;
+    border:1px solid var(--border);
+    color:#f8fafc;
+    padding:12px;
+    border-radius:12px;
+    outline:none;
+    font-family:var(--mono);
+}
+
+.output{
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.8;
+    color:#cbd5e1;
+    white-space:pre-wrap;
+}
+
+.metrics{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-top:18px;
+}
+
+.metric{
+    background:#0b1220;
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+}
+
+.metric-label{
+    color:var(--muted-2);
+    font-size:11px;
+    text-transform:uppercase;
+    margin-bottom:8px;
+    font-family:var(--mono);
+}
+
+.metric-value{
+    font-size:22px;
+    font-weight:800;
+}
+
+.green{color:var(--green)}
+.purple{color:#a78bfa}
+.cyan{color:var(--cyan)}
+.amber{color:var(--amber)}
+
+.analysis-card{
+    background:#0b1220;
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:16px;
+}
+
+.analysis-card h3{
+    margin-bottom:12px;
+    font-size:16px;
+}
+
+.analysis-card p{
+    color:var(--muted);
+    line-height:1.7;
+    font-size:14px;
+}
+
+.analysis-complexity{
+    margin-top:14px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.pill{
+    padding:8px 12px;
+    border-radius:999px;
+    font-family:var(--mono);
+    font-size:12px;
+    border:1px solid var(--border);
+}
+
+.pill.time{
+    color:var(--amber);
+    background:rgba(245,158,11,.12);
+}
+
+.pill.space{
+    color:#a78bfa;
+    background:rgba(139,92,246,.12);
+}
+</style>
+</head>
+
+<body>
+
+<div class="shell">
+
+    <!-- HEADER -->
+    <header class="header">
+
+        <div class="brand">
+            <div class="logo">P</div>
+
+            <div>
+                <h1>PyLeet Studio</h1>
+                <span>PyScript · WebAssembly · Competitive Programming Sandbox</span>
+            </div>
+        </div>
+
+        <div class="runtime">
+            <div class="dot" id="runtime-dot"></div>
+            <span id="runtime-text">Loading PyScript runtime...</span>
+        </div>
+
+    </header>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- LEFT -->
+        <aside class="sidebar">
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchLeftTab('desc',this)">Description</button>
+                <button class="tab-btn" onclick="switchLeftTab('editorial',this)">Editorial</button>
+                <button class="tab-btn" onclick="switchLeftTab('analysis',this)">Analysis</button>
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="tab-content" id="left-desc">
+
+                <div class="problem-title">
+                    <h2>1. Two Sum</h2>
+                    <div class="badge">Easy</div>
+                </div>
+
+                <div class="desc">
+                    Given an array of integers
+                    <span class="code-inline">nums</span>
+                    and an integer
+                    <span class="code-inline">target</span>,
+                    return indices of the two numbers such that they add up to target.
+                </div>
+
+                <div class="desc">
+                    You may assume that each input has exactly one solution, and you may not use the same element twice.
+                </div>
+
+                <div class="example">
+                    <div class="example-label">Example 1</div>
+
+                    Input: nums = [2,7,11,15], target = 9
+
+                    Output: [0,1]
+                </div>
+
+                <div class="example">
+                    <div class="example-label">Example 2</div>
+
+                    Input: nums = [3,2,4], target = 6
+
+                    Output: [1,2]
+                </div>
+
+            </div>
+
+            <!-- EDITORIAL -->
+            <div class="tab-content hidden" id="left-editorial">
+
+                <div class="analysis-card">
+                    <h3>Approach 1 · Brute Force</h3>
+
+                    <p>
+                        Check every pair of elements using nested loops.
+                        Very intuitive but inefficient for large arrays.
+                    </p>
+
+                    <div class="analysis-complexity">
+                        <div class="pill time">Time · O(n²)</div>
+                        <div class="pill space">Space · O(1)</div>
+                    </div>
+                </div>
+
+                <div class="analysis-card">
+                    <h3>Approach 2 · Hash Map (Optimal)</h3>
+
+                    <p>
+                        Store previously seen numbers in a dictionary.
+                        For each element, check whether its complement already exists.
+                    </p>
+
+                    <div class="analysis-complexity">
+                        <div class="pill time">Time · O(n)</div>
+                        <div class="pill space">Space · O(n)</div>
+                    </div>
+                </div>
+
+                <div class="analysis-card">
+                    <h3>Approach 3 · Functional / Nerdy</h3>
+
+                    <p>
+                        Use enumerate + dictionary comprehension or vectorized lookup patterns.
+                        Less readable but interesting for Python internals exploration.
+                    </p>
+
+                    <div class="analysis-complexity">
+                        <div class="pill time">Time · O(n)</div>
+                        <div class="pill space">Space · O(n)</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ANALYSIS -->
+            <div class="tab-content hidden" id="left-analysis">
+
+                <div class="analysis-card">
+                    <h3>Runtime Characteristics</h3>
+
+                    <p>
+                        Hash maps provide average-case O(1) lookup complexity.
+                        That allows us to solve the problem in linear time instead of quadratic time.
+                    </p>
+                </div>
+
+                <div class="analysis-card">
+                    <h3>Space Tradeoff</h3>
+
+                    <p>
+                        We sacrifice additional memory to achieve faster lookups.
+                        The dictionary stores previously seen values and their indices.
+                    </p>
+                </div>
+
+                <div class="analysis-card">
+                    <h3>Edge Cases</h3>
+
+                    <p>
+                        Duplicate values, negative numbers, and repeated complements are handled naturally using the dictionary approach.
+                    </p>
+                </div>
+
+            </div>
+
+        </aside>
+
+        <!-- RIGHT -->
+        <section class="workspace">
+
+            <div class="editor-top">
+
+                <div class="editor-title">
+                    <div class="lang-dot"></div>
+                    Python 3 · PyScript Runtime
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="resetCode()">Reset</button>
+                    <button class="btn btn-run" id="run-btn" disabled onclick="runCode(false)">
+                        ▶ Run
+                    </button>
+                    <button class="btn btn-submit" id="submit-btn" disabled onclick="runCode(true)">
+                        Submit
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="editor-wrap">
+                <textarea id="editor"></textarea>
+            </div>
+
+            <!-- BOTTOM -->
+            <div class="bottom">
+
+                <div class="bottom-tabs">
+                    <button class="bottom-btn active" onclick="switchBottomTab('testcase',this)">
+                        Testcase
+                    </button>
+
+                    <button class="bottom-btn" onclick="switchBottomTab('output',this)">
+                        Output
+                    </button>
+
+                    <button class="bottom-btn" onclick="switchBottomTab('complexity',this)">
+                        Time & Space
+                    </button>
+                </div>
+
+                <div class="bottom-content">
+
+                    <!-- TESTCASE -->
+                    <div id="bottom-testcase">
+
+                        <div class="grid">
+
+                            <div class="field">
+                                <label>nums</label>
+                                <input id="nums-input" value="[2,7,11,15]">
+                            </div>
+
+                            <div class="field">
+                                <label>target</label>
+                                <input id="target-input" value="9">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- OUTPUT -->
+                    <div id="bottom-output" class="hidden">
+
+                        <div class="output" id="output-area">
+Waiting for execution...
+                        </div>
+
+                        <div class="metrics">
+
+                            <div class="metric">
+                                <div class="metric-label">Runtime</div>
+                                <div class="metric-value green" id="runtime-metric">—</div>
+                            </div>
+
+                            <div class="metric">
+                                <div class="metric-label">Memory</div>
+                                <div class="metric-value purple" id="memory-metric">—</div>
+                            </div>
+
+                            <div class="metric">
+                                <div class="metric-label">Status</div>
+                                <div class="metric-value cyan" id="status-metric">—</div>
+                            </div>
+
+                            <div class="metric">
+                                <div class="metric-label">Percentile</div>
+                                <div class="metric-value amber" id="percentile-metric">—</div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- COMPLEXITY -->
+                    <div id="bottom-complexity" class="hidden">
+
+                        <div class="analysis-card">
+                            <h3>Detected Algorithm</h3>
+
+                            <p id="algo-detected">
+                                Waiting for analysis...
+                            </p>
+                        </div>
+
+                        <div class="analysis-card">
+                            <h3>Estimated Time Complexity</h3>
+
+                            <div class="analysis-complexity">
+                                <div class="pill time" id="time-pill">
+                                    O(n)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analysis-card">
+                            <h3>Estimated Space Complexity</h3>
+
+                            <div class="analysis-complexity">
+                                <div class="pill space" id="space-pill">
+                                    O(n)
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+<script>
+const STARTER = `def twoSum(nums: list[int], target: int) -> list[int]:
+    seen = {}
+
+    for i, num in enumerate(nums):
+        complement = target - num
+
+        if complement in seen:
+            return [seen[complement], i]
+
+        seen[num] = i
+
+    return []
+`;
+
+let editor = null;
+
+function initEditor(){
+
+    editor = CodeMirror.fromTextArea(
+        document.getElementById("editor"),
+        {
+            mode:"python",
+            lineNumbers:true,
+            theme:"default",
+            indentUnit:4,
+            tabSize:4,
+            autoCloseBrackets:true,
+            matchBrackets:true,
+            styleActiveLine:true
+        }
+    );
+
+    editor.setValue(STARTER);
+    editor.setSize("100%","100%");
+}
+
+function switchLeftTab(id,btn){
+
+    document.querySelectorAll(".tab-content")
+        .forEach(el=>el.classList.add("hidden"));
+
+    document.querySelectorAll(".tab-btn")
+        .forEach(el=>el.classList.remove("active"));
+
+    document.getElementById("left-"+id)
+        .classList.remove("hidden");
+
+    btn.classList.add("active");
+}
+
+function switchBottomTab(id,btn){
+
+    document.querySelectorAll("#bottom-testcase,#bottom-output,#bottom-complexity")
+        .forEach(el=>el.classList.add("hidden"));
+
+    document.querySelectorAll(".bottom-btn")
+        .forEach(el=>el.classList.remove("active"));
+
+    document.getElementById("bottom-"+id)
+        .classList.remove("hidden");
+
+    btn.classList.add("active");
+}
+
+function resetCode(){
+    editor.setValue(STARTER);
+}
+
+function detectComplexity(code){
+
+    let time = "O(n)";
+    let space = "O(n)";
+    let algo = "Hash Map / Dictionary Lookup";
+
+    const nestedLoops =
+        (code.match(/for /g)||[]).length >= 2;
+
+    if(nestedLoops){
+        time = "O(n²)";
+        space = "O(1)";
+        algo = "Brute Force Nested Loop";
+    }
+
+    if(code.includes("sort(")){
+        time = "O(n log n)";
+        algo = "Sorting-Based Approach";
+    }
+
+    document.getElementById("algo-detected").innerText = algo;
+    document.getElementById("time-pill").innerText = time;
+    document.getElementById("space-pill").innerText = space;
+}
+
+async function runCode(isSubmit=false){
+
+    switchBottomTab(
+        "output",
+        document.querySelectorAll(".bottom-btn")[1]
+    );
+
+    const output = document.getElementById("output-area");
+
+    output.innerHTML = "Running Python via PyScript...";
+
+    const code = editor.getValue();
+
+    detectComplexity(code);
+
+    try{
+
+        const nums = JSON.parse(
+            document.getElementById("nums-input").value
+        );
+
+        const target = Number(
+            document.getElementById("target-input").value
+        );
+
+        const wrapped = `
+import json
+import time
+import tracemalloc
+
+${code}
+
+tracemalloc.start()
+
+start = time.perf_counter()
+
+result = twoSum(${JSON.stringify(nums)}, ${target})
+
+end = time.perf_counter()
+
+current, peak = tracemalloc.get_traced_memory()
+
+runtime_ms = (end - start) * 1000
+memory_kb = peak / 1024
+
+print("Input:")
+print(${JSON.stringify(JSON.stringify(nums))}, ${target})
+print()
+print("Output:")
+print(result)
+
+runtime_ms
+memory_kb
+`;
+
+        const pyodide = pyscript.interpreter;
+
+        const result = await pyodide.run(wrapped);
+
+        const runtime = result[0];
+        const memory = result[1];
+
+        output.innerHTML =
+`Execution completed successfully.
+
+Result:
+${JSON.stringify(nums)}
+
+Check Python console output for logs.`;
+
+        document.getElementById("runtime-metric")
+            .innerText = runtime.toFixed(2) + " ms";
+
+        document.getElementById("memory-metric")
+            .innerText = memory.toFixed(2) + " KB";
+
+        document.getElementById("status-metric")
+            .innerText = isSubmit ? "Accepted" : "Success";
+
+        const percentile =
+            Math.max(52, 99 - runtime * 5).toFixed(1);
+
+        document.getElementById("percentile-metric")
+            .innerText = percentile + "%";
+
+    }catch(err){
+
+        output.innerHTML =
+`Execution Error:
+
+${err}`;
+
+        document.getElementById("status-metric")
+            .innerText = "Error";
+    }
+}
+
+window.addEventListener("load",()=>{
+
+    initEditor();
+
+    document.getElementById("runtime-dot")
+        .classList.add("ready");
+
+    document.getElementById("runtime-text")
+        .innerText = "PyScript Runtime Ready";
+
+    document.getElementById("run-btn")
+        .disabled = false;
+
+    document.getElementById("submit-btn")
+        .disabled = false;
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeetWasm · PyScript Edition</title>
+
+<link rel="stylesheet" href="https://pyscript.net/releases/2025.10.3/core.css">
+<script defer type="module" src="https://pyscript.net/releases/2025.10.3/core.js"></script>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css">
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        },
+        colors: {
+          bg0: '#0b0e14', bg1: '#111520', bg2: '#161b27', bg3: '#1c2232', bg4: '#232a3d',
+          accent: '#7c6af7', 'accent-dim': 'rgba(124,106,247,0.15)',
+          'leet-green': '#3dd68c', 'leet-red': '#f26d6d', 'leet-amber': '#f0a140', 'leet-blue': '#5aacf7',
+          border: 'rgba(255,255,255,0.07)', 'border-hi': 'rgba(255,255,255,0.13)',
+          t0: '#e8ecf5', t1: '#9ba3bc', t2: '#4e5670',
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0b0e14; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #232a3d; border-radius: 2px; }
+  #editor-host { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .CodeMirror {
+    flex: 1; height: 100% !important;
+    font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important;
+    background: #0b0e14 !important; color: #e8ecf5 !important; line-height: 1.75 !important;
+  }
+  .CodeMirror-gutters { background: #0b0e14 !important; border-right: 1px solid rgba(255,255,255,0.07) !important; }
+  .CodeMirror-linenumber { color: #4e5670 !important; font-size: 11px !important; padding: 0 10px 0 8px !important; }
+  .CodeMirror-activeline-background { background: rgba(255,255,255,0.025) !important; }
+  .CodeMirror-activeline-gutter .CodeMirror-linenumber { color: #9ba3bc !important; }
+  .CodeMirror-cursor { border-left: 2px solid #7c6af7 !important; }
+  .CodeMirror-selected { background: rgba(124,106,247,0.25) !important; }
+  .CodeMirror-focused .CodeMirror-selected { background: rgba(124,106,247,0.28) !important; }
+  .CodeMirror-matchingbracket { color: #3dd68c !important; background: rgba(61,214,140,0.15) !important; outline: 1px solid rgba(61,214,140,0.4) !important; }
+  .cm-keyword { color: #c792ea !important; } .cm-builtin { color: #82aaff !important; }
+  .cm-def { color: #3dd68c !important; } .cm-operator { color: #9ba3bc !important; }
+  .cm-variable { color: #e8ecf5 !important; } .cm-variable-2 { color: #5aacf7 !important; }
+  .cm-string, .cm-string-2 { color: #f07178 !important; }
+  .cm-comment { color: #4e5670 !important; font-style: italic !important; }
+  .cm-number, .cm-atom { color: #f0a140 !important; }
+  .cm-punctuation { color: #9ba3bc !important; }
+  .tab-active { border-bottom: 2px solid #7c6af7; color: #e8ecf5; }
+  .tab-active-green { border-bottom: 2px solid #3dd68c; color: #e8ecf5; }
+  .hint-card { transition: all 0.2s; }
+  .hint-card:hover { border-color: rgba(124,106,247,0.4) !important; }
+  @keyframes drop-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .sub-entry { animation: drop-in 0.2s ease; }
+  .progress-ring { transition: stroke-dashoffset 0.6s ease; }
+  @keyframes badge-in { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+  .badge-anim { animation: badge-in 0.25s ease forwards; }
+  .resize-handle { cursor: col-resize; width: 5px; background: transparent; flex-shrink: 0; transition: background 0.15s; }
+  .resize-handle:hover, .resize-handle.dragging { background: #7c6af7; }
+  .pinput {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px;
+    padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f0a140;
+    outline: none; transition: border-color 0.13s; width: 100%;
+  }
+  .pinput:focus { border-color: #7c6af7; }
+  kbd { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #4e5670; background: #1c2232; border: 1px solid rgba(255,255,255,0.07); border-radius: 3px; padding: 1px 4px; }
+  .terminal { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9ba3bc; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+  .tg { color: #3dd68c; } .tr { color: #f26d6d; } .ta { color: #f0a140; } .td { color: #4e5670; }
+  .sol-block { background: #0b0e14; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.85; overflow-x: auto; color: #a8b5c8; }
+  .kw { color: #c792ea; } .fn { color: #3dd68c; } .cm-hl { color: #4e5670; font-style: italic; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  #py-splash, .py-error { display: none !important; }
+  #runtime-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+</style>
+</head>
+<body class="font-sans text-t0 overflow-hidden" style="background:#0b0e14">
+<div class="flex flex-col h-screen">
+
+  <!-- HEADER -->
+  <header class="flex items-center justify-between px-4 border-b flex-shrink-0" style="height:46px;border-color:rgba(255,255,255,0.07);background:#111520">
+    <div class="flex items-center gap-2 font-bold text-sm">
+      <div class="w-6 h-6 rounded-md flex items-center justify-center text-white font-black text-xs" style="background:#7c6af7">L</div>
+      LeetWasm <span class="text-t2 font-normal text-xs mx-1">/</span> PyScript Edition
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1.5" id="runtime-badge">
+        <span class="px-2 py-0.5 rounded text-xs font-mono font-semibold" style="background:rgba(61,214,140,0.11);color:#3dd68c;border:1px solid rgba(61,214,140,0.2)">μPy UI</span>
+        <span class="px-2 py-0.5 rounded text-xs font-mono font-semibold" style="background:rgba(90,172,247,0.11);color:#5aacf7;border:1px solid rgba(90,172,247,0.2)">Pyodide Exec</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs font-mono text-t2">
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2.5"/>
+          <circle id="ring-progress" cx="14" cy="14" r="11" fill="none" stroke="#7c6af7" stroke-width="2.5"
+            stroke-dasharray="69.1" stroke-dashoffset="69.1" stroke-linecap="round" transform="rotate(-90 14 14)" class="progress-ring"/>
+        </svg>
+        <span id="ring-label">0 / 5</span>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-1 rounded-full border font-mono text-xs text-t1" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-leet-amber" id="sdot" style="animation:blink 1.4s ease-in-out infinite"></span>
+        <span id="stxt">Booting runtimes…</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 min-h-0" id="main-split">
+
+    <!-- LEFT PANEL -->
+    <div class="flex flex-col border-r flex-shrink-0" id="left-panel" style="width:43%;border-color:rgba(255,255,255,0.07);background:#111520">
+      <div class="flex border-b flex-shrink-0" style="border-color:rgba(255,255,255,0.07)">
+        <button id="tbtn-desc"  class="px-4 py-2.5 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors tab-active"  data-ltab="desc">Description</button>
+        <button id="tbtn-edit"  class="px-4 py-2.5 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors" data-ltab="edit">Editorial</button>
+        <button id="tbtn-cx"    class="px-4 py-2.5 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors" data-ltab="cx">Complexity</button>
+        <button id="tbtn-hints" class="px-4 py-2.5 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors" data-ltab="hints">Hints</button>
+        <button id="tbtn-sub"   class="px-4 py-2.5 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors" data-ltab="sub">Submissions</button>
+      </div>
+
+      <!-- Description -->
+      <div class="flex-1 overflow-y-auto p-5" id="tab-desc">
+        <div class="mb-3">
+          <span class="text-lg font-bold">1. Two Sum</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ml-2" style="background:rgba(61,214,140,0.11);color:#3dd68c;border:1px solid rgba(61,214,140,0.2)">Easy</span>
+          <span class="font-mono text-xs text-t2 ml-2">AC 51.4%</span>
+        </div>
+        <p class="text-sm leading-7 text-t1 mb-3">Given an array of integers <code class="font-mono text-xs bg-bg3 text-accent px-1.5 py-0.5 rounded border border-border">nums</code> and an integer <code class="font-mono text-xs bg-bg3 text-accent px-1.5 py-0.5 rounded border border-border">target</code>, return <em>indices of the two numbers such that they add up to <code class="font-mono text-xs bg-bg3 text-accent px-1.5 py-0.5 rounded border border-border">target</code></em>.</p>
+        <p class="text-sm leading-7 text-t1 mb-4">You may assume each input has <strong class="text-t0">exactly one solution</strong> and you may not use the <em>same</em> element twice.</p>
+        <div class="rounded-lg border p-3 mb-2.5 font-mono text-xs" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+          <div class="text-xs font-sans font-semibold text-t2 uppercase tracking-wider mb-2">Example 1</div>
+          <div class="leading-loose"><span class="text-t2">Input  </span><span class="text-t0"> nums = [2,7,11,15], target = 9</span></div>
+          <div class="leading-loose"><span class="text-t2">Output </span><span class="text-t0"> [0,1]</span></div>
+          <div class="text-t1 text-xs mt-1">nums[0] + nums[1] == 9, return [0, 1].</div>
+        </div>
+        <div class="rounded-lg border p-3 mb-2.5 font-mono text-xs" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+          <div class="text-xs font-sans font-semibold text-t2 uppercase tracking-wider mb-2">Example 2</div>
+          <div class="leading-loose"><span class="text-t2">Input  </span><span class="text-t0"> nums = [3,2,4], target = 6</span></div>
+          <div class="leading-loose"><span class="text-t2">Output </span><span class="text-t0"> [1,2]</span></div>
+        </div>
+        <div class="rounded-lg border p-3 mb-4 font-mono text-xs" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+          <div class="text-xs font-sans font-semibold text-t2 uppercase tracking-wider mb-2">Example 3</div>
+          <div class="leading-loose"><span class="text-t2">Input  </span><span class="text-t0"> nums = [3,3], target = 6</span></div>
+          <div class="leading-loose"><span class="text-t2">Output </span><span class="text-t0"> [0,1]</span></div>
+        </div>
+        <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-2">Constraints</div>
+        <div class="font-mono text-sm text-t1 leading-8">
+          <div>2 ≤ nums.length ≤ 10<sup>4</sup></div>
+          <div>−10<sup>9</sup> ≤ nums[i] ≤ 10<sup>9</sup></div>
+          <div>−10<sup>9</sup> ≤ target ≤ 10<sup>9</sup></div>
+          <div class="text-leet-amber">Only one valid answer exists.</div>
+        </div>
+        <div class="mt-5 pt-4 border-t" style="border-color:rgba(255,255,255,0.07)">
+          <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-2">Related Topics</div>
+          <div class="flex flex-wrap gap-2">
+            <span class="px-2.5 py-1 text-xs rounded font-mono" style="background:rgba(124,106,247,0.14);color:#7c6af7;border:1px solid rgba(124,106,247,0.2)">Array</span>
+            <span class="px-2.5 py-1 text-xs rounded font-mono" style="background:rgba(124,106,247,0.14);color:#7c6af7;border:1px solid rgba(124,106,247,0.2)">Hash Table</span>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t" style="border-color:rgba(255,255,255,0.07)">
+          <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-2">Similar Problems</div>
+          <div class="space-y-2 text-xs text-t1 font-mono">
+            <div class="flex items-center gap-2"><span class="text-t2">#15</span> Three Sum <span class="ml-auto px-1.5 py-0.5 rounded text-xs" style="background:rgba(240,161,64,0.11);color:#f0a140">Med</span></div>
+            <div class="flex items-center gap-2"><span class="text-t2">#167</span> Two Sum II <span class="ml-auto px-1.5 py-0.5 rounded text-xs" style="background:rgba(240,161,64,0.11);color:#f0a140">Med</span></div>
+            <div class="flex items-center gap-2"><span class="text-t2">#653</span> Two Sum IV - BST <span class="ml-auto px-1.5 py-0.5 rounded text-xs" style="background:rgba(61,214,140,0.11);color:#3dd68c">Easy</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editorial -->
+      <div class="flex-1 overflow-y-auto p-5 hidden" id="tab-edit">
+        <div class="text-base font-bold mb-4">Editorial</div>
+        <div class="rounded-lg border p-3.5 mb-3" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+          <div class="font-semibold text-sm mb-1.5">Approach 1 — Brute Force</div>
+          <div class="text-sm text-t1 leading-relaxed mb-2.5">For each element <code class="font-mono text-xs bg-bg3 text-accent px-1 py-0.5 rounded">x</code>, scan the rest of the array for the complement <code class="font-mono text-xs bg-bg3 text-accent px-1 py-0.5 rounded">target − x</code>.</div>
+          <div class="flex gap-2">
+            <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:rgba(240,161,64,0.11);color:#f0a140;border:1px solid rgba(240,161,64,0.2)">O(n²) time</span>
+            <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:rgba(124,106,247,0.14);color:#7c6af7;border:1px solid rgba(124,106,247,0.2)">O(1) space</span>
+          </div>
+        </div>
+        <div class="rounded-lg border p-3.5 mb-3" style="border-color:rgba(124,106,247,0.3);background:#161b27">
+          <div class="font-semibold text-sm mb-1.5">Approach 2 — Hash Map <span class="ml-1 text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(124,106,247,0.14);color:#7c6af7;border:1px solid rgba(124,106,247,0.2)">Optimal</span></div>
+          <div class="text-sm text-t1 leading-relaxed mb-2.5">Iterate once. For each element, check if its complement already exists in the hash map. If yes — return both indices. If no — store current value → index and continue.</div>
+          <div class="flex gap-2">
+            <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:rgba(61,214,140,0.11);color:#3dd68c;border:1px solid rgba(61,214,140,0.2)">O(n) time</span>
+            <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:rgba(240,161,64,0.11);color:#f0a140;border:1px solid rgba(240,161,64,0.2)">O(n) space</span>
+          </div>
+        </div>
+        <div class="text-sm text-t1 leading-relaxed p-3.5 rounded-lg border" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+          <strong class="text-t0">Key insight:</strong> Checking "have I seen the complement?" is O(1) with a dict. Doing complement-check <em>before</em> insertion elegantly handles the edge case where a number is exactly half of <code class="font-mono text-xs bg-bg3 text-accent px-1 py-0.5 rounded">target</code>.
+        </div>
+        <div class="mt-5">
+          <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-3">Reference Solution</div>
+          <div class="sol-block"><span class="cm-hl"># O(n) time, O(n) space — single pass</span>
+<span class="kw">def</span> <span class="fn">twoSum</span>(nums: list[int], target: int) -> list[int]:
+    seen = {}
+    <span class="kw">for</span> idx, num <span class="kw">in</span> <span class="fn">enumerate</span>(nums):
+        complement = target - num
+        <span class="kw">if</span> complement <span class="kw">in</span> seen:
+            <span class="kw">return</span> [seen[complement], idx]
+        seen[num] = idx
+    <span class="kw">return</span> []</div>
+        </div>
+      </div>
+
+      <!-- Complexity Tab -->
+      <div class="flex-1 overflow-y-auto p-5 hidden" id="tab-cx">
+        <div class="text-base font-bold mb-4">Complexity Analysis</div>
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <div class="p-3.5 rounded-lg border" style="border-color:rgba(61,214,140,0.25);background:#0b1a13">
+            <div class="text-xs text-t2 font-mono uppercase tracking-widest mb-1">Time · Optimal</div>
+            <div class="text-2xl font-bold font-mono text-leet-green badge-anim">O(n)</div>
+            <div class="text-xs text-t1 mt-1">Hash map lookup is O(1) amortized → single pass = O(n)</div>
+          </div>
+          <div class="p-3.5 rounded-lg border" style="border-color:rgba(240,161,64,0.25);background:#1a1200">
+            <div class="text-xs text-t2 font-mono uppercase tracking-widest mb-1">Space · Optimal</div>
+            <div class="text-2xl font-bold font-mono text-leet-amber badge-anim">O(n)</div>
+            <div class="text-xs text-t1 mt-1">Hash map stores at most n − 1 entries in the worst case</div>
+          </div>
+        </div>
+        <div class="mb-5 rounded-lg border overflow-hidden" style="border-color:rgba(255,255,255,0.07)">
+          <table class="w-full text-xs font-mono">
+            <thead><tr style="background:#1c2232">
+              <th class="px-3 py-2 text-left text-t2 font-semibold uppercase tracking-wider">Approach</th>
+              <th class="px-3 py-2 text-center text-t2 font-semibold uppercase tracking-wider">Time</th>
+              <th class="px-3 py-2 text-center text-t2 font-semibold uppercase tracking-wider">Space</th>
+            </tr></thead>
+            <tbody>
+              <tr style="background:#161b27;border-top:1px solid rgba(255,255,255,0.07)">
+                <td class="px-3 py-2.5 text-t1">Brute Force (nested loop)</td>
+                <td class="px-3 py-2.5 text-center text-leet-red">O(n²)</td>
+                <td class="px-3 py-2.5 text-center text-leet-green">O(1)</td>
+              </tr>
+              <tr style="background:#0d1520;border-top:1px solid rgba(255,255,255,0.07)">
+                <td class="px-3 py-2.5 font-semibold" style="color:#7c6af7">Hash Map ✓ (optimal)</td>
+                <td class="px-3 py-2.5 text-center text-leet-green font-semibold">O(n)</td>
+                <td class="px-3 py-2.5 text-center text-leet-amber font-semibold">O(n)</td>
+              </tr>
+              <tr style="background:#161b27;border-top:1px solid rgba(255,255,255,0.07)">
+                <td class="px-3 py-2.5 text-t1">Two-pointer (sorted)</td>
+                <td class="px-3 py-2.5 text-center text-leet-amber">O(n log n)</td>
+                <td class="px-3 py-2.5 text-center text-leet-green">O(1)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mb-3">
+          <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-3">Growth Rates — Operations vs. Input Size</div>
+          <div style="position:relative;width:100%;height:220px">
+            <canvas id="cx-chart"></canvas>
+          </div>
+        </div>
+        <div class="mt-5">
+          <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-3">Empirical Runtime Benchmark</div>
+          <div style="position:relative;width:100%;height:170px">
+            <canvas id="bench-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hints Tab -->
+      <div class="flex-1 overflow-y-auto p-5 hidden" id="tab-hints">
+        <div class="text-base font-bold mb-1.5">Progressive Hints</div>
+        <p class="text-xs text-t2 mb-4">Powered by MicroPython · Reveal hints one at a time.</p>
+        <div class="space-y-3" id="hints-container"></div>
+        <div class="mt-6 pt-5 border-t" style="border-color:rgba(255,255,255,0.07)">
+          <div class="text-xs font-semibold text-t2 uppercase tracking-widest mb-3">Core Concepts</div>
+          <div class="space-y-2">
+            <div class="flex items-start gap-3 p-3 rounded-lg border text-xs" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+              <div class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs font-bold" style="background:rgba(90,172,247,0.15);color:#5aacf7">1</div>
+              <div><div class="font-semibold text-t0 mb-0.5">Hash Map / Dictionary</div><div class="text-t2 leading-relaxed">Python dict gives O(1) average lookup/insert. Store <code class="font-mono bg-bg3 text-accent px-1 rounded">value → index</code> mapping as you iterate.</div></div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg border text-xs" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+              <div class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs font-bold" style="background:rgba(61,214,140,0.11);color:#3dd68c">2</div>
+              <div><div class="font-semibold text-t0 mb-0.5">Complement Logic</div><div class="text-t2 leading-relaxed">If <code class="font-mono bg-bg3 text-accent px-1 rounded">a + b = target</code>, then <code class="font-mono bg-bg3 text-accent px-1 rounded">b = target - a</code>.</div></div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg border text-xs" style="border-color:rgba(255,255,255,0.07);background:#161b27">
+              <div class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs font-bold" style="background:rgba(240,161,64,0.11);color:#f0a140">3</div>
+              <div><div class="font-semibold text-t0 mb-0.5">Edge Case: Duplicates</div><div class="text-t2 leading-relaxed">Check complement <em>before</em> inserting to avoid reusing the same index.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submissions -->
+      <div class="flex-1 overflow-y-auto p-5 hidden" id="tab-sub">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-base font-bold">Submissions</div>
+          <button id="clear-subs-btn" class="px-3 py-1 rounded text-xs font-medium text-t2 hover:text-t0 border hover:border-accent transition-colors" style="border-color:rgba(255,255,255,0.07);background:#1c2232">Clear</button>
+        </div>
+        <div id="sub-list"><div class="font-mono text-xs text-t2 italic">No submissions yet.</div></div>
+      </div>
+    </div>
+
+    <!-- RESIZE HANDLE -->
+    <div class="resize-handle" id="rh"></div>
+
+    <!-- RIGHT PANEL -->
+    <div class="flex flex-col flex-1 min-h-0" style="background:#0b0e14">
+      <div class="flex items-center justify-between px-3.5 border-b flex-shrink-0" style="height:38px;border-color:rgba(255,255,255,0.07);background:#111520">
+        <div class="flex items-center gap-2 font-mono text-xs text-t2">
+          <div class="w-2 h-2 rounded-full" style="background:#4b8bbe"></div>
+          Python 3 · Pyodide WASM Worker
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="reset-btn" class="px-3 py-1 text-xs font-semibold rounded border text-t1 hover:text-t0 hover:bg-bg4 transition-all" style="border-color:rgba(255,255,255,0.13);background:#1c2232">↺ Reset</button>
+          <button id="run-btn" disabled class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded border transition-all opacity-40" style="background:#1c2232;color:#3dd68c;border-color:rgba(61,214,140,0.22)">
+            ▶ Run <kbd>Ctrl+↵</kbd>
+          </button>
+          <button id="sub-btn" disabled class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded text-white transition-all opacity-40" style="background:#7c6af7;box-shadow:0 0 16px rgba(124,106,247,0.25)">
+            Submit ↑
+          </button>
+        </div>
+      </div>
+
+      <div id="editor-host"><textarea id="editor-ta"></textarea></div>
+
+      <div class="flex flex-col border-t flex-shrink-0" style="height:255px;border-color:rgba(255,255,255,0.07);background:#111520">
+        <div class="flex items-center justify-between border-b flex-shrink-0 pr-3.5" style="border-color:rgba(255,255,255,0.07)">
+          <div class="flex">
+            <button id="bbtn-tc"  class="px-3.5 py-2 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors tab-active-green" data-btab="tc">Testcase</button>
+            <button id="bbtn-out" class="px-3.5 py-2 text-xs font-medium text-t2 border-b-2 border-transparent hover:text-t0 transition-colors" data-btab="out">Output</button>
+          </div>
+          <div id="verdict" class="font-mono text-xs"></div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3.5 min-h-0">
+          <div id="btab-tc">
+            <div class="grid grid-cols-2 gap-3 mb-2.5">
+              <div class="flex flex-col gap-1.5">
+                <label class="font-mono text-xs text-t2 uppercase tracking-widest">nums</label>
+                <input class="pinput" id="p-nums" type="text" value="[2, 7, 11, 15]" spellcheck="false">
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="font-mono text-xs text-t2 uppercase tracking-widest">target</label>
+                <input class="pinput" id="p-target" type="text" value="9" spellcheck="false">
+              </div>
+            </div>
+            <div class="font-mono text-xs text-t2 leading-relaxed">Edit above then <kbd>Ctrl+Enter</kbd> to run · <kbd>Ctrl+Shift+Enter</kbd> to submit</div>
+          </div>
+          <div id="btab-out" class="hidden">
+            <div id="out-area" class="terminal"><span class="td">Waiting for execution…</span></div>
+            <div id="metrics" class="hidden" style="display:none">
+              <div class="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t" style="border-color:rgba(255,255,255,0.07)">
+                <div class="p-2.5 rounded-lg border" style="background:#0b0e14;border-color:rgba(255,255,255,0.07)">
+                  <div class="font-mono text-xs text-t2 uppercase tracking-widest mb-1">Runtime</div>
+                  <div class="text-lg font-bold font-mono text-leet-green" id="m-rt">—</div>
+                </div>
+                <div class="p-2.5 rounded-lg border" style="background:#0b0e14;border-color:rgba(255,255,255,0.07)">
+                  <div class="font-mono text-xs text-t2 uppercase tracking-widest mb-1">Percentile (est.)</div>
+                  <div class="text-lg font-bold font-mono text-accent" id="m-pct">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PYODIDE WORKER — Pure computation, ZERO DOM/window access.
+     Communicates ONLY via postMessage (PyScript's built-in worker channel).
+     The `sync` object and `window` are completely absent here — that was
+     the root cause of the AttributeError. Workers cannot touch the DOM.
+══════════════════════════════════════════════════════════════════════════ -->
+<script type="py" worker id="pyodide-worker">
+import sys, io, time, json
+from pyscript import sync
+
+CASES = [
+    {"nums": [2, 7, 11, 15], "target": 9,     "expected": [0, 1]},
+    {"nums": [3, 2, 4],       "target": 6,     "expected": [1, 2]},
+    {"nums": [3, 3],          "target": 6,     "expected": [0, 1]},
+    {"nums": [1, 5, 5, 9],    "target": 10,    "expected": [1, 2]},
+    {"nums": list(range(1, 10001)), "target": 19999, "expected": [9998, 9999]},
+]
+
+def run_harness(code: str, is_submit: bool, custom_json: str) -> str:
+    ns = {}
+    buf = io.StringIO()
+    old_stdout = sys.stdout
+    result = {"status": "ERROR", "mode": "RUN", "latency": 0.0, "passed_all": False, "pass_count": 0}
+
+    try:
+        exec(compile(code, "<user>", "exec"), ns)
+        twoSum = ns.get("twoSum")
+        if twoSum is None:
+            raise NameError("Function 'twoSum' not found in your code.")
+
+        sys.stdout = buf
+        if not is_submit:
+            inp = json.loads(custom_json)
+            t0 = time.perf_counter()
+            out = twoSum(inp["nums"], inp["target"])
+            ms = (time.perf_counter() - t0) * 1000
+            print(f"Input   : nums={inp['nums']}, target={inp['target']}")
+            print(f"Output  : {out}")
+            result = {"status": "SUCCESS", "mode": "RUN", "latency": ms, "passed_all": True, "pass_count": 1}
+        else:
+            n = len(CASES)
+            total_ms = 0.0
+            pass_count = 0
+            print(f"Running {n} test cases...\n")
+            all_pass = True
+            for i, c in enumerate(CASES):
+                big = len(c["nums"]) > 20
+                disp = f"[{c['nums'][0]}, ..., {c['nums'][-1]}]  n={len(c['nums'])}" if big else str(c["nums"])
+                t0 = time.perf_counter()
+                ans = twoSum(c["nums"], c["target"])
+                ms = (time.perf_counter() - t0) * 1000
+                total_ms += ms
+                ok = isinstance(ans, list) and sorted(ans) == sorted(c["expected"])
+                if ok:
+                    pass_count += 1
+                mark = "pass" if ok else "FAIL"
+                print(f"  [{mark}]  case {i+1}/{n}  nums={disp}  target={c['target']}")
+                if not ok:
+                    print(f"           expected {c['expected']}, got {ans}")
+                    all_pass = False
+            if all_pass:
+                print(f"\n  All {n} cases passed.")
+                result = {"status": "ACCEPTED", "mode": "SUBMIT", "latency": total_ms, "passed_all": True, "pass_count": n}
+            else:
+                result = {"status": "WRONG_ANSWER", "mode": "SUBMIT", "latency": total_ms, "passed_all": False, "pass_count": pass_count}
+
+    except Exception as e:
+        sys.stdout = old_stdout
+        print(f"RuntimeError: {type(e).__name__}: {e}", file=buf)
+        result = {"status": "RUNTIME_ERROR", "mode": "ERROR", "latency": 0.0, "passed_all": False, "pass_count": 0}
+    finally:
+        sys.stdout = old_stdout
+
+    return json.dumps({"result": result, "log": buf.getvalue()})
+
+
+def benchmark_approaches(code: str) -> str:
+    ns = {}
+    try:
+        exec(compile(code, "<user>", "exec"), ns)
+        twoSum = ns.get("twoSum")
+        if twoSum is None:
+            return json.dumps([])
+    except Exception:
+        return json.dumps([])
+
+    sizes = [100, 1000, 5000, 10000]
+    out = []
+    for n in sizes:
+        nums = list(range(n))
+        target = (n - 2) + (n - 1)
+        t0 = time.perf_counter()
+        twoSum(nums, target)
+        ms_hash = (time.perf_counter() - t0) * 1000
+
+        t0 = time.perf_counter()
+        cap = min(n, 200)
+        found = False
+        for i in range(cap):
+            for j in range(i + 1, cap):
+                if nums[i] + nums[j] == target:
+                    found = True
+                    break
+            if found:
+                break
+        ms_brute = (time.perf_counter() - t0) * 1000 * (n / max(cap, 1))
+        out.append({"n": n, "hash": round(ms_hash, 3), "brute": round(ms_brute, 1)})
+    return json.dumps(out)
+
+
+# Expose to the JS bridge via sync — these are CALLED from JS, not from window
+sync.run_harness = run_harness
+sync.benchmark_approaches = benchmark_approaches
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MICROPYTHON — Main thread UI controller.
+     Sole owner of DOM. Calls Pyodide worker via the JS bridge below.
+     Never touches window._pyodideReady because the worker can't set it.
+     Instead: polls for sync.run_harness availability to detect readiness.
+══════════════════════════════════════════════════════════════════════════ -->
+<script type="mpy">
+import json
+import re
+from pyscript import document, window
+from pyscript.ffi import create_proxy, to_js
+
+STARTER = """def twoSum(nums: list[int], target: int) -> list[int]:
+    # Your solution here
+    pass
+"""
+
+HINTS = [
+    {
+        "level": 1, "color": "#5aacf7",
+        "bg": "rgba(90,172,247,0.08)", "border": "rgba(90,172,247,0.2)",
+        "title": "Think about what you need",
+        "text": "For each element x, what value paired with it equals target?\nCan you express that mathematically?"
+    },
+    {
+        "level": 2, "color": "#7c6af7",
+        "bg": "rgba(124,106,247,0.08)", "border": "rgba(124,106,247,0.2)",
+        "title": "O(n²) → O(n): use a lookup structure",
+        "text": "Instead of scanning the entire array for the complement each time,\nwhat if you stored elements in a structure with O(1) lookup?"
+    },
+    {
+        "level": 3, "color": "#f0a140",
+        "bg": "rgba(240,161,64,0.08)", "border": "rgba(240,161,64,0.2)",
+        "title": "Hash map: value → index",
+        "text": "Use a dict mapping value → index. For each num, check if\n(target - num) is already in the dict. Check BEFORE inserting."
+    },
+    {
+        "level": 4, "color": "#3dd68c",
+        "bg": "rgba(61,214,140,0.08)", "border": "rgba(61,214,140,0.2)",
+        "title": "Code skeleton",
+        "text": "seen = {}\nfor idx, num in enumerate(nums):\n    complement = target - num\n    if complement in seen:\n        return [seen[complement], idx]\n    seen[num] = idx"
+    },
+]
+
+state = {
+    "sub_count": 0,
+    "hints_built": False,
+    "cx_charts_built": False,
+    "cx_chart": None,
+    "bench_chart": None,
+    "executing": False,
+    "ready": False,
+}
+
+def get_code():
+    cm = window._cmEditor
+    if cm:
+        return cm.getValue()
+    ta = document.getElementById("editor-ta")
+    return ta.value if ta else ""
+
+def reset_code(*args):
+    cm = window._cmEditor
+    if cm:
+        cm.setValue(STARTER)
+
+def el(id_):
+    return document.getElementById(id_)
+
+def show(elem):
+    elem.classList.remove("hidden")
+
+def hide(elem):
+    elem.classList.add("hidden")
+
+LEFT_TABS = ["desc", "edit", "cx", "hints", "sub"]
+
+def switch_left_tab(tab_id):
+    for t in LEFT_TABS:
+        tab_el = el(f"tab-{t}")
+        btn_el = el(f"tbtn-{t}")
+        if t == tab_id:
+            show(tab_el)
+            btn_el.classList.add("tab-active")
+            btn_el.classList.remove("text-t2")
+        else:
+            hide(tab_el)
+            btn_el.classList.remove("tab-active")
+            btn_el.classList.add("text-t2")
+    if tab_id == "cx":
+        window.setTimeout(create_proxy(lambda: init_cx_charts()), 80)
+    if tab_id == "hints":
+        build_hints()
+
+def make_ltab_handler(tid):
+    def handler(e):
+        switch_left_tab(tid)
+    return create_proxy(handler)
+
+for _tid in LEFT_TABS:
+    _btn = el(f"tbtn-{_tid}")
+    if _btn:
+        _btn.addEventListener("click", make_ltab_handler(_tid))
+
+BOTTOM_TABS = ["tc", "out"]
+
+def switch_bottom_tab(tab_id):
+    for t in BOTTOM_TABS:
+        tab_el = el(f"btab-{t}")
+        btn_el = el(f"bbtn-{t}")
+        if t == tab_id:
+            show(tab_el)
+            btn_el.classList.add("tab-active-green")
+            btn_el.classList.remove("text-t2")
+        else:
+            hide(tab_el)
+            btn_el.classList.remove("tab-active-green")
+            btn_el.classList.add("text-t2")
+
+def make_btab_handler(tid):
+    def handler(e):
+        switch_bottom_tab(tid)
+    return create_proxy(handler)
+
+el("bbtn-tc").addEventListener("click", make_btab_handler("tc"))
+el("bbtn-out").addEventListener("click", make_btab_handler("out"))
+
+def update_progress(passed):
+    circ = 2 * 3.14159265 * 11
+    offset = circ * (1 - passed / 5)
+    ring = el("ring-progress")
+    ring.style.strokeDashoffset = str(offset)
+    el("ring-label").textContent = f"{passed} / 5"
+
+def set_status(text, color="#f0a140", blink=False):
+    dot = el("sdot")
+    dot.style.background = color
+    dot.style.animation = "blink 1.4s ease-in-out infinite" if blink else "none"
+    el("stxt").textContent = text
+
+STATUS_STYLES = {
+    "ACCEPTED":      {"bg": "rgba(61,214,140,0.1)",  "border": "rgba(61,214,140,0.2)",  "color": "#3dd68c", "label": "Accepted"},
+    "WRONG_ANSWER":  {"bg": "rgba(242,109,109,0.1)", "border": "rgba(242,109,109,0.2)", "color": "#f26d6d", "label": "Wrong Answer"},
+    "RUNTIME_ERROR": {"bg": "rgba(240,161,64,0.1)",  "border": "rgba(240,161,64,0.2)",  "color": "#f0a140", "label": "Runtime Error"},
+    "SUCCESS":       {"bg": "rgba(61,214,140,0.1)",  "border": "rgba(61,214,140,0.2)",  "color": "#3dd68c", "label": "Run OK"},
+}
+
+def add_submission(status, ms, pass_count):
+    state["sub_count"] += 1
+    sub_list = el("sub-list")
+    if state["sub_count"] == 1:
+        sub_list.innerHTML = ""
+
+    s = STATUS_STYLES.get(status, STATUS_STYLES["RUNTIME_ERROR"])
+    ts = window.Date.new().toLocaleTimeString()
+    ms_txt = f"{ms:.2f} ms" if ms > 0 else "—"
+
+    div = document.createElement("div")
+    div.className = "sub-entry flex items-center justify-between p-2.5 rounded-lg border mb-1.5"
+    div.style.cssText = f"background:{s['bg']};border-color:{s['border']}"
+    div.innerHTML = f"""
+      <div class="flex items-center gap-2.5">
+        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded" style="color:{s['color']};background:{s['bg']};border:1px solid {s['border']}">{s['label']}</span>
+        <span class="font-mono text-xs text-t2">{ts}</span>
+        <span class="font-mono text-xs text-t2">{pass_count}/5 passed</span>
+      </div>
+      <span class="font-mono text-sm text-t1 font-medium">{ms_txt}</span>
+    """
+    sub_list.insertBefore(div, sub_list.firstChild)
+
+    tbtn = el("tbtn-sub")
+    badge = tbtn.querySelector(".sub-count-badge")
+    if badge:
+        badge.textContent = str(state["sub_count"])
+    else:
+        span = document.createElement("span")
+        span.className = "sub-count-badge ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-white font-mono font-bold"
+        span.style.cssText = "font-size:9px;background:#7c6af7;min-width:16px"
+        span.textContent = str(state["sub_count"])
+        tbtn.appendChild(span)
+
+def clear_submissions(*args):
+    el("sub-list").innerHTML = '<div class="font-mono text-xs text-t2 italic">No submissions yet.</div>'
+    badge = el("tbtn-sub").querySelector(".sub-count-badge")
+    if badge:
+        badge.remove()
+    state["sub_count"] = 0
+    update_progress(0)
+
+el("clear-subs-btn").addEventListener("click", create_proxy(clear_submissions))
+
+def build_hints():
+    if state["hints_built"]:
+        return
+    container = el("hints-container")
+    container.innerHTML = ""
+    for i, h in enumerate(HINTS):
+        div = document.createElement("div")
+        div.className = "hint-card rounded-lg border p-3.5 cursor-pointer select-none"
+        div.style.cssText = "border-color:rgba(255,255,255,0.07);background:#161b27;"
+        div.innerHTML = f"""
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="hint-num w-5 h-5 rounded flex items-center justify-center font-mono text-xs font-bold flex-shrink-0" style="background:rgba(78,86,112,0.3);color:#4e5670">{i+1}</div>
+              <span class="text-xs font-semibold text-t2">Hint {i+1} — {h['title']}</span>
+            </div>
+            <span class="text-xs text-t2 font-mono reveal-cta">▶ Reveal</span>
+          </div>
+          <div class="hint-body hidden mt-2.5 pl-7 text-xs leading-relaxed font-mono whitespace-pre" style="color:{h['color']}">{h['text']}</div>
+        """
+        div.addEventListener("click", create_proxy(make_hint_toggler(div, h)))
+        container.appendChild(div)
+    state["hints_built"] = True
+
+def make_hint_toggler(div, h):
+    def toggle(e):
+        body = div.querySelector(".hint-body")
+        cta  = div.querySelector(".reveal-cta")
+        num  = div.querySelector(".hint-num")
+        if body.classList.contains("hidden"):
+            body.classList.remove("hidden")
+            cta.textContent = "▼ Hide"
+            div.style.borderColor = h["border"]
+            div.style.background   = h["bg"]
+            num.style.background   = h["bg"]
+            num.style.color        = h["color"]
+        else:
+            body.classList.add("hidden")
+            cta.textContent = "▶ Reveal"
+            div.style.borderColor = "rgba(255,255,255,0.07)"
+            div.style.background   = "#161b27"
+            num.style.background   = "rgba(78,86,112,0.3)"
+            num.style.color        = "#4e5670"
+    return toggle
+
+def init_cx_charts():
+    if state["cx_charts_built"]:
+        return
+    ChartJS = window.Chart
+    ns_vals = [1, 5, 10, 20, 30, 50, 75, 100]
+    import math
+
+    curve_defs = [
+        ("O(1)",       "#5aacf7", [4, 4],  lambda n: 1),
+        ("O(log n)",   "#3dd68c", [],      lambda n: math.log2(n)),
+        ("O(n)",       "#7c6af7", [],      lambda n: n),
+        ("O(n log n)", "#f0a140", [],      lambda n: n * math.log2(n)),
+        ("O(n²)",      "#f26d6d", [],      lambda n: n * n),
+    ]
+
+    datasets = []
+    for label, color, dash, fn in curve_defs:
+        pts = [{"x": n, "y": round(fn(n))} for n in ns_vals]
+        ds = {
+            "label": label,
+            "data": to_js(pts),
+            "borderColor": color,
+            "backgroundColor": "transparent",
+            "pointRadius": 3,
+            "pointBackgroundColor": color,
+            "borderWidth": 3 if label == "O(n)" else 1.5,
+            "borderDash": to_js(dash),
+        }
+        datasets.append(to_js(ds))
+
+    mono_font = {"family": "JetBrains Mono", "size": 10}
+
+    cx_cfg = to_js({
+        "type": "line",
+        "data": {"datasets": to_js(datasets)},
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "scales": {
+                "x": {
+                    "type": "linear",
+                    "title": {"display": True, "text": "Input size (n)", "color": "#4e5670", "font": {"family": "JetBrains Mono", "size": 11}},
+                    "grid": {"color": "rgba(255,255,255,0.04)"},
+                    "ticks": {"color": "#4e5670", "font": mono_font},
+                },
+                "y": {
+                    "type": "logarithmic",
+                    "title": {"display": True, "text": "Operations (log scale)", "color": "#4e5670", "font": {"family": "JetBrains Mono", "size": 11}},
+                    "grid": {"color": "rgba(255,255,255,0.04)"},
+                    "ticks": {"color": "#4e5670", "font": mono_font},
+                },
+            },
+            "plugins": {
+                "legend": {"display": True, "labels": {"color": "#9ba3bc", "font": {"family": "JetBrains Mono", "size": 11}, "boxWidth": 12, "padding": 12, "usePointStyle": True, "pointStyle": "line"}},
+                "tooltip": {"backgroundColor": "#1c2232", "titleColor": "#e8ecf5", "bodyColor": "#9ba3bc", "borderColor": "rgba(255,255,255,0.1)", "borderWidth": 1, "titleFont": {"family": "JetBrains Mono", "size": 11}, "bodyFont": {"family": "JetBrains Mono", "size": 11}},
+            },
+        },
+    })
+
+    state["cx_chart"] = ChartJS.new(el("cx-chart"), cx_cfg)
+
+    b_labels = ["n=100", "n=1k", "n=5k", "n=10k"]
+    bench_cfg = to_js({
+        "type": "bar",
+        "data": {
+            "labels": to_js(b_labels),
+            "datasets": to_js([
+                to_js({"label": "Hash Map (ms)",    "data": to_js([0.01, 0.05, 0.3, 0.6]),      "backgroundColor": "rgba(124,106,247,0.7)", "borderColor": "#7c6af7", "borderWidth": 1}),
+                to_js({"label": "Brute Force (ms)", "data": to_js([0.5, 50.0, 1300.0, 5200.0]), "backgroundColor": "rgba(242,109,109,0.55)", "borderColor": "#f26d6d", "borderWidth": 1}),
+            ]),
+        },
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "scales": {
+                "x": {"ticks": {"color": "#4e5670", "font": mono_font, "autoSkip": False}, "grid": {"color": "rgba(255,255,255,0.04)"}},
+                "y": {"type": "logarithmic", "ticks": {"color": "#4e5670", "font": mono_font}, "grid": {"color": "rgba(255,255,255,0.04)"}},
+            },
+            "plugins": {
+                "legend": {"display": True, "labels": {"color": "#9ba3bc", "font": {"family": "JetBrains Mono", "size": 11}, "boxWidth": 10, "padding": 12}},
+                "tooltip": {"backgroundColor": "#1c2232", "titleColor": "#e8ecf5", "bodyColor": "#9ba3bc", "borderColor": "rgba(255,255,255,0.1)", "borderWidth": 1, "titleFont": {"family": "JetBrains Mono", "size": 11}, "bodyFont": {"family": "JetBrains Mono", "size": 11}},
+            },
+        },
+    })
+
+    state["bench_chart"] = ChartJS.new(el("bench-chart"), bench_cfg)
+    state["cx_charts_built"] = True
+
+def update_bench_chart(bench_data):
+    chart = state.get("bench_chart")
+    if not chart:
+        return
+    chart.data.datasets[0].data = to_js([d["hash"]  for d in bench_data])
+    chart.data.datasets[1].data = to_js([d["brute"] for d in bench_data])
+    chart.update()
+
+VERDICT_HTML = {
+    "ACCEPTED":      '<span style="color:#3dd68c;font-weight:700">✓ Accepted</span>',
+    "WRONG_ANSWER":  '<span style="color:#f26d6d;font-weight:700">✗ Wrong Answer</span>',
+    "RUNTIME_ERROR": '<span style="color:#f0a140;font-weight:700">⚠ Runtime Error</span>',
+    "SUCCESS":       '<span style="color:#3dd68c">✓ Output generated</span>',
+}
+
+def on_exec_result(result_json_str):
+    """Receive JSON result from the JS bridge and update UI."""
+    try:
+        payload = json.loads(result_json_str)
+        res = payload["result"]
+        log = payload["log"]
+    except Exception as exc:
+        el("out-area").innerHTML = f'<span class="tr">Parse error: {exc}</span>'
+        _unlock_btns()
+        return
+
+    switch_bottom_tab("out")
+
+    esc = (
+        log
+        .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        .replace("[pass]", '<span class="tg">[pass]</span>')
+        .replace("[FAIL]", '<span class="tr">[FAIL]</span>')
+    )
+    esc = re.sub(r"All \d+ cases passed\.", lambda m: f'<span class="tg">{m.group()}</span>', esc)
+    esc = re.sub(r"RuntimeError:.+", lambda m: f'<span class="tr">{m.group()}</span>', esc)
+
+    ts = window.Date.new().toLocaleTimeString()
+    mode = "Submit" if res.get("mode") == "SUBMIT" else "Run"
+    el("out-area").innerHTML = f'<span class="td">{mode} · {ts}</span>\n\n{esc}'
+
+    status = res.get("status", "ERROR")
+    latency = res.get("latency", 0.0)
+    pass_count = res.get("pass_count", 0)
+    passed_all = res.get("passed_all", False)
+
+    if status != "RUNTIME_ERROR":
+        el("m-rt").textContent = f"{latency:.2f} ms"
+        if passed_all:
+            pct = min(99.8, max(42, 97.5 - latency * 10))
+            el("m-pct").textContent = f"Beats {pct:.1f}%"
+        else:
+            el("m-pct").textContent = "—"
+        metrics = el("metrics")
+        metrics.classList.remove("hidden")
+        metrics.style.display = "block"
+
+    el("verdict").innerHTML = VERDICT_HTML.get(status, status)
+
+    is_submit = (res.get("mode") == "SUBMIT")
+    if is_submit:
+        add_submission(status, latency, pass_count)
+        update_progress(pass_count)
+
+    _unlock_btns()
+
+    if status == "ACCEPTED" and is_submit:
+        window.setTimeout(create_proxy(lambda: _run_benchmark()), 300)
+
+def on_bench_result(bench_json):
+    try:
+        data = json.loads(bench_json)
+        update_bench_chart(data)
+    except Exception:
+        pass
+
+# Expose callbacks so the JS bridge can call back into MicroPython
+window._mpyExecResult  = create_proxy(on_exec_result)
+window._mpyBenchResult = create_proxy(on_bench_result)
+
+def _lock_btns():
+    state["executing"] = True
+    el("run-btn").disabled = True
+    el("sub-btn").disabled = True
+
+def _unlock_btns():
+    state["executing"] = False
+    run_btn = el("run-btn")
+    sub_btn = el("sub-btn")
+    run_btn.disabled = False
+    sub_btn.disabled = False
+    run_btn.classList.remove("opacity-40")
+    sub_btn.classList.remove("opacity-40")
+
+def trigger_exec(is_submit):
+    if state["executing"]:
+        return
+    if not state["ready"]:
+        set_status("Pyodide not ready yet…", "#f0a140")
+        return
+
+    _lock_btns()
+    switch_bottom_tab("out")
+
+    el("out-area").innerHTML = '<span class="ta">⚡ Running in Pyodide worker…</span>'
+    el("metrics").classList.add("hidden")
+    el("metrics").style.display = "none"
+    el("verdict").innerHTML = ""
+
+    code = get_code()
+
+    if not is_submit:
+        try:
+            nums_raw   = el("p-nums").value.strip()
+            target_raw = el("p-target").value.strip()
+            nums = json.loads(nums_raw)
+            if not isinstance(nums, list):
+                raise ValueError("nums must be an array like [2,7,11]")
+            target = float(target_raw)
+            if target != int(target):
+                raise ValueError("target must be an integer")
+            custom_json = json.dumps({"nums": nums, "target": int(target)})
+        except Exception as exc:
+            el("out-area").innerHTML = f'<span class="tr">✗ Input error: {exc}</span>'
+            _unlock_btns()
+            return
+    else:
+        custom_json = "{}"
+
+    # Hand off to JS bridge → Pyodide worker
+    window._triggerPyodide(code, is_submit, custom_json)
+
+def _run_benchmark():
+    window._triggerBenchmark(get_code())
+
+el("run-btn").addEventListener("click",   create_proxy(lambda e: trigger_exec(False)))
+el("sub-btn").addEventListener("click",   create_proxy(lambda e: trigger_exec(True)))
+el("reset-btn").addEventListener("click", create_proxy(reset_code))
+
+# ── Readiness detection ────────────────────────────────────────────────────
+# The worker cannot write to window, so we poll from the JS side.
+# The JS bridge sets window._pyodideReady = true once sync functions are live.
+def _check_ready():
+    if getattr(window, "_pyodideReady", False):
+        state["ready"] = True
+        set_status("MicroPython + Pyodide ready", "#3dd68c", False)
+        _unlock_btns()
+    else:
+        window.setTimeout(create_proxy(_check_ready), 600)
+
+window.setTimeout(create_proxy(_check_ready), 1000)
+
+def _init_editor():
+    ta = el("editor-ta")
+    ta.value = STARTER
+    cm = window.CodeMirror.fromTextArea(
+        ta,
+        to_js({
+            "mode": "python", "lineNumbers": True,
+            "indentUnit": 4, "tabSize": 4, "indentWithTabs": False,
+            "smartIndent": True, "autofocus": True,
+            "autoCloseBrackets": True, "matchBrackets": True,
+            "styleActiveLine": True,
+            "extraKeys": to_js({
+                "Ctrl-/": "toggleComment",
+                "Cmd-/": "toggleComment",
+            }),
+        })
+    )
+    cm.setSize("100%", "100%")
+    window._cmEditor = cm
+
+    def _km(e):
+        if e.ctrlKey or e.metaKey:
+            if e.shiftKey and e.key == "Enter":
+                trigger_exec(True)
+                e.preventDefault()
+            elif e.key == "Enter":
+                trigger_exec(False)
+                e.preventDefault()
+
+    window.document.addEventListener("keydown", create_proxy(_km))
+
+_init_editor()
+switch_bottom_tab("tc")
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     JS BRIDGE — Minimal glue only. No business logic.
+
+     Key fix: the worker CANNOT set window._pyodideReady.
+     Instead, we probe sync.run_harness from here after PyScript fires
+     the worker-ready event, then set window._pyodideReady = true so
+     MicroPython's poll sees it.
+══════════════════════════════════════════════════════════════════════════ -->
+<script>
+// ── Worker readiness probe ─────────────────────────────────────────────────
+// PyScript fires "py:ready" on document when interpreters finish loading.
+// At that point the worker's sync.* functions are callable from JS.
+// We set window._pyodideReady here (main thread) — not from the worker.
+document.addEventListener("py:ready", () => {
+  window._pyodideReady = true;
+});
+
+// ── Pyodide call bridge ────────────────────────────────────────────────────
+window._triggerPyodide = async function(code, isSubmit, customJson) {
+  try {
+    // pyscript.interpreter refers to the FIRST interpreter (mpy main thread).
+    // Worker functions exposed via sync are accessed through the worker element.
+    const workerInterp = document.getElementById("pyodide-worker")._pyodide;
+    const resultStr = await workerInterp.run_harness(code, isSubmit, customJson);
+    if (window._mpyExecResult) window._mpyExecResult(resultStr);
+  } catch(e) {
+    const err = JSON.stringify({
+      result: {status:"RUNTIME_ERROR", mode:"ERROR", latency:0, passed_all:false, pass_count:0},
+      log: `RuntimeError: ${e.message || e}`
+    });
+    if (window._mpyExecResult) window._mpyExecResult(err);
+  }
+};
+
+window._triggerBenchmark = async function(code) {
+  try {
+    const workerInterp = document.getElementById("pyodide-worker")._pyodide;
+    const resultStr = await workerInterp.benchmark_approaches(code);
+    if (window._mpyBenchResult) window._mpyBenchResult(resultStr);
+  } catch(e) {
+    console.warn("Benchmark failed", e);
+  }
+};
+
+// ── Resize handle ──────────────────────────────────────────────────────────
+(function() {
+  const rh = document.getElementById("rh");
+  const lp = document.getElementById("left-panel");
+  const ms = document.getElementById("main-split");
+  let dragging = false, sx = 0, sw = 0;
+
+  rh.addEventListener("mousedown", e => {
+    dragging = true; sx = e.clientX; sw = lp.getBoundingClientRect().width;
+    rh.classList.add("dragging");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+  document.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    const mw = ms.getBoundingClientRect().width;
+    const w = Math.min(Math.max(sw + e.clientX - sx, 260), mw - 300);
+    lp.style.width = w + "px";
+    if (window._cmEditor) window._cmEditor.refresh();
+  });
+  document.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false; rh.classList.remove("dragging");
+    document.body.style.cursor = ""; document.body.style.userSelect = "";
+  });
+})();
+</script>
+</body>
+</html>

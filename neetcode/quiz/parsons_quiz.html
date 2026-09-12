@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parsons Puzzle — Python Logic Workbook</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2333;
+    --surface3: #252b3d;
+    --border: #2d3450;
+    --border2: #3d4566;
+    --accent: #7c6af5;
+    --accent2: #a89cf7;
+    --accent-glow: rgba(124,106,245,0.18);
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.1);
+    --green-border: rgba(74,222,128,0.35);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --red-border: rgba(248,113,113,0.35);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --amber-border: rgba(251,191,36,0.3);
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+    --r: 8px;
+    --r2: 12px;
+    --transition: 150ms cubic-bezier(.4,0,.2,1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === HEADER === */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent2);
+    letter-spacing: 0.02em;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent-glow);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .q-counter {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text3);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-right: 8px;
+  }
+  .q-counter span { color: var(--accent2); font-weight: 600; }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: var(--r);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--surface3);
+    border-color: var(--accent);
+    color: var(--accent2);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: var(--bg);
+  }
+  .btn-sm {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+  .btn-icon {
+    width: 28px; height: 28px;
+    padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* === MAIN LAYOUT === */
+  main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+  /* === QUESTION META === */
+  .q-meta {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .q-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .badge {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .badge-concept {
+    background: var(--accent-glow);
+    border: 1px solid var(--accent);
+    color: var(--accent2);
+  }
+  .q-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .q-desc {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+    max-width: 760px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 var(--r) var(--r) 0;
+    margin-top: 4px;
+  }
+  .q-desc code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--amber);
+  }
+
+  /* === WORKSPACE === */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .panel-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+    display: inline-block;
+  }
+  .dot-pool { background: var(--amber); }
+  .dot-canvas { background: var(--accent); }
+
+  .block-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .drop-zone {
+    padding: 10px;
+    min-height: 200px;
+  }
+  .drop-zone-empty {
+    height: 100px;
+    border: 2px dashed var(--border2);
+    border-radius: var(--r);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3);
+    font-size: 13px;
+    font-family: var(--mono);
+    margin: 4px 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition);
+  }
+  .drop-zone-empty.show { opacity: 1; pointer-events: auto; }
+
+  /* === CODE BLOCKS === */
+  .code-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 8px 10px;
+    margin: 5px 0;
+    cursor: grab;
+    transition: all var(--transition);
+    position: relative;
+    user-select: none;
+  }
+  .code-block:hover {
+    border-color: var(--border2);
+    background: var(--surface3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .code-block.sortable-drag {
+    opacity: 0.4;
+    transform: none !important;
+  }
+  .code-block.sortable-ghost {
+    opacity: 0.2;
+    background: var(--accent-glow);
+    border-color: var(--accent);
+  }
+  .code-block.sortable-chosen {
+    box-shadow: 0 8px 24px rgba(124,106,245,0.25);
+    border-color: var(--accent);
+    background: var(--surface3);
+  }
+
+  .drag-handle {
+    color: var(--text3);
+    font-size: 14px;
+    cursor: grab;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .block-line-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    min-width: 20px;
+    text-align: right;
+    flex-shrink: 0;
+    display: none;
+  }
+  .canvas-zone .block-line-num { display: block; }
+
+  .block-code {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    white-space: pre;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.5;
+  }
+
+  .indent-controls {
+    display: none;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .canvas-zone .code-block .indent-controls { display: flex; }
+
+  .indent-btn {
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition);
+    flex-shrink: 0;
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+  .indent-btn:hover {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+  .indent-indicator {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    min-width: 14px;
+    text-align: center;
+  }
+
+  /* Distractor styling */
+  .code-block.distractor-hint {
+    border-color: var(--red-border);
+    background: var(--red-bg);
+  }
+  .distractor-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    color: var(--red);
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Feedback states */
+  .code-block.feedback-correct { border-color: var(--green-border); background: var(--green-bg); }
+  .code-block.feedback-wrong { border-color: var(--red-border); background: var(--red-bg); }
+
+  /* === FOOTER ACTIONS === */
+  .workspace-footer {
+    margin-top: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .footer-left { display: flex; gap: 8px; align-items: center; }
+  .footer-right { display: flex; gap: 8px; align-items: center; }
+
+  /* === FEEDBACK PANEL === */
+  .feedback-panel {
+    margin-top: 1.25rem;
+    border-radius: var(--r2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: none;
+  }
+  .feedback-panel.show { display: block; }
+
+  .feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .feedback-header.success { background: var(--green-bg); border-bottom: 1px solid var(--green-border); color: var(--green); }
+  .feedback-header.error   { background: var(--red-bg);   border-bottom: 1px solid var(--red-border);   color: var(--red); }
+  .feedback-header.warn    { background: var(--amber-bg); border-bottom: 1px solid var(--amber-border); color: var(--amber); }
+
+  .feedback-icon { font-size: 18px; }
+
+  .feedback-body { padding: 14px 16px; }
+
+  .feedback-terminal {
+    background: #0a0c12;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .terminal-prompt { color: var(--green); }
+  .terminal-output { color: var(--text); }
+  .terminal-label { color: var(--text3); font-size: 11px; margin-bottom: 6px; }
+
+  .feedback-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .feedback-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 8px 12px;
+    line-height: 1.5;
+  }
+  .feedback-list li .fi { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+  .feedback-list li.err { border-color: var(--red-border); background: var(--red-bg); color: var(--red); }
+  .feedback-list li.ok  { border-color: var(--green-border); background: var(--green-bg); color: var(--green); }
+  .feedback-list li .fi-ok  { color: var(--green); }
+  .feedback-list li .fi-err { color: var(--red); }
+  .fi-mono { font-family: var(--mono); background: var(--surface3); padding: 0 5px; border-radius: 3px; font-size: 12px; }
+
+  /* === PROGRESS BAR === */
+  .progress-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    width: 100%;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 400ms cubic-bezier(.4,0,.2,1);
+  }
+
+  /* === SUCCESS CONFETTI === */
+  @keyframes pop-in {
+    0%   { transform: scale(0.6) translateY(10px); opacity: 0; }
+    70%  { transform: scale(1.04) translateY(-3px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .feedback-panel.success-pop .feedback-header { animation: pop-in 350ms ease forwards; }
+
+  /* === SYNTAX HIGHLIGHT COLORS === */
+  .kw  { color: #c792ea; }
+  .fn  { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .num { color: #f78c6c; }
+  .cm  { color: var(--text3); font-style: italic; }
+  .op  { color: var(--text2); }
+  .bi  { color: #ffcb6b; }
+
+  /* === SCROLLBARS === */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 860px) {
+    .workspace { grid-template-columns: 1fr; }
+    main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" id="progressBar" style="width:33%"></div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">λ</div>
+    parsons.py
+  </div>
+  <div class="header-nav">
+    <div class="q-counter">Question <span id="qNum">1</span> / <span id="qTotal">3</span></div>
+    <button class="btn btn-sm" id="prevBtn" onclick="navigate(-1)">← prev</button>
+    <button class="btn btn-sm" id="nextBtn" onclick="navigate(1)">next →</button>
+    <button class="btn btn-sm" onclick="resetLayout()">↺ reset</button>
+  </div>
+</header>
+
+<main>
+  <div class="q-meta">
+    <div class="q-eyebrow">
+      <span class="badge badge-concept" id="conceptBadge"></span>
+      <span id="qEyebrow">Arrange the code blocks to solve the puzzle</span>
+    </div>
+    <h1 class="q-title" id="qTitle"></h1>
+    <p class="q-desc" id="qDesc"></p>
+  </div>
+
+  <div class="workspace">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">
+          <span class="panel-dot dot-pool"></span>
+          available blocks
+        </span>
+        <span class="block-count" id="poolCount">0 blocks</span>
+      </div>
+      <div class="drop-zone" id="pool">
+        <div class="drop-zone-empty" id="poolEmpty">All blocks placed ✓</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">
+          <span class="panel-dot dot-canvas"></span>
+          construction canvas
+        </span>
+        <span class="block-count" id="canvasCount">0 blocks</span>
+      </div>
+      <div class="drop-zone canvas-zone" id="canvas">
+        <div class="drop-zone-empty show" id="canvasEmpty">← drag blocks here to build your solution</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace-footer">
+    <div class="footer-left">
+      <button class="btn" onclick="resetLayout()">↺ reset layout</button>
+      <span id="hintText" style="font-size:12px;color:var(--text3);font-family:var(--mono);"></span>
+    </div>
+    <div class="footer-right">
+      <button class="btn btn-primary" onclick="verify()">▶ verify solution</button>
+    </div>
+  </div>
+
+  <div class="feedback-panel" id="feedbackPanel">
+    <div class="feedback-header" id="feedbackHeader">
+      <span class="feedback-icon" id="feedbackIcon"></span>
+      <span id="feedbackTitle"></span>
+    </div>
+    <div class="feedback-body" id="feedbackBody"></div>
+  </div>
+</main>
+
+<script>
+const QUESTIONS = [
+  {
+    title: "Word Frequency Counter",
+    concept: "Dictionary Iteration",
+    description: "Build a function that counts word frequencies in a sentence and prints each word with its count in <code>word: count</code> format, sorted alphabetically. Use a dict and a loop.",
+    expected_output: "apple: 2\nbanana: 1\ncherry: 3",
+    blocks: [
+      { id: "wf1", text: "def count_words(sentence):", correct_order: 0, correct_indent: 0, is_distractor: false, feedback: "This must be the first line — it defines the function." },
+      { id: "wf2", text: "freq = {}", correct_order: 1, correct_indent: 1, is_distractor: false, feedback: "Initialize the frequency dict at indent level 1 (inside the function)." },
+      { id: "wf3", text: "for word in sentence.split():", correct_order: 2, correct_indent: 1, is_distractor: false, feedback: "Iterate over words — one indent level inside the function body." },
+      { id: "wf4", text: "freq[word] = freq.get(word, 0) + 1", correct_order: 3, correct_indent: 2, is_distractor: false, feedback: "This is the body of the for-loop, so it needs 2 levels of indentation." },
+      { id: "wf5", text: "for word in sorted(freq):", correct_order: 4, correct_indent: 1, is_distractor: false, feedback: "Second loop to print results — back to 1 level of indent." },
+      { id: "wf6", text: 'print(f"{word}: {freq[word]}")', correct_order: 5, correct_indent: 2, is_distractor: false, feedback: "Inside the print loop — 2 levels of indent." },
+      { id: "wf7", text: 'sentence = "apple banana cherry apple cherry cherry"', correct_order: 6, correct_indent: 0, is_distractor: false, feedback: "Top-level call — no indentation." },
+      { id: "wf8", text: "count_words(sentence)", correct_order: 7, correct_indent: 0, is_distractor: false, feedback: "Call the function at top level — no indentation." },
+      { id: "wfd1", text: "freq[word] += 1", correct_order: -1, correct_indent: 2, is_distractor: true, feedback: "⚠ Distractor: This crashes if the key doesn't exist yet. Use freq.get() instead." },
+      { id: "wfd2", text: "return freq", correct_order: -1, correct_indent: 1, is_distractor: true, feedback: "⚠ Distractor: We're printing, not returning. Remove this block." },
+    ]
+  },
+  {
+    title: "Grade Classifier",
+    concept: "Nested Conditionals",
+    description: "Write a program that reads a score (0–100) and prints a grade: <code>A</code> for ≥90, <code>B</code> for ≥80, <code>C</code> for ≥70, <code>D</code> for ≥60, otherwise <code>F</code>. Then print <code>Pass</code> or <code>Fail</code> based on whether the grade is D or above.",
+    expected_output: "Grade: B\nPass",
+    blocks: [
+      { id: "gc1", text: "score = 85", correct_order: 0, correct_indent: 0, is_distractor: false, feedback: "Set the score at top level — no indentation." },
+      { id: "gc2", text: "if score >= 90:", correct_order: 1, correct_indent: 0, is_distractor: false, feedback: "First condition, top-level — no indentation." },
+      { id: "gc3", text: 'grade = "A"', correct_order: 2, correct_indent: 1, is_distractor: false, feedback: "Inside the if block — 1 level of indent." },
+      { id: "gc4", text: "elif score >= 80:", correct_order: 3, correct_indent: 0, is_distractor: false, feedback: "elif must align with if — no indentation." },
+      { id: "gc5", text: 'grade = "B"', correct_order: 4, correct_indent: 1, is_distractor: false, feedback: "Inside elif — 1 level of indent." },
+      { id: "gc6", text: "elif score >= 70:", correct_order: 5, correct_indent: 0, is_distractor: false, feedback: "Another elif at top level — no indentation." },
+      { id: "gc7", text: 'grade = "C"', correct_order: 6, correct_indent: 1, is_distractor: false, feedback: "Inside elif — 1 level of indent." },
+      { id: "gc8", text: "elif score >= 60:", correct_order: 7, correct_indent: 0, is_distractor: false, feedback: "Another elif at top level — no indentation." },
+      { id: "gc9", text: 'grade = "D"', correct_order: 8, correct_indent: 1, is_distractor: false, feedback: "Inside elif — 1 level of indent." },
+      { id: "gc10", text: "else:", correct_order: 9, correct_indent: 0, is_distractor: false, feedback: "else aligns with if — no indentation." },
+      { id: "gc11", text: 'grade = "F"', correct_order: 10, correct_indent: 1, is_distractor: false, feedback: "Inside else — 1 level of indent." },
+      { id: "gc12", text: 'print(f"Grade: {grade}")', correct_order: 11, correct_indent: 0, is_distractor: false, feedback: "Print at top level after all branches — no indent." },
+      { id: "gc13", text: 'if grade in ("A","B","C","D"):', correct_order: 12, correct_indent: 0, is_distractor: false, feedback: "Second if-block at top level — no indent." },
+      { id: "gc14", text: 'print("Pass")', correct_order: 13, correct_indent: 1, is_distractor: false, feedback: "Inside the pass check — 1 level of indent." },
+      { id: "gc15", text: "else:", correct_order: 14, correct_indent: 0, is_distractor: false, feedback: "else for pass/fail — top level, no indent." },
+      { id: "gc16", text: 'print("Fail")', correct_order: 15, correct_indent: 1, is_distractor: false, feedback: "Inside the else — 1 level of indent." },
+      { id: "gcd1", text: "score = int(input())", correct_order: -1, correct_indent: 0, is_distractor: true, feedback: "⚠ Distractor: We're hardcoding score = 85, not reading from input." },
+      { id: "gcd2", text: "print(grade)", correct_order: -1, correct_indent: 0, is_distractor: true, feedback: "⚠ Distractor: Use the f-string version: print(f'Grade: {grade}')" },
+    ]
+  },
+  {
+    title: "Pythagorean Triples Finder",
+    concept: "List Comprehension + Filter",
+    description: "Use a list comprehension to find all Pythagorean triples <code>(a, b, c)</code> where <code>a &lt; b &lt; c</code>, all values are in range 1–20, and <code>a² + b² == c²</code>. Print each triple on its own line.",
+    expected_output: "(3, 4, 5)\n(5, 12, 13)\n(6, 8, 10)\n(8, 15, 17)\n(9, 12, 15)\n(12, 16, 20)",
+    blocks: [
+      { id: "pt1", text: "limit = 20", correct_order: 0, correct_indent: 0, is_distractor: false, feedback: "Set the range limit at top level — no indentation." },
+      { id: "pt2", text: "triples = [", correct_order: 1, correct_indent: 0, is_distractor: false, feedback: "Start the list comprehension at top level — no indent." },
+      { id: "pt3", text: "    (a, b, c)", correct_order: 2, correct_indent: 0, is_distractor: false, feedback: "The output expression — what each element looks like." },
+      { id: "pt4", text: "    for a in range(1, limit + 1)", correct_order: 3, correct_indent: 0, is_distractor: false, feedback: "Outer loop over 'a' values." },
+      { id: "pt5", text: "    for b in range(a + 1, limit + 1)", correct_order: 4, correct_indent: 0, is_distractor: false, feedback: "Middle loop — b starts at a+1 to ensure a < b." },
+      { id: "pt6", text: "    for c in range(b + 1, limit + 1)", correct_order: 5, correct_indent: 0, is_distractor: false, feedback: "Inner loop — c starts at b+1 to ensure b < c." },
+      { id: "pt7", text: "    if a**2 + b**2 == c**2", correct_order: 6, correct_indent: 0, is_distractor: false, feedback: "The Pythagorean condition — the filter clause." },
+      { id: "pt8", text: "]", correct_order: 7, correct_indent: 0, is_distractor: false, feedback: "Close the list comprehension bracket." },
+      { id: "pt9", text: "for triple in triples:", correct_order: 8, correct_indent: 0, is_distractor: false, feedback: "Loop to print each triple — top level." },
+      { id: "pt10", text: "    print(triple)", correct_order: 9, correct_indent: 0, is_distractor: false, feedback: "Print inside the loop — already indented in the text, keep indent at 0." },
+      { id: "ptd1", text: "    if a < b < c", correct_order: -1, correct_indent: 0, is_distractor: true, feedback: "⚠ Distractor: The order is already enforced by range(a+1, ...) and range(b+1, ...) — this is redundant." },
+      { id: "ptd2", text: "triples.sort()", correct_order: -1, correct_indent: 0, is_distractor: true, feedback: "⚠ Distractor: The comprehension naturally produces sorted output — no explicit sort needed." },
+    ]
+  }
+];
+
+let currentQ = 0;
+let poolSortable, canvasSortable;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function syntaxHighlight(code) {
+  const keywords = /\b(def|if|elif|else|for|while|return|in|and|or|not|import|from|pass|break|continue|class|with|as|try|except|finally|lambda|yield|global|nonlocal|True|False|None)\b/g;
+  const builtins = /\b(print|range|len|int|str|float|list|dict|set|tuple|sorted|sum|min|max|enumerate|zip|map|filter|input|type|isinstance|hasattr|getattr)\b/g;
+  const strings = /(f?"[^"]*"|f?'[^']*')/g;
+  const numbers = /\b(\d+(\.\d+)?)\b/g;
+  const comments = /(#.*)/g;
+
+  return code
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(strings, '<span class="str">$1</span>')
+    .replace(comments, '<span class="cm">$1</span>')
+    .replace(keywords, '<span class="kw">$1</span>')
+    .replace(builtins, '<span class="bi">$1</span>')
+    .replace(numbers, '<span class="num">$1</span>');
+}
+
+function makeBlock(b, inCanvas) {
+  const el = document.createElement('div');
+  el.className = 'code-block' + (b.is_distractor ? ' is-distractor' : '');
+  el.dataset.id = b.id;
+  el.dataset.indent = '0';
+  el.dataset.isDistractor = b.is_distractor ? '1' : '0';
+  el.dataset.correctOrder = b.correct_order;
+  el.dataset.correctIndent = b.correct_indent;
+  el.dataset.feedback = b.feedback;
+
+  const handle = document.createElement('span');
+  handle.className = 'drag-handle';
+  handle.innerHTML = '⠿';
+  handle.title = 'drag to reorder';
+
+  const lineNum = document.createElement('span');
+  lineNum.className = 'block-line-num';
+
+  const code = document.createElement('span');
+  code.className = 'block-code';
+  code.innerHTML = syntaxHighlight(b.text);
+  code.dataset.raw = b.text;
+
+  const indentControls = document.createElement('div');
+  indentControls.className = 'indent-controls';
+
+  const btnDedent = document.createElement('button');
+  btnDedent.className = 'indent-btn';
+  btnDedent.textContent = '«';
+  btnDedent.title = 'decrease indent';
+  btnDedent.onclick = (e) => { e.stopPropagation(); changeIndent(el, -1); };
+
+  const indInd = document.createElement('span');
+  indInd.className = 'indent-indicator';
+  indInd.textContent = '0';
+
+  const btnIndent = document.createElement('button');
+  btnIndent.className = 'indent-btn';
+  btnIndent.textContent = '»';
+  btnIndent.title = 'increase indent';
+  btnIndent.onclick = (e) => { e.stopPropagation(); changeIndent(el, 1); };
+
+  indentControls.append(btnDedent, indInd, btnIndent);
+  el.append(handle, lineNum, code, indentControls);
+
+  if (b.is_distractor && inCanvas) {
+    const tag = document.createElement('span');
+    tag.className = 'distractor-tag';
+    tag.textContent = '?';
+    tag.title = 'This might be a distractor!';
+    el.prepend(tag);
+  }
+
+  return el;
+}
+
+function changeIndent(el, delta) {
+  let cur = parseInt(el.dataset.indent) || 0;
+  cur = Math.max(0, Math.min(3, cur + delta));
+  el.dataset.indent = cur;
+  const indInd = el.querySelector('.indent-indicator');
+  if (indInd) indInd.textContent = cur;
+  const codeEl = el.querySelector('.block-code');
+  codeEl.style.paddingLeft = (cur * 20) + 'px';
+  updateLineNumbers();
+}
+
+function updateLineNumbers() {
+  const blocks = document.querySelectorAll('#canvas .code-block');
+  blocks.forEach((b, i) => {
+    const num = b.querySelector('.block-line-num');
+    if (num) num.textContent = (i + 1);
+  });
+  updateCounts();
+}
+
+function updateCounts() {
+  const poolBlocks = document.querySelectorAll('#pool .code-block');
+  const canvasBlocks = document.querySelectorAll('#canvas .code-block');
+  document.getElementById('poolCount').textContent = poolBlocks.length + ' block' + (poolBlocks.length !== 1 ? 's' : '');
+  document.getElementById('canvasCount').textContent = canvasBlocks.length + ' block' + (canvasBlocks.length !== 1 ? 's' : '');
+
+  const poolEmpty = document.getElementById('poolEmpty');
+  const canvasEmpty = document.getElementById('canvasEmpty');
+  poolEmpty.classList.toggle('show', poolBlocks.length === 0);
+  canvasEmpty.classList.toggle('show', canvasBlocks.length === 0);
+}
+
+function loadQuestion(idx) {
+  const q = QUESTIONS[idx];
+  document.getElementById('qNum').textContent = idx + 1;
+  document.getElementById('qTotal').textContent = QUESTIONS.length;
+  document.getElementById('conceptBadge').textContent = q.concept;
+  document.getElementById('qTitle').textContent = q.title;
+  document.getElementById('qDesc').innerHTML = q.description;
+  document.getElementById('progressBar').style.width = ((idx + 1) / QUESTIONS.length * 100) + '%';
+  document.getElementById('hintText').textContent = '';
+
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('nextBtn').disabled = idx === QUESTIONS.length - 1;
+  document.getElementById('prevBtn').style.opacity = idx === 0 ? '0.4' : '1';
+  document.getElementById('nextBtn').style.opacity = idx === QUESTIONS.length - 1 ? '0.4' : '1';
+
+  hideFeedback();
+
+  const poolEl = document.getElementById('pool');
+  const canvasEl = document.getElementById('canvas');
+
+  const emptyPool = document.getElementById('poolEmpty');
+  const emptyCanvas = document.getElementById('canvasEmpty');
+
+  while (poolEl.firstChild && poolEl.firstChild !== emptyPool) poolEl.removeChild(poolEl.firstChild);
+  while (canvasEl.firstChild && canvasEl.firstChild !== emptyCanvas) canvasEl.removeChild(canvasEl.firstChild);
+
+  const shuffled = shuffle(q.blocks);
+  shuffled.forEach(b => {
+    poolEl.insertBefore(makeBlock(b, false), emptyPool);
+  });
+
+  if (poolSortable) poolSortable.destroy();
+  if (canvasSortable) canvasSortable.destroy();
+
+  poolSortable = Sortable.create(poolEl, {
+    group: 'blocks',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    filter: '.drop-zone-empty',
+    onSort: () => { updateLineNumbers(); clearFeedback(); },
+    onAdd: (evt) => {
+      const el = evt.item;
+      el.dataset.indent = '0';
+      const codeEl = el.querySelector('.block-code');
+      codeEl.style.paddingLeft = '0px';
+      const indInd = el.querySelector('.indent-indicator');
+      if (indInd) indInd.textContent = '0';
+      el.classList.remove('feedback-correct', 'feedback-wrong', 'distractor-hint');
+      updateLineNumbers();
+      clearFeedback();
+    }
+  });
+
+  canvasSortable = Sortable.create(canvasEl, {
+    group: 'blocks',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    filter: '.drop-zone-empty',
+    onSort: () => { updateLineNumbers(); clearFeedback(); },
+    onAdd: (evt) => {
+      updateLineNumbers();
+      clearFeedback();
+    }
+  });
+
+  updateCounts();
+}
+
+function navigate(delta) {
+  const next = currentQ + delta;
+  if (next < 0 || next >= QUESTIONS.length) return;
+  currentQ = next;
+  loadQuestion(currentQ);
+}
+
+function resetLayout() {
+  loadQuestion(currentQ);
+}
+
+function hideFeedback() {
+  const panel = document.getElementById('feedbackPanel');
+  panel.classList.remove('show', 'success-pop');
+}
+
+function clearFeedback() {
+  hideFeedback();
+  document.querySelectorAll('.code-block').forEach(b => {
+    b.classList.remove('feedback-correct', 'feedback-wrong', 'distractor-hint');
+  });
+}
+
+function showFeedback(type, title, icon, bodyHTML) {
+  const panel = document.getElementById('feedbackPanel');
+  const header = document.getElementById('feedbackHeader');
+  const iconEl = document.getElementById('feedbackIcon');
+  const titleEl = document.getElementById('feedbackTitle');
+  const body = document.getElementById('feedbackBody');
+
+  header.className = 'feedback-header ' + type;
+  iconEl.textContent = icon;
+  titleEl.textContent = title;
+  body.innerHTML = bodyHTML;
+  panel.className = 'feedback-panel show';
+  if (type === 'success') {
+    setTimeout(() => panel.classList.add('success-pop'), 10);
+  }
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function verify() {
+  const q = QUESTIONS[currentQ];
+  const canvasBlocks = [...document.querySelectorAll('#canvas .code-block')];
+
+  clearFeedback();
+
+  if (canvasBlocks.length === 0) {
+    showFeedback('warn', 'Canvas is empty', '⚠',
+      '<p style="color:var(--text2);font-size:13px;">Drag some code blocks from the pool to the canvas first.</p>');
+    return;
+  }
+
+  // Tier 1: distractor check
+  const distractors = canvasBlocks.filter(b => b.dataset.isDistractor === '1');
+  if (distractors.length > 0) {
+    distractors.forEach(b => b.classList.add('distractor-hint'));
+    const msgs = distractors.map(b => {
+      const code = b.querySelector('.block-code').dataset.raw;
+      return `<li class="err"><span class="fi fi-err">✕</span><div><span class="fi-mono">${escapeHtml(code)}</span><br>${b.dataset.feedback}</div></li>`;
+    }).join('');
+    showFeedback('error', 'Distractor blocks detected', '✕',
+      `<p style="color:var(--text2);font-size:13px;margin-bottom:10px;">Remove these incorrect blocks from your solution:</p><ul class="feedback-list">${msgs}</ul>`);
+    return;
+  }
+
+  // Get non-distractor blocks from q
+  const correctBlocks = q.blocks.filter(b => !b.is_distractor).sort((a, b) => a.correct_order - b.correct_order);
+
+  // Tier 2: order + indent check
+  const placed = canvasBlocks.map(el => ({
+    id: el.dataset.id,
+    indent: parseInt(el.dataset.indent),
+    correctOrder: parseInt(el.dataset.correctOrder),
+    correctIndent: parseInt(el.dataset.correctIndent),
+    feedback: el.dataset.feedback,
+    code: el.querySelector('.block-code').dataset.raw,
+    el
+  }));
+
+  let allCorrect = true;
+  const feedbackItems = [];
+
+  placed.forEach((b, i) => {
+    const expectedId = correctBlocks[i] ? correctBlocks[i].id : null;
+    const orderOk = expectedId === b.id;
+    const indentOk = b.correctIndent === b.indent;
+
+    if (orderOk && indentOk) {
+      b.el.classList.add('feedback-correct');
+      feedbackItems.push(`<li class="ok"><span class="fi fi-ok">✓</span><div>Line ${i+1}: <span class="fi-mono">${escapeHtml(b.code)}</span> — correct</div></li>`);
+    } else {
+      allCorrect = false;
+      b.el.classList.add('feedback-wrong');
+      let hint = '';
+      if (!orderOk) hint += `Wrong position. ${b.feedback}`;
+      if (orderOk && !indentOk) hint += `Wrong indentation (got ${b.indent}, expected ${b.correctIndent}). ${b.feedback}`;
+      feedbackItems.push(`<li class="err"><span class="fi fi-err">✕</span><div>Line ${i+1}: <span class="fi-mono">${escapeHtml(b.code)}</span><br>${hint}</div></li>`);
+    }
+  });
+
+  if (placed.length !== correctBlocks.length) {
+    allCorrect = false;
+    const diff = correctBlocks.length - placed.length;
+    if (diff > 0) feedbackItems.push(`<li class="err"><span class="fi fi-err">!</span><div>${diff} required block(s) are still in the pool.</div></li>`);
+  }
+
+  if (!allCorrect) {
+    showFeedback('error', 'Not quite — check the highlighted lines', '✕',
+      `<ul class="feedback-list">${feedbackItems.join('')}</ul>`);
+    return;
+  }
+
+  // Tier 3: success!
+  const outputLines = q.expected_output.split('\n');
+  const termLines = outputLines.map(l =>
+    `<div><span class="terminal-prompt">$ </span><span class="terminal-output">${escapeHtml(l)}</span></div>`
+  ).join('');
+
+  showFeedback('success', 'Perfect solution! 🎉', '✓',
+    `<div class="terminal-label">simulated output</div>
+     <div class="feedback-terminal">
+       <div style="color:var(--text3);margin-bottom:8px;font-size:11px;">▶ python solution.py</div>
+       ${termLines}
+       <div style="color:var(--text3);margin-top:8px;font-size:11px;">Process finished with exit code 0</div>
+     </div>
+     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+       <button class="btn btn-sm btn-primary" onclick="navigate(1)" ${currentQ === QUESTIONS.length-1 ? 'disabled' : ''}>Next puzzle →</button>
+       <button class="btn btn-sm" onclick="resetLayout()">Try again differently</button>
+     </div>`);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadQuestion(0);
+</script>
+</body>
+</html>

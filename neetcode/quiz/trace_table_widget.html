@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trace Table — Variable Matrix</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #2563eb;
+      --blue-l:  #eff6ff;
+      --blue-b:  #bfdbfe;
+      --green:   #059669;
+      --green-l: #ecfdf5;
+      --green-b: #a7f3d0;
+      --rose:    #dc2626;
+      --rose-l:  #fff1f2;
+      --rose-b:  #fecaca;
+      --amber:   #d97706;
+      --amber-l: #fffbeb;
+      --slate:   #64748b;
+      --code-bg: #0d1117;
+      --code-2:  #161b22;
+      --code-3:  #21262d;
+      --gutter:  #30363d;
+      --ln:      #484f58;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+    }
+
+    /* ── Code block ── */
+    .code-window {
+      background: var(--code-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #30363d;
+      height: 100%;
+    }
+
+    .code-titlebar {
+      background: var(--code-2);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #28c940; }
+
+    .code-file-name {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #484f58;
+      letter-spacing: 0.04em;
+    }
+
+    .code-body {
+      padding: 6px 0 16px;
+    }
+
+    /* Individual code lines */
+    .code-ln-row {
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      transition: background 0.18s;
+    }
+
+    .code-ln-row.active-step {
+      background: rgba(37, 99, 235, 0.13);
+    }
+
+    .code-ln-row.active-step .line-gutter {
+      border-right-color: var(--blue);
+      color: #93c5fd;
+    }
+
+    /* Execution cursor bar */
+    .exec-cursor {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--blue);
+      border-radius: 0 2px 2px 0;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .code-ln-row.active-step .exec-cursor { opacity: 1; }
+
+    .line-gutter {
+      min-width: 42px;
+      padding: 4px 12px 4px 0;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--ln);
+      background: var(--code-2);
+      border-right: 1px solid var(--gutter);
+      user-select: none;
+      flex-shrink: 0;
+      line-height: 1.75;
+    }
+
+    .line-text {
+      padding: 4px 0 4px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      color: #c9d1d9;
+      white-space: pre;
+      line-height: 1.75;
+      flex: 1;
+    }
+
+    /* Syntax */
+    .kw  { color: #ff7b72; }
+    .fn  { color: #d2a8ff; }
+    .cn  { color: #ffa657; }
+    .st  { color: #a5d6ff; }
+    .cm  { color: #8b949e; font-style: italic; }
+    .nm  { color: #79c0ff; }
+    .op  { color: #c9d1d9; }
+    .df  { color: #c9d1d9; }
+    .var { color: #e3b341; }
+
+    /* ── Trace matrix ── */
+    .matrix-wrap {
+      overflow-x: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    table.trace-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .trace-table th {
+      background: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e293b;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .trace-table th.step-th {
+      color: var(--slate);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      width: 72px;
+    }
+
+    .trace-table td {
+      border-bottom: 1px solid #f1f5f9;
+      border-right: 1px solid #f1f5f9;
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    .trace-table tr:last-child td { border-bottom: none; }
+    .trace-table td:last-child,
+    .trace-table th:last-child { border-right: none; }
+
+    /* Step label cell */
+    .step-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate);
+      background: #f8fafc;
+      white-space: nowrap;
+    }
+
+    /* Active step row */
+    .trace-table tr.active-row .step-label {
+      color: var(--blue);
+    }
+
+    .trace-table tr.active-row td {
+      background: #eff6ff;
+    }
+
+    /* Input cells */
+    .cell-input {
+      width: 100%;
+      min-width: 64px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      padding: 6px 8px;
+      background: #fff;
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .cell-input:focus {
+      border-color: var(--blue);
+      background: var(--blue-l);
+    }
+
+    .cell-input.correct {
+      border-color: var(--green);
+      background: var(--green-l);
+      color: var(--green);
+    }
+
+    .cell-input.wrong {
+      border-color: var(--rose);
+      background: var(--rose-l);
+      color: var(--rose);
+      animation: shake 0.35s ease;
+    }
+
+    .cell-input.revealed {
+      border-color: var(--amber);
+      background: var(--amber-l);
+      color: var(--amber);
+      font-style: italic;
+    }
+
+    .cell-input:disabled { cursor: default; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-4px); }
+      75%       { transform: translateX(4px); }
+    }
+
+    /* ── Score strip ── */
+    .score-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px 18px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .score-pill .val {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1;
+    }
+
+    .score-pill .lbl {
+      font-size: 10px;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── Action buttons ── */
+    .btn-check {
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      border: none;
+      border-radius: 9px;
+      padding: 10px 24px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-check:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-check:active { transform: translateY(0); }
+
+    .btn-reveal {
+      background: #fff;
+      color: var(--slate);
+      font-weight: 600;
+      font-size: 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      padding: 10px 18px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-reveal:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+    .btn-next {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      border: none;
+      border-radius: 9px;
+      padding: 11px 26px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: opacity 0.15s;
+    }
+    .btn-next:hover { opacity: 0.88; }
+
+    /* ── Feedback banner ── */
+    .feedback-banner {
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      display: none;
+      animation: banner-in 0.22s ease;
+    }
+
+    @keyframes banner-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .feedback-banner.success {
+      background: var(--green-l);
+      border: 1.5px solid var(--green-b);
+      color: #065f46;
+      display: block;
+    }
+
+    .feedback-banner.partial {
+      background: var(--amber-l);
+      border: 1.5px solid #fde68a;
+      color: #92400e;
+      display: block;
+    }
+
+    .feedback-banner.error {
+      background: var(--rose-l);
+      border: 1.5px solid var(--rose-b);
+      color: #991b1b;
+      display: block;
+    }
+
+    /* ── Progress bar ── */
+    #fill-bar {
+      height: 3px;
+      border-radius: 99px;
+      background: var(--blue);
+      transition: width 0.3s ease;
+    }
+
+    /* ── Puzzle selector tabs ── */
+    .puzzle-tab {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid #e2e8f0;
+      background: #fff;
+      color: var(--slate);
+      transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .puzzle-tab.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .puzzle-tab.solved {
+      border-color: var(--green-b);
+      color: var(--green);
+      background: var(--green-l);
+    }
+
+    /* ── Loading ── */
+    #py-loading {
+      position: fixed; inset: 0;
+      background: #f8fafc;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999; gap: 14px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader {
+      width: 30px; height: 30px;
+      border: 2.5px solid #e2e8f0;
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    py-terminal { display: none !important; }
+
+    /* Difficulty badge */
+    .diff-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+
+    .diff-beginner  { background: #dcfce7; color: #166534; }
+    .diff-intermediate { background: #fef9c3; color: #854d0e; }
+    .diff-advanced  { background: #fee2e2; color: #991b1b; }
+
+    /* Variable type hint under header */
+    .var-type {
+      display: block;
+      font-size: 9.5px;
+      font-weight: 400;
+      color: #94a3b8;
+      font-style: italic;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="py-loading">
+  <div class="loader"></div>
+  <p style="font-size:12px;color:#94a3b8;font-family:'Inter',sans-serif;margin-top:4px;">Initialising PyScript…</p>
+</div>
+
+<!-- ══════════════════════════════════ SHELL ══════════════════════════════════ -->
+<div id="app" style="display:none;" class="min-h-screen py-8 px-4">
+<div class="max-w-5xl mx-auto">
+
+  <!-- ── Top header ── -->
+  <div class="flex items-start justify-between mb-5">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;">CS Lab</span>
+        <span style="color:#e2e8f0;">·</span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;">Trace Table</span>
+      </div>
+      <h1 style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">Variable Execution Matrix</h1>
+      <p style="font-size:13px;color:#64748b;margin-top:3px;">Read the code. Trace each variable. Fill the matrix step by step.</p>
+    </div>
+
+    <!-- Score strip -->
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="score-pill">
+        <span class="val" id="score-val">0</span>
+        <span class="lbl">Score</span>
+      </div>
+      <div class="score-pill">
+        <span class="val" id="streak-val">0</span>
+        <span class="lbl">Streak</span>
+      </div>
+      <div class="score-pill">
+        <span class="val" id="solved-val">0/3</span>
+        <span class="lbl">Solved</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Puzzle selector ── -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+    <span style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.07em;margin-right:4px;">Puzzle</span>
+    <button class="puzzle-tab active" id="tab-0" onclick="pySelectPuzzle(0)">01 · For Loop</button>
+    <button class="puzzle-tab" id="tab-1" onclick="pySelectPuzzle(1)">02 · While + Accum</button>
+    <button class="puzzle-tab" id="tab-2" onclick="pySelectPuzzle(2)">03 · String Builder</button>
+  </div>
+
+  <!-- ── Main card ── -->
+  <div style="background:#fff;border-radius:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06);overflow:hidden;">
+
+    <!-- Card header -->
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
+      <span id="puzzle-title" style="font-size:14px;font-weight:700;color:#1e293b;"></span>
+      <span id="diff-badge" class="diff-badge"></span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:#94a3b8;">cells filled</span>
+        <div style="width:96px;background:#f1f5f9;border-radius:99px;height:3px;">
+          <div id="fill-bar" style="width:0%;"></div>
+        </div>
+        <span id="fill-label" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;">0 / 0</span>
+      </div>
+    </div>
+
+    <!-- Split layout -->
+    <div style="display:flex;min-height:480px;">
+
+      <!-- ── LEFT: Code panel ── -->
+      <div style="width:50%;flex-shrink:0;padding:20px;border-right:1px solid #f1f5f9;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Code</span>
+          <span id="step-indicator" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#2563eb;background:#eff6ff;padding:2px 10px;border-radius:99px;"></span>
+        </div>
+        <div class="code-window">
+          <div class="code-titlebar">
+            <span class="dot dot-r"></span>
+            <span class="dot dot-y"></span>
+            <span class="dot dot-g"></span>
+            <span class="code-file-name" id="code-filename">trace.py</span>
+          </div>
+          <div class="code-body" id="code-body"></div>
+        </div>
+
+        <!-- Concept note -->
+        <div id="concept-note" style="margin-top:14px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:12px;color:#475569;line-height:1.7;"></div>
+      </div>
+
+      <!-- ── RIGHT: Matrix panel ── -->
+      <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Execution Trace</span>
+          <span style="font-size:11px;color:#94a3b8;">Type exact values into each cell</span>
+        </div>
+
+        <!-- Matrix table -->
+        <div class="matrix-wrap">
+          <table class="trace-table" id="trace-table">
+            <thead id="trace-thead"></thead>
+            <tbody id="trace-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Feedback banner -->
+        <div class="feedback-banner" id="feedback-banner"></div>
+
+        <!-- Action row -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;">
+          <button class="btn-check" id="check-btn">Check Answers</button>
+          <button class="btn-reveal" id="reveal-btn">Reveal Answers</button>
+          <button class="btn-next" id="next-btn" style="display:none;">Next Puzzle →</button>
+          <span style="margin-left:auto;font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace;" id="attempts-label">Attempts: 0</span>
+        </div>
+
+        <!-- Legend -->
+        <div style="display:flex;gap:14px;padding-top:4px;border-top:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <div style="width:10px;height:10px;border-radius:3px;background:#ecfdf5;border:1.5px solid #a7f3d0;"></div>
+            <span style="font-size:11px;color:#64748b;">Correct</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <div style="width:10px;height:10px;border-radius:3px;background:#fff1f2;border:1.5px solid #fecaca;"></div>
+            <span style="font-size:11px;color:#64748b;">Incorrect</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <div style="width:10px;height:10px;border-radius:3px;background:#fffbeb;border:1.5px solid #fde68a;"></div>
+            <span style="font-size:11px;color:#64748b;">Revealed</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /split -->
+  </div><!-- /card -->
+
+  <p style="text-align:center;margin-top:18px;font-size:11px;color:#cbd5e1;">
+    Powered by PyScript · All evaluation runs locally in your browser
+  </p>
+</div>
+</div>
+
+<!-- ══════════════════════════════ PYSCRIPT ══════════════════════════════════ -->
+<script type="py">
+import asyncio
+from pyscript import document
+import js
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PUZZLE DATA
+#
+#  Each puzzle defines:
+#    filename, title, difficulty, concept_note,
+#    code_lines: list of (line_text, token_spans, highlight_at_steps)
+#      token_spans: list of (css_class, text)
+#      highlight_at_steps: list of step indices (0-based) where this line is
+#                          the "active" execution cursor line
+#    variables: list of variable names (column headers)
+#    var_types: list of type hints for display under header
+#    steps: list of dicts  { label, answers: [val_per_variable] }
+#             answers are strings (what user must type exactly)
+# ─────────────────────────────────────────────────────────────────────────────
+
+PUZZLES = [
+
+# ══════════════ PUZZLE 1 · For Loop ══════════════
+{
+  "filename": "for_loop.py",
+  "title": "Accumulator For-Loop",
+  "difficulty": "beginner",
+  "concept_note": (
+    "A <code>for</code> loop iterates over a fixed sequence. "
+    "Trace <strong>i</strong>, <strong>total</strong>, and <strong>product</strong> "
+    "after each full iteration of the loop body completes."
+  ),
+
+  # (display_text, [(css_class, token_text), ...], [step_indices_where_highlighted])
+  "code_lines": [
+    ("total   = 0",         [("var","total"),("op","   = "),("nm","0")],          []),
+    ("product = 1",         [("var","product"),("op"," = "),("nm","1")],          []),
+    ("",                    [],                                                    []),
+    ("for i in range(1, 5):",[("kw","for"),("op"," "),("var","i"),("op"," "),("kw","in"),
+                              ("op"," "),("fn","range"),("op","("),("nm","1"),
+                              ("op",", "),("nm","5"),("op",")")],                  [0,1,2,3]),
+    ("    total   += i",    [("op","    "),("var","total"),("op","   += "),("var","i")],  [0,1,2,3]),
+    ("    product *= i",    [("op","    "),("var","product"),("op"," *= "),("var","i")],  [0,1,2,3]),
+    ("",                    [],                                                    []),
+    ("print(total, product)",[("fn","print"),("op","("),("var","total"),("op",", "),
+                              ("var","product"),("op",")")],                       []),
+  ],
+
+  "variables": ["i", "total", "product"],
+  "var_types":  ["int", "int", "int"],
+
+  # After each loop iteration completes (i = 1,2,3,4)
+  "steps": [
+    {"label": "i = 1",  "answers": ["1", "1",  "1"]},
+    {"label": "i = 2",  "answers": ["2", "3",  "2"]},
+    {"label": "i = 3",  "answers": ["3", "6",  "6"]},
+    {"label": "i = 4",  "answers": ["4", "10", "24"]},
+  ],
+},
+
+
+# ══════════════ PUZZLE 2 · While + Accumulator ══════════════
+{
+  "filename": "collatz.py",
+  "title": "Collatz Sequence Tracer",
+  "difficulty": "intermediate",
+  "concept_note": (
+    "The Collatz conjecture: if <strong>n</strong> is even divide by 2, "
+    "if odd multiply by 3 and add 1. Trace <strong>n</strong>, "
+    "<strong>steps</strong>, and the <strong>branch</strong> taken "
+    "(<code>'even'</code> or <code>'odd'</code>) at each iteration. "
+    "Start value: <strong>n = 6</strong>."
+  ),
+
+  "code_lines": [
+    ("n     = 6",          [("var","n"),("op","     = "),("nm","6")],             []),
+    ("steps = 0",          [("var","steps"),("op"," = "),("nm","0")],             []),
+    ("branch = ''",        [("var","branch"),("op"," = "),("st","''")],           []),
+    ("",                   [],                                                    []),
+    ("while n != 1:",      [("kw","while"),("op"," "),("var","n"),("op"," != "),("nm","1"),("op",":")],   [0,1,2,3,4]),
+    ("    if n % 2 == 0:", [("op","    "),("kw","if"),("op"," "),("var","n"),
+                            ("op"," % "),("nm","2"),("op"," == "),("nm","0"),("op",":")],  [0,1,2,3,4]),
+    ("        n //= 2",    [("op","        "),("var","n"),("op"," //= "),("nm","2")],   [0,2,4]),
+    ("        branch='even'",[("op","        "),("var","branch"),("op","="),("st","'even'")],[0,2,4]),
+    ("    else:",           [("op","    "),("kw","else"),("op",":")],              [1,3]),
+    ("        n = 3*n + 1",[("op","        "),("var","n"),("op"," = "),("nm","3"),
+                            ("op","*"),("var","n"),("op"," + "),("nm","1")],      [1,3]),
+    ("        branch='odd'",[("op","        "),("var","branch"),("op","="),("st","'odd'")], [1,3]),
+    ("    steps += 1",     [("op","    "),("var","steps"),("op"," += "),("nm","1")],  [0,1,2,3,4]),
+  ],
+
+  "variables": ["n", "steps", "branch"],
+  "var_types":  ["int", "int", "str"],
+
+  "steps": [
+    {"label": "iter 1",  "answers": ["3",  "1", "even"]},
+    {"label": "iter 2",  "answers": ["10", "2", "odd"]},
+    {"label": "iter 3",  "answers": ["5",  "3", "even"]},
+    {"label": "iter 4",  "answers": ["16", "4", "odd"]},
+    {"label": "iter 5",  "answers": ["8",  "5", "even"]},
+  ],
+},
+
+
+# ══════════════ PUZZLE 3 · String Builder ══════════════
+{
+  "filename": "str_builder.py",
+  "title": "String Accumulator & Slice",
+  "difficulty": "advanced",
+  "concept_note": (
+    "String operations in Python create <em>new</em> string objects. "
+    "Trace <strong>word</strong>, <strong>result</strong>, and "
+    "<strong>last</strong> (the last character of result) "
+    "after each loop body. The loop iterates over characters of "
+    "<code>'flame'</code>."
+  ),
+
+  "code_lines": [
+    ("word   = 'flame'",   [("var","word"),("op","   = "),("st","'flame'")],      []),
+    ("result = ''",        [("var","result"),("op"," = "),("st","''")],           []),
+    ("last   = ''",        [("var","last"),("op","   = "),("st","''")],           []),
+    ("",                   [],                                                    []),
+    ("for ch in word:",    [("kw","for"),("op"," "),("var","ch"),("op"," "),("kw","in"),
+                            ("op"," "),("var","word"),("op",":")],                [0,1,2,3,4]),
+    ("    result += ch.upper()",[("op","    "),("var","result"),("op"," += "),
+                                 ("var","ch"),("op","."),("fn","upper"),("op","()")], [0,1,2,3,4]),
+    ("    last = result[-1]",   [("op","    "),("var","last"),("op"," = "),
+                                  ("var","result"),("op","[-"),("nm","1"),("op","]")],  [0,1,2,3,4]),
+  ],
+
+  "variables": ["ch", "result", "last"],
+  "var_types":  ["str", "str", "str"],
+
+  "steps": [
+    {"label": "ch = 'f'",  "answers": ["f", "F",     "F"]},
+    {"label": "ch = 'l'",  "answers": ["l", "FL",    "L"]},
+    {"label": "ch = 'a'",  "answers": ["a", "FLA",   "A"]},
+    {"label": "ch = 'm'",  "answers": ["m", "FLAM",  "M"]},
+    {"label": "ch = 'e'",  "answers": ["e", "FLAME", "E"]},
+  ],
+},
+
+]  # end PUZZLES
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  GLOBAL STATE
+# ─────────────────────────────────────────────────────────────────────────────
+state = {
+    "puzzle_idx": 0,
+    "score": 0,
+    "streak": 0,
+    "solved": set(),
+    "attempts": 0,
+    "checked": False,       # True once current puzzle validated
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  DOM HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+def el(id_): return document.getElementById(id_)
+def set_text(id_, t): el(id_).textContent = t
+def set_html(id_, h): el(id_).innerHTML = h
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RENDER PUZZLE
+# ─────────────────────────────────────────────────────────────────────────────
+def render_puzzle(idx):
+    p = PUZZLES[idx]
+    state["attempts"]  = 0
+    state["checked"]   = False
+
+    # Metadata
+    el("puzzle-title").textContent = p["title"]
+    el("code-filename").textContent = p["filename"]
+
+    diff = p["difficulty"]
+    diff_labels = {"beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced"}
+    diff_classes = {"beginner": "diff-beginner", "intermediate": "diff-intermediate", "advanced": "diff-advanced"}
+    badge = el("diff-badge")
+    badge.textContent = diff_labels[diff]
+    badge.className = "diff-badge " + diff_classes[diff]
+
+    el("concept-note").innerHTML = p["concept_note"]
+    el("next-btn").style.display = "none"
+    el("feedback-banner").className = "feedback-banner"
+    el("feedback-banner").style.display = "none"
+    el("attempts-label").textContent = "Attempts: 0"
+    el("step-indicator").textContent = f"Step 1 of {len(p['steps'])}"
+
+    # ── Render code lines ──
+    code_body = el("code-body")
+    code_body.innerHTML = ""
+
+    for li, (display, tokens, _step_hints) in enumerate(p["code_lines"]):
+        row = document.createElement("div")
+        row.className = "code-ln-row"
+        row.id = f"code-row-{li}"
+
+        # Execution cursor bar
+        cursor = document.createElement("div")
+        cursor.className = "exec-cursor"
+        row.appendChild(cursor)
+
+        # Gutter
+        if display == "":
+            gutter = document.createElement("div")
+            gutter.className = "line-gutter"
+            gutter.innerHTML = "&nbsp;"
+            gutter.style.height = "14px"
+            row.appendChild(gutter)
+            row.style.minHeight = "14px"
+        else:
+            gutter = document.createElement("div")
+            gutter.className = "line-gutter"
+            gutter.textContent = str(li + 1)
+            row.appendChild(gutter)
+
+            # Code text
+            code_cell = document.createElement("div")
+            code_cell.className = "line-text"
+            spans_html = ""
+            for (cls, txt) in tokens:
+                safe = txt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                spans_html += f'<span class="{cls}">{safe}</span>'
+            code_cell.innerHTML = spans_html
+            row.appendChild(code_cell)
+
+        code_body.appendChild(row)
+
+    # ── Render matrix ──
+    _render_matrix(p)
+
+    # ── Highlight first active step lines ──
+    _highlight_step_lines(0, p)
+
+    # ── Update tabs ──
+    for i in range(len(PUZZLES)):
+        tab = el(f"tab-{i}")
+        tab.className = "puzzle-tab"
+        if i in state["solved"]:
+            tab.className += " solved"
+        if i == idx:
+            tab.className += " active"
+
+    update_fill_bar()
+
+
+def _render_matrix(p):
+    variables = p["variables"]
+    var_types  = p["var_types"]
+    steps      = p["steps"]
+
+    # thead
+    thead = el("trace-thead")
+    thead.innerHTML = ""
+    tr = document.createElement("tr")
+
+    # Step column header
+    th0 = document.createElement("th")
+    th0.className = "step-th"
+    th0.textContent = "Step"
+    tr.appendChild(th0)
+
+    for vi, vname in enumerate(variables):
+        th = document.createElement("th")
+        th.innerHTML = (
+            f'<span class="var" style="font-size:13px;">{vname}</span>'
+            f'<span class="var-type">{var_types[vi]}</span>'
+        )
+        tr.appendChild(th)
+    thead.appendChild(tr)
+
+    # tbody
+    tbody = el("trace-tbody")
+    tbody.innerHTML = ""
+    for si, step in enumerate(steps):
+        row = document.createElement("tr")
+        row.id = f"step-row-{si}"
+        if si == 0:
+            row.classList.add("active-row")
+
+        # Step label
+        td0 = document.createElement("td")
+        td0.className = "step-label"
+        td0.textContent = step["label"]
+        row.appendChild(td0)
+
+        # Input cells
+        for vi in range(len(variables)):
+            td = document.createElement("td")
+            td.style.padding = "7px 8px"
+            inp = document.createElement("input")
+            inp.type = "text"
+            inp.className = "cell-input"
+            inp.id = f"cell-{si}-{vi}"
+            inp.placeholder = "?"
+            inp.autocomplete = "off"
+            inp.autocorrect = "off"
+            inp.spellcheck = False
+
+            # Focus → advance cursor highlight
+            si_copy = si   # capture for closure
+            inp.addEventListener("focus", js.pyCellFocus.bind(inp))
+            inp.dataset.stepIdx = str(si)
+
+            # Live fill-bar update on input
+            inp.addEventListener("input", js.pyOnInput)
+
+            td.appendChild(inp)
+            row.appendChild(td)
+
+        tbody.appendChild(row)
+
+
+def _highlight_step_lines(step_idx, puzzle):
+    p = puzzle
+    # Remove all active highlights
+    for li in range(len(p["code_lines"])):
+        row = el(f"code-row-{li}")
+        if row:
+            row.classList.remove("active-step")
+
+    # Find which code lines are active at this step
+    for li, (_disp, _tokens, step_hints) in enumerate(p["code_lines"]):
+        if step_idx in step_hints:
+            row = el(f"code-row-{li}")
+            if row:
+                row.classList.add("active-step")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  FILL BAR
+# ─────────────────────────────────────────────────────────────────────────────
+def update_fill_bar():
+    p = PUZZLES[state["puzzle_idx"]]
+    total_cells = len(p["steps"]) * len(p["variables"])
+    filled = 0
+    for si in range(len(p["steps"])):
+        for vi in range(len(p["variables"])):
+            inp = el(f"cell-{si}-{vi}")
+            if inp and inp.value.strip():
+                filled += 1
+
+    pct = int(100 * filled / total_cells) if total_cells else 0
+    el("fill-bar").style.width = f"{pct}%"
+    el("fill-label").textContent = f"{filled} / {total_cells}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  CELL FOCUS HANDLER — updates cursor + active row
+# ─────────────────────────────────────────────────────────────────────────────
+def cell_focus(event):
+    inp = event.target
+    si = int(inp.dataset.stepIdx)
+    p = PUZZLES[state["puzzle_idx"]]
+
+    # Update step indicator
+    el("step-indicator").textContent = f"Step {si+1} of {len(p['steps'])}"
+
+    # Update active-row class
+    for si2 in range(len(p["steps"])):
+        row = el(f"step-row-{si2}")
+        if row:
+            row.classList.remove("active-row")
+    active_row = el(f"step-row-{si}")
+    if active_row:
+        active_row.classList.add("active-row")
+
+    # Highlight code lines for this step
+    _highlight_step_lines(si, p)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  CHECK ANSWERS
+# ─────────────────────────────────────────────────────────────────────────────
+def check_answers(event=None):
+    p = PUZZLES[state["puzzle_idx"]]
+    state["attempts"] += 1
+    el("attempts-label").textContent = f"Attempts: {state['attempts']}"
+
+    total   = len(p["steps"]) * len(p["variables"])
+    correct = 0
+    wrong   = 0
+    empty   = 0
+
+    for si, step in enumerate(p["steps"]):
+        for vi, expected in enumerate(step["answers"]):
+            inp = el(f"cell-{si}-{vi}")
+            if not inp:
+                continue
+
+            user_val = inp.value.strip()
+
+            if not user_val:
+                empty += 1
+                inp.className = "cell-input"
+                continue
+
+            if user_val == expected:
+                correct += 1
+                inp.className = "cell-input correct"
+                inp.disabled = True
+            else:
+                wrong += 1
+                # Remove old class, re-add to retrigger animation
+                inp.className = "cell-input"
+                # Force reflow via reading a property
+                _ = inp.offsetWidth
+                inp.className = "cell-input wrong"
+
+    # Score update
+    if correct > 0 and wrong == 0 and empty == 0:
+        points = max(5, 10 - (state["attempts"] - 1) * 2)
+        state["score"]  += points
+        state["streak"] += 1
+    elif wrong > 0:
+        state["streak"] = 0
+        state["score"]  = max(0, state["score"] - 2)
+
+    update_score_display()
+
+    # Feedback banner
+    banner = el("feedback-banner")
+    if wrong == 0 and empty == 0:
+        # Perfect
+        state["checked"] = True
+        state["solved"].add(state["puzzle_idx"])
+        banner.className = "feedback-banner success"
+        bonus = " 🔥 Streak ×" + str(state["streak"]) if state["streak"] > 1 else ""
+        banner.innerHTML = (
+            f"<strong>✓ All {total} cells correct!</strong>{bonus} — "
+            f"+{max(5, 10 - (state['attempts']-1)*2)} pts. "
+            f"You traced the execution perfectly."
+        )
+        el("next-btn").style.display = "inline-block"
+        el("check-btn").disabled = True
+        el("solved-val").textContent = f"{len(state['solved'])}/3"
+
+        # Mark tab solved
+        tab = el(f"tab-{state['puzzle_idx']}")
+        tab.className = "puzzle-tab solved"
+
+    elif empty > 0 and correct == 0:
+        banner.className = "feedback-banner error"
+        banner.innerHTML = f"<strong>Fill in at least one cell</strong> before checking. {total - filled_count(p)} cells still empty."
+    elif wrong > 0:
+        banner.className = "feedback-banner partial"
+        banner.innerHTML = (
+            f"<strong>{wrong} value{' is' if wrong==1 else 's are'} incorrect.</strong> "
+            f"Correct: {correct} / {total - empty}. "
+            f"Re-read the code carefully and try again."
+        )
+    else:
+        # Some correct, some empty
+        banner.className = "feedback-banner partial"
+        banner.innerHTML = f"<strong>{correct} correct so far.</strong> {empty} cells still empty."
+
+def filled_count(p):
+    count = 0
+    for si in range(len(p["steps"])):
+        for vi in range(len(p["variables"])):
+            inp = el(f"cell-{si}-{vi}")
+            if inp and inp.value.strip():
+                count += 1
+    return count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  REVEAL ANSWERS
+# ─────────────────────────────────────────────────────────────────────────────
+def reveal_answers(event=None):
+    p = PUZZLES[state["puzzle_idx"]]
+    state["score"] = max(0, state["score"] - 5)
+    update_score_display()
+
+    for si, step in enumerate(p["steps"]):
+        for vi, expected in enumerate(step["answers"]):
+            inp = el(f"cell-{si}-{vi}")
+            if not inp:
+                continue
+            if "correct" not in inp.className:
+                inp.value = expected
+                inp.className = "cell-input revealed"
+                inp.disabled = True
+
+    banner = el("feedback-banner")
+    banner.className = "feedback-banner partial"
+    banner.innerHTML = (
+        "<strong>Answers revealed.</strong> Study each step carefully. "
+        "−5 pts applied. Move to the next puzzle when ready."
+    )
+    el("next-btn").style.display = "inline-block"
+    el("check-btn").disabled = True
+    update_fill_bar()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  NEXT PUZZLE
+# ─────────────────────────────────────────────────────────────────────────────
+def next_puzzle(event=None):
+    next_idx = (state["puzzle_idx"] + 1) % len(PUZZLES)
+    select_puzzle(next_idx)
+
+def select_puzzle(idx):
+    state["puzzle_idx"] = idx
+    el("check-btn").disabled = False
+    render_puzzle(idx)
+
+def update_score_display():
+    set_text("score-val",  str(state["score"]))
+    set_text("streak-val", str(state["streak"]))
+    set_text("solved-val", f"{len(state['solved'])}/3")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  JS BRIDGES
+# ─────────────────────────────────────────────────────────────────────────────
+js.pySelectPuzzle  = select_puzzle
+js.pyCellFocus     = cell_focus
+js.pyOnInput       = lambda e: update_fill_bar()
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  BOOT
+# ─────────────────────────────────────────────────────────────────────────────
+async def boot():
+    loading = document.getElementById("py-loading")
+    loading.style.opacity = "0"
+    await asyncio.sleep(0.35)
+    loading.style.display = "none"
+    document.getElementById("app").style.display = "block"
+
+    document.getElementById("check-btn").onclick  = check_answers
+    document.getElementById("reveal-btn").onclick = reveal_answers
+    document.getElementById("next-btn").onclick   = next_puzzle
+
+    render_puzzle(0)
+
+asyncio.ensure_future(boot())
+</script>
+
+</body>
+</html>

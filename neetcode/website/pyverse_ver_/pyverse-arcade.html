@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYVERSE ARCADE — Level Up Your Python</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D0221;
+    --bg2:#170B33;
+    --green:#39FF14;
+    --magenta:#FF2E9A;
+    --cyan:#00E5FF;
+    --yellow:#FFE600;
+    --purple:#7B2FF7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--green);
+    font-family:'VT323', monospace;
+    font-size:19px;
+    background-image:
+      linear-gradient(rgba(57,255,20,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,20,0.06) 1px, transparent 1px);
+    background-size: 26px 26px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  .pixel{ font-family:'Press Start 2P', monospace; }
+  ::selection{ background:var(--magenta); color:#0D0221; }
+  /* CRT scanline overlay */
+  body::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:50;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:multiply;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:51;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+  .pixel-border{
+    border:4px solid var(--green);
+    box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px var(--green), 0 0 18px rgba(57,255,20,0.25);
+  }
+  .pixel-border-m{ border:4px solid var(--magenta); box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px var(--magenta), 0 0 18px rgba(255,46,154,0.25); }
+  .pixel-border-c{ border:4px solid var(--cyan); box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px var(--cyan), 0 0 18px rgba(0,229,255,0.25); }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .blinker{ animation: blink 1s step-end infinite; }
+  @keyframes marquee-chase{ 0%{ box-shadow:0 0 0 3px var(--yellow);} 50%{ box-shadow:0 0 0 3px var(--magenta);} 100%{ box-shadow:0 0 0 3px var(--yellow);} }
+  .marquee-light{ width:8px; height:8px; background:var(--yellow); animation: marquee-chase 1.4s ease-in-out infinite; }
+  @keyframes pop-in{ 0%{ transform:scale(0); } 70%{ transform:scale(1.25); } 100%{ transform:scale(1); } }
+  .pop{ animation: pop-in .35s ease-out; }
+  @keyframes floaty{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-4px);} }
+  .floaty{ animation: floaty 1.8s ease-in-out infinite; }
+  .btn-arcade{ transition: transform .08s, box-shadow .08s; }
+  .btn-arcade:active{ transform: translateY(3px); }
+  [x-cloak]{ display:none !important; }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; transition-duration:.001ms !important; } }
+</style>
+</head>
+<body>
+
+<!-- ARCADE MARQUEE HEADER -->
+<header class="relative z-10 border-b-4" style="border-color:var(--green); background:var(--bg2);">
+  <div class="max-w-[1200px] mx-auto px-5 md:px-8 py-4 flex justify-between items-center flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <div class="flex gap-1">
+        <div class="marquee-light rounded-full"></div>
+        <div class="marquee-light rounded-full" style="animation-delay:.35s;"></div>
+        <div class="marquee-light rounded-full" style="animation-delay:.7s;"></div>
+      </div>
+      <span class="pixel text-[11px] md:text-sm" style="color:var(--yellow); text-shadow:2px 2px 0 var(--magenta);">PYVERSE ARCADE</span>
+    </div>
+    <div class="pixel text-[9px] flex items-center gap-4" style="color:var(--cyan);">
+      <span class="blinker">PRESS START</span>
+      <span style="color:var(--magenta);">1UP</span>
+    </div>
+  </div>
+</header>
+
+<div x-data="{
+  path:[{x:0,y:2},{x:1,y:2},{x:2,y:2},{x:2,y:1},{x:3,y:1},{x:4,y:1},{x:4,y:2},{x:5,y:2},{x:6,y:2}],
+  labels:['PyMonkey','PyVisualizer','LeetWasm','Black Box','Time Bomb','Structural Set','PyCortex','Marketing Shell','Open Slot'],
+  level:1,
+  eat(){ if(this.level < this.path.length){ this.level++; } },
+  reset(){ this.level = 1; },
+  get score(){ return (this.level-1) * 100; }
+}" class="relative z-10">
+
+  <!-- HERO -->
+  <section class="max-w-[1200px] mx-auto px-5 md:px-8 pt-14 pb-10 grid lg:grid-cols-[1.1fr_1fr] gap-10 items-center">
+    <div>
+      <div class="pixel text-[9px] mb-4" style="color:var(--magenta);">STAGE 1-1 &nbsp;·&nbsp; PYTHON.EXE</div>
+      <h1 class="pixel text-[8.5vw] md:text-[2.9rem] leading-[1.5] uppercase" style="color:var(--green); text-shadow:3px 3px 0 var(--purple);">
+        LEVEL UP<br>YOUR<br><span style="color:var(--yellow); text-shadow:3px 3px 0 var(--magenta);">PYTHON.</span>
+      </h1>
+      <p class="text-lg mt-6 max-w-md" style="color:#b8f7a8;">
+        Nine modules. One snake. Every concept you clear gets eaten, scored, and bolted onto
+        the chain behind you. No cutscenes — just the next pellet.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-4">
+        <a href="#cartridges" class="btn-arcade pixel text-[10px] px-6 py-4" style="background:var(--green); color:var(--bg); box-shadow:4px 4px 0 var(--purple);">SELECT CARTRIDGE</a>
+        <a href="#howto" class="btn-arcade pixel text-[10px] px-6 py-4 border-2" style="border-color:var(--cyan); color:var(--cyan); box-shadow:4px 4px 0 var(--magenta);">HOW TO PLAY</a>
+      </div>
+    </div>
+
+    <!-- SIGNATURE: SNAKE PROGRESS GAME -->
+    <div class="pixel-border p-5 md:p-6" style="background:var(--bg2);">
+      <div class="flex justify-between items-center mb-4">
+        <span class="pixel text-[9px]" style="color:var(--yellow);">SKILL SNAKE</span>
+        <span class="pixel text-[9px]" style="color:var(--cyan);">SCORE <span x-text="score"></span></span>
+      </div>
+
+      <!-- game board -->
+      <div class="relative mx-auto" style="width:238px; height:102px;">
+        <!-- grid dots -->
+        <div class="absolute inset-0 grid grid-cols-7 grid-rows-3 gap-0">
+          <template x-for="n in 21" :key="n"><div class="border border-dashed" style="border-color:rgba(57,255,20,0.15);"></div></template>
+        </div>
+
+        <!-- snake segments -->
+        <template x-for="(seg,i) in path.slice(0, level)" :key="i">
+          <div class="absolute rounded-sm pop" :style="`left:${seg.x*34}px; top:${seg.y*34}px; width:28px; height:28px; background:${i===level-1 ? 'var(--yellow)' : 'var(--green)'}; box-shadow: inset 0 0 0 2px var(--bg);`"></div>
+        </template>
+
+        <!-- next pellet -->
+        <template x-if="level < path.length">
+          <div class="absolute rounded-full floaty" :style="`left:${path[level].x*34+8}px; top:${path[level].y*34+8}px; width:12px; height:12px; background:var(--magenta); box-shadow:0 0 8px var(--magenta);`"></div>
+        </template>
+      </div>
+
+      <div class="mt-4 text-center">
+        <div class="pixel text-[9px] mb-3" style="color:#b8f7a8;" x-text="level <= path.length ? ('NEXT: ' + (labels[level-1] || 'MAX LEVEL')) : 'ALL MODULES CLEARED'"></div>
+        <div class="flex gap-3 justify-center">
+          <button @click="eat()" class="btn-arcade pixel text-[9px] px-5 py-3" style="background:var(--magenta); color:var(--bg); box-shadow:3px 3px 0 var(--cyan);" x-show="level < path.length">EAT PELLET</button>
+          <button @click="reset()" class="btn-arcade pixel text-[9px] px-5 py-3 border-2" style="border-color:var(--green); color:var(--green);">RESET</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW TO PLAY STRIP -->
+  <section id="howto" class="border-y-4" style="border-color:var(--purple); background:var(--bg2);">
+    <div class="max-w-[1200px] mx-auto px-5 md:px-8 py-10 grid md:grid-cols-3 gap-8">
+      <div>
+        <div class="pixel text-[10px]" style="color:var(--yellow);">P1</div>
+        <h3 class="text-2xl mt-2">No server side-quests.</h3>
+        <p class="text-base mt-2" style="color:#a9e59a;">Every cartridge runs client-side on Pyodide/WASM. You press start, your browser does the compiling.</p>
+      </div>
+      <div>
+        <div class="pixel text-[10px]" style="color:var(--yellow);">P2</div>
+        <h3 class="text-2xl mt-2">Difficulty is visible.</h3>
+        <p class="text-base mt-2" style="color:#a9e59a;">Every module shows its star rating up front. No surprise boss fights halfway through a tutorial.</p>
+      </div>
+      <div>
+        <div class="pixel text-[10px]" style="color:var(--yellow);">P3</div>
+        <h3 class="text-2xl mt-2">You keep your score.</h3>
+        <p class="text-base mt-2" style="color:#a9e59a;">Progress is local to your machine. Nothing is uploaded, tracked, or leaderboarded against strangers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARTRIDGE SELECT GRID -->
+  <section id="cartridges" class="max-w-[1200px] mx-auto px-5 md:px-8 py-16"
+            x-data="{
+              carts:[
+                {n:'01',name:'PyMonkey',stars:1,color:'var(--green)',desc:'Character-speed typing trial. Every correct keystroke scores; every miss costs a combo.'},
+                {n:'02',name:'PyVisualizer',stars:3,color:'var(--cyan)',desc:'Boss-level memory map. Watch pointers move between objects in real time, live in WASM.'},
+                {n:'03',name:'LeetWasm',stars:3,color:'var(--magenta)',desc:'Sandboxed coding dungeon. Your solution fights the test cases; only passing runs clear the room.'},
+                {n:'04',name:'Black Box',stars:2,color:'var(--yellow)',desc:'Reverse-engineer the hidden function from input/output pairs alone. Pure deduction, no hints.'},
+                {n:'05',name:'Time Bomb',stars:2,color:'var(--magenta)',desc:'Countdown debugging mode. Find and patch the fault before the clock hits zero.'},
+                {n:'06',name:'Structural Set',stars:2,color:'var(--green)',desc:'Parsons puzzles, schema matching, trace tables — a full set of tactile logic mini-games.'},
+                {n:'07',name:'PyCortex',stars:1,color:'var(--cyan)',desc:'Flashcard flip-drill for active recall. Instant swaps, no easing, no mercy.'},
+                {n:'08',name:'Marketing Shell',stars:1,color:'var(--yellow)',desc:'The cartridge slot itself — the router gluing all eight other games into one save file.'},
+                {n:'09',name:'Open Slot',stars:0,color:'#555',desc:'Unformatted cartridge. Whatever you build next boots straight into this bay.'},
+              ]
+            }">
+    <div class="flex items-end justify-between border-b-4 pb-4 mb-10 flex-wrap gap-3" style="border-color:var(--green);">
+      <h2 class="pixel text-2xl md:text-3xl" style="color:var(--green);">CARTRIDGES</h2>
+      <span class="pixel text-[9px]" style="color:var(--cyan);">9 SLOTS // 1 CONSOLE</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <template x-for="c in carts" :key="c.n">
+        <div class="p-5 relative transition-transform hover:-translate-y-1" x-data="{ loaded:false }"
+             :style="`background:var(--bg2); border:4px solid ${c.color}; box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px ${c.color};`">
+          <div class="flex justify-between items-start">
+            <span class="pixel text-[9px]" :style="`color:${c.color}`" x-text="'CART.' + c.n"></span>
+            <div class="flex gap-0.5">
+              <template x-for="s in 3" :key="s">
+                <span class="text-sm" :style="`color: ${s <= c.stars ? c.color : '#3a3a3a'}`">★</span>
+              </template>
+            </div>
+          </div>
+          <h3 class="pixel text-sm mt-4 mb-3 uppercase" style="color:#EAEAEA;" x-text="c.name"></h3>
+          <p class="text-base leading-snug" style="color:#9fb89a;" x-text="c.desc"></p>
+
+          <button @click="loaded = !loaded" class="btn-arcade pixel text-[9px] mt-5 w-full py-3"
+                  :style="`background:${loaded ? c.color : 'transparent'}; color:${loaded ? 'var(--bg)' : c.color}; border:2px solid ${c.color};`">
+            <span x-text="loaded ? 'LOADED ✓' : 'INSERT >'"></span>
+          </button>
+        </div>
+      </template>
+    </div>
+  </section>
+
+  <!-- XP / FOOTER -->
+  <footer class="border-t-4 mt-4" style="border-color:var(--green); background:var(--bg2);">
+    <div class="max-w-[1200px] mx-auto px-5 md:px-8 py-10 grid md:grid-cols-3 gap-8">
+      <div>
+        <span class="pixel text-sm" style="color:var(--yellow);">PYVERSE ARCADE</span>
+        <p class="text-base mt-3" style="color:#9fb89a;">Nine Python teaching cartridges, one console, zero microtransactions. Continue anytime.</p>
+      </div>
+      <div>
+        <div class="pixel text-[9px] mb-3" style="color:var(--cyan);">SYSTEM</div>
+        <ul class="text-base space-y-1" style="color:#9fb89a;">
+          <li>RUNTIME: PYODIDE / WASM</li>
+          <li>SAVE DATA: LOCAL ONLY</li>
+        </ul>
+      </div>
+      <div>
+        <div class="pixel text-[9px] mb-3" style="color:var(--cyan);">CONTINUE?</div>
+        <div class="pixel text-[10px] blinker" style="color:var(--magenta);">PRESS ANY KEY</div>
+      </div>
+    </div>
+    <div class="border-t-2 py-4 text-center pixel text-[8px]" style="border-color:rgba(57,255,20,0.3); color:#4f6b4a;">
+      © 199X-2026 PYVERSE SYSTEMS — NO SNAKES WERE HARMED
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

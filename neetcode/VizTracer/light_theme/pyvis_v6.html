@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PyVis v4 — Python Code Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script>
+// Kick off Pyodide load immediately before first paint
+(function(){
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+  s.onload=function(){
+    loadPyodide().then(function(py){ window._pyodide=py; });
+  };
+  document.head.appendChild(s);
+})();
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f7fa;--surface:#ffffff;--surface2:#eef1f6;--surface3:#e6eaf2;
+  --border:#d1d8e8;--border2:#bcc5d8;
+  --txt:#1a2035;--txt2:#5a6a8a;--txt3:#a0adc0;
+  --amber:#d48a00;--amber-dim:rgba(212,138,0,.10);--amber-glow:rgba(212,138,0,.22);
+  --green:#1a9e6e;--red:#d43f3f;--blue:#2b7de9;--purple:#7c5cdc;
+  --cyan:#0aabbc;--orange:#d4641a;--pink:#c94090;
+  --mono:'JetBrains Mono',monospace;--ui:'Space Grotesk',sans-serif;
+  --r:8px;--r-sm:5px;
+}
+body{background:var(--bg);color:var(--txt);font-family:var(--ui);min-height:100vh;overflow-x:hidden;}
+
+#root{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh;max-width:1600px;margin:0 auto;padding:14px;gap:10px;}
+
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.logo{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.03em;}
+.logo span{color:var(--amber);}
+.badge{font-family:var(--mono);font-size:9px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);padding:2px 8px;border-radius:99px;letter-spacing:.15em;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+
+.main{display:grid;grid-template-columns:380px 1fr;gap:10px;min-height:0;}
+@media(max-width:860px){.main{grid-template-columns:1fr;}}
+.left{display:flex;flex-direction:column;gap:9px;}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:var(--surface2);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.panel-title{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--txt2);}
+
+/* Loading strip */
+#py-strip{display:flex;align-items:center;gap:9px;padding:7px 11px;
+  background:linear-gradient(90deg,rgba(212,138,0,.07),transparent);
+  border:1px solid rgba(212,138,0,.25);border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:11px;color:var(--amber);transition:opacity .5s;}
+#py-strip.done{opacity:0;pointer-events:none;height:0;padding:0;border:none;overflow:hidden;}
+.mini-spin{width:11px;height:11px;border:1.5px solid rgba(240,165,0,.2);border-top-color:var(--amber);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Editor */
+#editor-wrap{position:relative;}
+#code-editor{width:100%;height:195px;resize:vertical;background:var(--surface2);border:none;outline:none;
+  font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--txt);
+  padding:10px 10px 10px 40px;tab-size:4;caret-color:var(--amber);}
+.line-nums{position:absolute;left:0;top:0;width:32px;height:100%;display:flex;flex-direction:column;
+  padding:10px 0;pointer-events:none;overflow:hidden;}
+.lnum{font-family:var(--mono);font-size:11px;color:var(--txt3);line-height:1.75;text-align:right;padding-right:6px;}
+
+.run-row{display:flex;gap:8px;align-items:center;}
+#btn-run{display:flex;align-items:center;gap:8px;padding:9px 18px;
+  background:var(--amber);color:#fff;border:none;border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s;letter-spacing:.04em;box-shadow:0 0 16px var(--amber-glow);}
+#btn-run:hover{filter:brightness(1.1);transform:translateY(-1px);}
+#btn-run:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none;}
+#status{font-family:var(--mono);font-size:11px;color:var(--txt2);}
+#status.ok{color:var(--green);}#status.err{color:var(--red);}
+
+/* Trace code */
+.tl{display:flex;gap:8px;padding:1px 8px;border-left:2px solid transparent;transition:background .1s,border-left-color .1s;}
+.tl.active{background:var(--amber-dim);border-left-color:var(--amber);}
+.tl.executed{background:rgba(38,196,138,.04);border-left-color:rgba(38,196,138,.28);}
+.tl-ln{color:var(--txt3);font-size:10px;min-width:18px;text-align:right;flex-shrink:0;padding-top:2px;}
+.tl.active .tl-ln{color:var(--amber);}
+.tl-src{color:var(--txt);white-space:pre;font-family:var(--mono);font-size:12px;line-height:1.75;}
+
+/* Step box */
+.step-box{font-family:var(--mono);font-size:12px;line-height:1.6;padding:9px 11px;
+  border-radius:var(--r-sm);background:var(--surface2);border:1px solid var(--border);
+  border-left:3px solid var(--amber);color:var(--txt);min-height:40px;}
+.step-box.err{border-left-color:var(--red);color:var(--red);}
+.step-box.ret{border-left-color:var(--green);}
+
+/* Controls */
+.controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.cbtn{width:31px;height:31px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);
+  color:var(--txt);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
+  transition:all .14s;flex-shrink:0;}
+.cbtn:hover{background:var(--amber);border-color:var(--amber);color:#07090c;}
+.cbtn:disabled{opacity:.28;cursor:default;}
+.cbtn:disabled:hover{background:var(--surface2);border-color:var(--border2);color:var(--txt);}
+.cbtn.play{width:36px;height:36px;background:var(--amber);border-color:var(--amber);color:#fff;font-size:13px;box-shadow:0 0 10px var(--amber-glow);}
+.step-ct{font-family:var(--mono);font-size:11px;color:var(--txt2);}
+.step-ct b{color:var(--txt);}
+.speed-wrap{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.speed-lbl{font-size:10px;color:var(--txt3);font-family:var(--mono);}
+input[type=range]{-webkit-appearance:none;width:64px;height:3px;border-radius:99px;background:var(--border2);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--amber);cursor:pointer;}
+.prog{height:2px;background:var(--border);border-radius:99px;overflow:hidden;margin:0 8px 2px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:99px;transition:width .16s;}
+
+/* Canvas */
+.right{display:flex;flex-direction:column;min-height:0;}
+#canvas-wrap{flex:1;position:relative;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;min-height:500px;cursor:grab;}
+#canvas-wrap:active{cursor:grabbing;}
+#mem-canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+.canvas-hint{position:absolute;bottom:10px;right:11px;font-family:var(--mono);font-size:10px;color:var(--txt3);pointer-events:none;}
+.zoom-btns{position:absolute;top:10px;right:11px;display:flex;flex-direction:column;gap:4px;}
+.zbtn{width:25px;height:25px;background:var(--surface2);border:1px solid var(--border2);color:var(--txt2);
+  border-radius:var(--r-sm);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .14s;}
+.zbtn:hover{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+.legend{position:absolute;bottom:10px;left:11px;display:flex;gap:10px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--txt3);}
+.leg-dot{width:7px;height:7px;border-radius:50%;}
+
+/* Changed var flash */
+#flash-label{position:absolute;top:11px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:10px;color:var(--amber);
+  background:rgba(212,138,0,.1);border:1px solid rgba(212,138,0,.3);
+  padding:2px 10px;border-radius:99px;pointer-events:none;
+  opacity:0;transition:opacity .2s;white-space:nowrap;}
+#flash-label.show{opacity:1;}
+
+footer{font-family:var(--mono);font-size:10px;color:var(--txt3);display:flex;gap:20px;}
+
+/* Toast notification */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);
+  font-family:var(--mono);font-size:11px;color:var(--txt);
+  background:var(--surface2);border:1px solid var(--border2);
+  padding:6px 16px;border-radius:99px;pointer-events:none;
+  opacity:0;transition:opacity .2s,transform .2s;z-index:10000;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Canvas info badges */
+.ci-badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:99px;
+  background:var(--surface2);border:1px solid var(--border2);color:var(--txt3);}
+.ci-badge.active{color:var(--amber);border-color:rgba(240,165,0,.3);background:rgba(240,165,0,.07);}
+
+/* Snippet picker */
+#snippet-picker option{background:var(--surface2);}
+
+/* Glow pulse on newly changed heap box */
+@keyframes heapGlow{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="root">
+  <header>
+    <div class="logo">py<span>vis</span></div>
+    <div class="badge">LIVE TRACER</div>
+    <div style="font-size:11px;color:var(--txt2);font-family:var(--mono);">Step through Python — watch every pointer live</div>
+    <div class="header-right">
+      <select id="snippet-picker" style="font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--txt2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:4px 8px;cursor:pointer;outline:none;">
+        <option value="">— load example —</option>
+        <option value="twosum">two_sum (hash map)</option>
+        <option value="fib">fibonacci (recursion)</option>
+        <option value="bubble">bubble sort</option>
+        <option value="linked">linked list</option>
+        <option value="stack">stack class</option>
+      </select>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--txt3);display:flex;gap:8px;align-items:center;">
+        <kbd style="background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:9px;">←→</kbd> step
+        <kbd style="background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:9px;">Space</kbd> play
+        <kbd style="background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:9px;">R</kbd> reset
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="left">
+      <div id="py-strip">
+        <div class="mini-spin"></div>
+        <span id="strip-text">Loading Python runtime…</span>
+      </div>
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-title">✦ Editor</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--txt3)" id="line-count"></span>
+        </div>
+        <div style="padding:0;position:relative;" id="editor-wrap">
+          <div class="line-nums" id="line-nums"></div>
+          <textarea id="code-editor" spellcheck="false">def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []
+
+result = two_sum([2, 7, 11, 15], 9)
+print(result)</textarea>
+        </div>
+      </div>
+      <div class="run-row">
+        <button id="btn-run" disabled><span>▶</span> Trace</button>
+        <span id="status">Loading Python…</span>
+      </div>
+      <div class="panel" style="flex:1;">
+        <div class="panel-hd">
+          <span class="panel-title">⟶ Execution</span>
+          <div class="controls">
+            <button class="cbtn" id="btn-first" disabled title="First">⏮</button>
+            <button class="cbtn" id="btn-back"  disabled title="Prev">◀</button>
+            <button class="cbtn play" id="btn-play" disabled>▶</button>
+            <button class="cbtn" id="btn-next"  disabled title="Next">▶</button>
+            <button class="cbtn" id="btn-last"  disabled title="Last">⏭</button>
+            <span class="step-ct"><b id="step-cur">—</b>/<b id="step-tot">—</b></span>
+            <div class="speed-wrap">
+              <span class="speed-lbl">SPD</span>
+              <input type="range" min="1" max="9" value="4" id="speed-slider" oninput="updateSpeed(this.value)"/>
+            </div>
+          </div>
+        </div>
+        <div class="prog"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div style="max-height:230px;overflow-y:auto;display:flex;flex-direction:column;padding:5px 0;" id="trace-code"></div>
+      </div>
+      <div class="step-box" id="step-box">Press <b>Trace</b> to start.</div>
+      <!-- stdout output box -->
+      <div class="panel" id="stdout-panel">
+        <div class="panel-hd" style="justify-content:space-between;">
+          <span class="panel-title">▸ Output</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--txt3)" id="stdout-hint">print() output</span>
+        </div>
+        <pre id="stdout-box" style="font-family:var(--mono);font-size:12px;color:var(--green);padding:9px 11px;background:var(--surface2);max-height:90px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin:0;min-height:32px;"><span style="color:var(--txt3);font-style:italic;">no output yet</span></pre>
+      </div>
+    </div>
+
+    <div class="right">
+      <div id="canvas-wrap">
+        <canvas id="mem-canvas"></canvas>
+        <div id="flash-label"></div>
+        <div class="zoom-btns">
+          <button class="zbtn" onclick="zoomAt(1.15)">+</button>
+          <button class="zbtn" onclick="zoomAt(0.87)">−</button>
+          <button class="zbtn" onclick="resetView()">⌂</button>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#a98cf7"></div>int/float</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#26c48a"></div>str</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#5ba3f5"></div>list/tuple</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f58c30"></div>dict</div>
+        </div>
+        <div class="canvas-hint">drag · scroll to zoom</div>
+        <div id="canvas-info" style="position:absolute;top:10px;left:11px;display:flex;gap:6px;pointer-events:none;"></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span>pyvis v3.0 — Pyodide AST tracer</span>
+    <span id="footer-info"></span>
+  </footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   PYTHON TRACER
+═══════════════════════════════════════════════ */
+const TRACER_PY = `
+import ast, json, sys, io, builtins
+
+def _ser(v, depth=0, _seen=None):
+    if _seen is None: _seen = set()
+    if isinstance(v, bool):
+        return {"kind":"bool","val":str(v),"oid":id(v)}
+    if isinstance(v, int):
+        return {"kind":"int","val":v,"oid":id(v)}
+    if isinstance(v, float):
+        return {"kind":"float","val":round(v,6),"oid":id(v)}
+    if v is None:
+        return {"kind":"none","val":"None","oid":id(v)}
+    if isinstance(v, str):
+        d = v if len(v)<=28 else v[:25]+"\\u2026"
+        return {"kind":"str","val":d,"oid":id(v)}
+    if depth > 3:
+        return {"kind":"ellipsis","val":"\\u2026","oid":id(v)}
+    oid = id(v)
+    if oid in _seen:
+        return {"kind":"circular","val":"...","oid":oid}
+    _seen2 = _seen | {oid}
+    if isinstance(v, list):
+        items = [_ser(x,depth+1,_seen2) for x in v[:30]]
+        return {"kind":"list","items":items,"oid":oid}
+    if isinstance(v, tuple):
+        items = [_ser(x,depth+1,_seen2) for x in v[:30]]
+        return {"kind":"tuple","items":items,"oid":oid}
+    if isinstance(v, dict):
+        entries=[{"k":_ser(k,depth+1,_seen2),"v":_ser(val,depth+1,_seen2)} for k,val in list(v.items())[:20]]
+        return {"kind":"dict","entries":entries,"oid":oid}
+    if isinstance(v, set):
+        items=[_ser(x,depth+1,_seen2) for x in list(v)[:20]]
+        return {"kind":"set","items":items,"oid":oid}
+    try:
+        attrs={k:_ser(vv,depth+1,_seen2) for k,vv in vars(v).items() if not k.startswith('_')}
+        return {"kind":"object","type":type(v).__name__,"attrs":attrs,"oid":oid}
+    except:
+        return {"kind":"str","val":repr(v)[:40],"oid":id(v)}
+
+def _snap(ns):
+    out = {}
+    for k,v in ns.items():
+        if k.startswith('_') or callable(v) or isinstance(v,type): continue
+        try: out[k] = _ser(v)
+        except: pass
+    return out
+
+class _Injecter(ast.NodeTransformer):
+    def __init__(self): self._fn = ["<module>"]
+    def _probe(self, node):
+        c = ast.Expr(value=ast.Call(
+            func=ast.Attribute(value=ast.Name(id='__pv__',ctx=ast.Load()),attr='rec',ctx=ast.Load()),
+            args=[ast.Constant(value=node.lineno), ast.Constant(value=self._fn[-1])],
+            keywords=[]))
+        ast.fix_missing_locations(c); return c
+    def _wrap(self, body):
+        out=[]
+        for s in body: out.append(self._probe(s)); out.append(s)
+        return out
+    def visit_FunctionDef(self, node):
+        self._fn.append(node.name); self.generic_visit(node); self._fn.pop(); return node
+    visit_AsyncFunctionDef = visit_FunctionDef
+    def visit_Module(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_If(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body)
+        if node.orelse: node.orelse=self._wrap(node.orelse)
+        return node
+    def visit_For(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_While(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_Try(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+
+def run_trace(source_code):
+    frames=[]; MAX=600
+    stdout_lines=[]
+    class _BufWriter:
+        def write(self, s):
+            stdout_lines.append(s)
+            return len(s)
+        def flush(self): pass
+    class _R:
+        def rec(self, lineno, fn):
+            if len(frames)>=MAX: return
+            import sys as _s
+            caller=_s._getframe(1); ns=dict(caller.f_locals); ns.pop('__pv__',None)
+            frames.append({
+                "line":lineno,"func":fn,"locals":_snap(ns),
+                "note":f"line {lineno} in {fn}",
+                "stdout_so_far":"".join(stdout_lines),
+                "retval":None
+            })
+        def ret(self, lineno, fn, val):
+            if len(frames)>=MAX: return
+            import sys as _s
+            caller=_s._getframe(1); ns=dict(caller.f_locals); ns.pop('__pv__',None)
+            frames.append({
+                "line":lineno,"func":fn,"locals":_snap(ns),
+                "note":f"return from {fn}()",
+                "stdout_so_far":"".join(stdout_lines),
+                "retval":_ser(val) if val is not None else None
+            })
+    rec=_R()
+    try: tree=ast.parse(source_code)
+    except SyntaxError as e:
+        return json.dumps({"frames":[],"stdout":"","error":f"SyntaxError: {e}","source":source_code})
+    _Injecter().visit(tree); ast.fix_missing_locations(tree)
+    try: code_obj=compile(tree,"<pyvis>","exec")
+    except Exception as e:
+        return json.dumps({"frames":[],"stdout":"","error":str(e),"source":source_code})
+    w=_BufWriter(); old=sys.stdout; sys.stdout=w; err=None
+    g={"__builtins__":builtins,"__name__":"__main__","__pv__":rec}
+    try: exec(code_obj,g)
+    except Exception as e: err=f"{type(e).__name__}: {e}"
+    finally: sys.stdout=old
+    stdout="".join(stdout_lines)
+    return json.dumps({"frames":frames,"stdout":stdout,"error":err,"source":source_code,"truncated":len(frames)>=MAX})
+`;
+
+/* ═══════════════════════════════════════════════
+   PYODIDE BOOT — non-blocking
+═══════════════════════════════════════════════ */
+let pyodide = null;
+
+async function initPy() {
+  const waitPy = () => new Promise(res => {
+    if (window._pyodide) { res(window._pyodide); return; }
+    const t = setInterval(() => { if (window._pyodide) { clearInterval(t); res(window._pyodide); } }, 80);
+  });
+  pyodide = await waitPy();
+  await pyodide.runPythonAsync(TRACER_PY);
+  const strip = document.getElementById('py-strip');
+  const txt = document.getElementById('strip-text');
+  const spin = strip.querySelector('.mini-spin');
+  txt.textContent = '✓ Python ready'; spin.style.display='none';
+  strip.style.borderColor='rgba(26,158,110,.3)'; strip.style.background='linear-gradient(90deg,rgba(26,158,110,.07),transparent)';
+  txt.style.color='var(--green)';
+  setTimeout(()=>strip.classList.add('done'), 1400);
+  document.getElementById('btn-run').disabled = false;
+  setStatus('', 'Ready — paste code and press Trace');
+}
+initPy().catch(e => {
+  document.getElementById('strip-text').textContent='⚠ Failed to load Python';
+  console.error(e);
+});
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let frames=[], cursor=0, prevCursor=-1, sourceLines=[], playTimer=null, playSpeed=700;
+let changedOids = new Set(); // oids that changed/appeared this step
+
+const wrap = document.getElementById('canvas-wrap');
+const cvs  = document.getElementById('mem-canvas');
+const ctx  = cvs.getContext('2d');
+let camX=40, camY=30, camZ=1;
+let drag=false, dsx=0, dsy=0, dcx=0, dcy=0;
+
+function resizeCvs(){
+  const r=wrap.getBoundingClientRect();
+  cvs.width=r.width*devicePixelRatio; cvs.height=r.height*devicePixelRatio;
+  cvs.style.width=r.width+'px'; cvs.style.height=r.height+'px';
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  redraw();
+}
+new ResizeObserver(resizeCvs).observe(wrap);
+setTimeout(resizeCvs,100);
+
+wrap.addEventListener('mousedown',e=>{drag=true;dsx=e.clientX;dsy=e.clientY;dcx=camX;dcy=camY;});
+window.addEventListener('mousemove',e=>{if(!drag)return;camX=dcx+(e.clientX-dsx);camY=dcy+(e.clientY-dsy);redraw();});
+window.addEventListener('mouseup',()=>drag=false);
+wrap.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.deltaY<0?1.1:0.91);},{passive:false});
+/* Hover tooltip */
+let hoverTooltip={show:false,txt:'',x:0,y:0};
+wrap.addEventListener('mousemove', e=>{
+  if(drag) return;
+  const rect=wrap.getBoundingClientRect();
+  const mx=(e.clientX-rect.left-camX)/camZ;
+  const my=(e.clientY-rect.top-camY)/camZ;
+  // Check if near any pointer dot
+  if(frames.length){
+    const f=frames[cursor];
+    const entries=Object.entries(f.locals||{});
+    const DOT_X2=FX+FW-12;
+    let found=null;
+    entries.forEach(([k,v],idx)=>{
+      if(!v) return;
+      const cy=28+FRAME_HDR+FRAME_PAD+idx*ROW_H+ROW_H/2;
+      const d=Math.sqrt((mx-DOT_X2)**2+(my-cy)**2);
+      if(d<10) found=`${k} : ${fmtVal(v)}`;
+    });
+    if(found){
+      wrap.title=found;
+    } else {
+      wrap.title='';
+    }
+  }
+});
+
+wrap.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;dsx=e.touches[0].clientX;dsy=e.touches[0].clientY;dcx=camX;dcy=camY;}},{passive:true});
+wrap.addEventListener('touchmove',e=>{if(drag&&e.touches.length===1){camX=dcx+(e.touches[0].clientX-dsx);camY=dcy+(e.touches[0].clientY-dsy);redraw();}},{passive:true});
+wrap.addEventListener('touchend',()=>drag=false);
+
+function zoomAt(f){const cw=wrap.clientWidth/2,ch=wrap.clientHeight/2;camX=cw+(camX-cw)*f;camY=ch+(camY-ch)*f;camZ=Math.max(0.15,Math.min(5,camZ*f));redraw();}
+function resetView(){camX=40;camY=30;camZ=1;redraw();}
+
+/* Editor line nums */
+function updateLN(){
+  const lines=document.getElementById('code-editor').value.split('\n');
+  document.getElementById('line-count').textContent=lines.length+' lines';
+  document.getElementById('line-nums').innerHTML=lines.map((_,i)=>`<div class="lnum">${i+1}</div>`).join('');
+}
+document.getElementById('code-editor').addEventListener('input',updateLN);
+document.getElementById('code-editor').addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();const ta=e.target,s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+'    '+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+4;updateLN();}
+});
+updateLN();
+
+/* ═══════════════════════════════════════════════
+   TRACE
+═══════════════════════════════════════════════ */
+document.getElementById('btn-run').addEventListener('click', async()=>{
+  if(!pyodide) return;
+  const code=document.getElementById('code-editor').value;
+  const btn=document.getElementById('btn-run');
+  btn.disabled=true; setStatus('','⏳ tracing…'); stopPlay();
+  let result;
+  try{
+    const js=await pyodide.runPythonAsync(`run_trace(${JSON.stringify(code)})`);
+    result=JSON.parse(js);
+  }catch(e){setStatus('err','⚠ '+e.message);btn.disabled=false;return;}
+  btn.disabled=false; sourceLines=(result.source||'').split('\n');
+  if(result.error&&!result.frames.length){
+    setStatus('err','⚠ '+result.error);
+    const sb=document.getElementById('step-box');sb.className='step-box err';sb.textContent=result.error;return;
+  }
+  frames=result.frames; cursor=0; prevCursor=-1; changedOids=new Set();
+  setStatus('ok',`✓ ${frames.length} steps${result.truncated?' (capped)':''}`);
+  document.getElementById('footer-info').textContent=`${frames.length} steps · Pyodide v0.25.1 · AST tracer`;
+  renderTraceCode(); enableCtrl(true); renderStep();
+  if(result.stdout){
+    document.getElementById('stdout-panel').style.display='';
+    document.getElementById('stdout-box').textContent=result.stdout;
+  }
+});
+
+function setStatus(cls,msg){const el=document.getElementById('status');el.className=cls;el.textContent=msg;}
+function renderTraceCode(){
+  document.getElementById('trace-code').innerHTML=sourceLines.map((l,i)=>
+    `<div class="tl" id="tl-${i+1}"><span class="tl-ln">${i+1}</span><span class="tl-src">${escH(l)}</span></div>`).join('');
+}
+function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtVal(v){
+  if(!v) return 'None';
+  switch(v.kind){
+    case 'int': case 'float': return String(v.val);
+    case 'bool': return v.val;
+    case 'str': return '"'+v.val+'"';
+    case 'none': return 'None';
+    case 'list': return '['+((v.items||[]).map(fmtVal).join(', '))+']';
+    case 'tuple': return '('+((v.items||[]).map(fmtVal).join(', '))+')';
+    case 'dict': return '{'+((v.entries||[]).slice(0,3).map(e=>fmtVal(e.k)+':'+fmtVal(e.v)).join(', '))+'}';
+    default: return v.val!==undefined?String(v.val):'?';
+  }
+}
+
+document.getElementById('btn-first').addEventListener('click',()=>seek(0));
+document.getElementById('btn-last').addEventListener('click',()=>seek(frames.length-1));
+document.getElementById('btn-back').addEventListener('click',()=>stepBy(-1));
+document.getElementById('btn-next').addEventListener('click',()=>stepBy(1));
+document.getElementById('btn-play').addEventListener('click',togglePlay);
+function enableCtrl(on){['btn-first','btn-back','btn-play','btn-next','btn-last'].forEach(id=>document.getElementById(id).disabled=!on);}
+function stepBy(d){seek(Math.max(0,Math.min(frames.length-1,cursor+d)));}
+function seek(n){prevCursor=cursor;cursor=n;computeChanged();renderStep();if(cursor>=frames.length-1)stopPlay();}
+function togglePlay(){if(playTimer)stopPlay();else startPlay();}
+function startPlay(){if(cursor>=frames.length-1)cursor=0;document.getElementById('btn-play').textContent='⏸';playTimer=setInterval(()=>{if(cursor>=frames.length-1){stopPlay();return;}stepBy(1);},playSpeed);}
+function stopPlay(){if(playTimer){clearInterval(playTimer);playTimer=null;}document.getElementById('btn-play').textContent='▶';}
+function updateSpeed(v){playSpeed=Math.round(1400-v*145);if(playTimer){stopPlay();startPlay();}}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();stepBy(1);}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();stepBy(-1);}
+  if(e.key===' '){e.preventDefault();togglePlay();}
+});
+
+/* Collect all oids present in a frame */
+function collectOids(locals, out=new Set()){
+  for(const v of Object.values(locals||{})){
+    if(!v) continue;
+    out.add(String(v.oid));
+    if(v.kind==='list'||v.kind==='tuple'||v.kind==='set')(v.items||[]).forEach(x=>x&&out.add(String(x.oid)));
+    else if(v.kind==='dict')(v.entries||[]).forEach(e=>{e.k&&out.add(String(e.k.oid));e.v&&out.add(String(e.v.oid));});
+  }
+  return out;
+}
+
+function computeChanged(){
+  changedOids=new Set();
+  if(prevCursor<0||!frames.length) return;
+  const prevOids=collectOids(frames[prevCursor]?.locals);
+  const curOids =collectOids(frames[cursor]?.locals);
+  // oids that are new or whose value changed
+  const prevLocs=frames[prevCursor]?.locals||{};
+  const curLocs =frames[cursor]?.locals||{};
+  for(const k of Object.keys(curLocs)){
+    if(!prevLocs[k]||prevLocs[k].oid!==curLocs[k].oid||prevLocs[k].val!==curLocs[k].val){
+      changedOids.add(String(curLocs[k].oid));
+    }
+  }
+}
+
+let flashTimer=null;
+function flashChanged(){
+  if(!changedOids.size) return;
+  const f=frames[cursor]; if(!f) return;
+  const changed=Object.entries(f.locals||{}).filter(([,v])=>v&&changedOids.has(String(v.oid))).map(([k])=>k);
+  if(!changed.length) return;
+  const label=document.getElementById('flash-label');
+  label.textContent='changed: '+changed.join(', ');
+  label.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>label.classList.remove('show'),1800);
+}
+
+function renderStep(){
+  if(!frames.length) return;
+  const f=frames[cursor];
+  const pct=frames.length>1?(cursor/(frames.length-1))*100:100;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('step-cur').textContent=cursor+1;
+  document.getElementById('step-tot').textContent=frames.length;
+  document.getElementById('btn-back').disabled=cursor<=0;
+  document.getElementById('btn-next').disabled=cursor>=frames.length-1;
+  document.getElementById('btn-first').disabled=cursor<=0;
+  document.getElementById('btn-last').disabled=cursor>=frames.length-1;
+  document.querySelectorAll('.tl').forEach(el=>el.classList.remove('active','executed'));
+  for(let ln=1;ln<f.line;ln++){const el=document.getElementById('tl-'+ln);if(el)el.classList.add('executed');}
+  const ae=document.getElementById('tl-'+f.line);
+  if(ae){ae.classList.add('active');ae.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  const sb=document.getElementById('step-box');
+  sb.className='step-box';
+  let stepNote = f.note||'';
+  let retHTML = '';
+  if(f.retval){
+    const rv=fmtVal(f.retval);
+    retHTML=`  <span style="color:var(--green);margin-left:8px;font-weight:700;">↩ returns ${rv}</span>`;
+    sb.className='step-box ret';
+    stepNote = `returning from ${f.func}()`;
+  }
+  sb.innerHTML=`<span style="color:var(--amber)">${f.func}()</span> <span style="color:var(--txt3)">line</span> <span style="color:var(--txt)">${f.line}</span> — ${escH(stepNote)}${retHTML}`;
+  // update stdout box incrementally
+  if(f.stdout_so_far!==undefined && f.stdout_so_far!==''){
+    document.getElementById('stdout-panel').style.display='';
+    const sb2=document.getElementById('stdout-box');
+    sb2.textContent=f.stdout_so_far||'';
+    if(!f.stdout_so_far) sb2.innerHTML='<span style="color:var(--txt3);font-style:italic;">no output yet</span>';
+    sb2.scrollTop=sb2.scrollHeight;
+  }
+  flashChanged();
+  updateCanvasInfo(f);
+  redraw();
+}
+
+/* ═══════════════════════════════════════════════
+   ═══════════════════════════════════════════════
+   CANVAS RENDERER — exact PythonTutor visual model
+   ═══════════════════════════════════════════════
+
+   MENTAL MODEL (from careful study of the screenshots):
+
+   LEFT COLUMN — "Frames":
+   • Frame box per call scope, amber border header with func name
+   • Each variable row: name on left, filled circle DOT on right edge
+   • The dot is the pointer — it has a colored ring
+
+   RIGHT COLUMN — "Objects":
+   • EVERY value gets a heap box — ints, strings, lists, dicts, all of them
+   • int/float box: type label top, large value centered
+   • list box: horizontal row of numbered cells side-by-side, each cell has a dot
+   • dict box: key→value rows, each value is a dot
+   • Boxes are deduplicated by oid: same int value drawn once, multiple arrows point to it
+
+   ARROWS:
+   • Cubic bezier that BOWS RIGHT — control points push out to the right
+   • Source: the pointer dot on frame row right edge
+   • Target: left side of the heap box (vertically centred)
+   • Bow amount scales with vertical distance to fan arrows elegantly
+   • ALL arrows visible at all times — changed ones are BRIGHT, rest are DIM
+   • No dashed lines — all solid
+   • Small filled arrowhead triangle at target
+
+   ═══════════════════════════════════════════════
+═══════════════════════════════════════════════ */
+
+const C={
+  bg:'#f5f7fa',surface:'#ffffff',surface2:'#eef1f6',surface3:'#e6eaf2',
+  border:'#d1d8e8',border2:'#bcc5d8',
+  txt:'#1a2035',txt2:'#5a6a8a',txt3:'#a0adc0',
+  amber:'#d48a00',green:'#1a9e6e',red:'#d43f3f',blue:'#2b7de9',purple:'#7c5cdc',
+  cyan:'#0aabbc',orange:'#d4641a',pink:'#c94090',
+};
+const MF="'JetBrains Mono',monospace";
+
+function typeColor(kind){
+  switch(kind){
+    case 'int':case 'float': return C.purple;
+    case 'str': return C.green;
+    case 'bool': return C.amber;
+    case 'none': return C.txt2;
+    case 'list': return C.blue;
+    case 'tuple': return C.cyan;
+    case 'dict': return C.orange;
+    case 'set': return C.pink;
+    default: return C.txt2;
+  }
+}
+function hexRGB(h){
+  if(!h||h.length<7)return'128,128,128';
+  return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join(',');
+}
+function cW(){return cvs.width/devicePixelRatio;}
+function cH(){return cvs.height/devicePixelRatio;}
+
+/* Grid dots */
+function drawGrid(W,H){
+  const step=28*camZ,ox=((camX%step)+step)%step,oy=((camY%step)+step)%step;
+  ctx.fillStyle='rgba(0,0,0,0.06)';
+  for(let x=ox-step;x<W+step;x+=step)
+    for(let y=oy-step;y<H+step;y+=step){ctx.beginPath();ctx.arc(x,y,.8,0,Math.PI*2);ctx.fill();}
+}
+
+/* Rounded rect */
+function rr(x,y,w,h,rad,fill,stroke,lw){
+  const r=typeof rad==='number'?[rad,rad,rad,rad]:rad;
+  ctx.beginPath();
+  ctx.moveTo(x+r[0],y);ctx.arcTo(x+w,y,x+w,y+h,r[1]);
+  ctx.arcTo(x+w,y+h,x,y+h,r[2]);ctx.arcTo(x,y+h,x,y,r[3]);
+  ctx.arcTo(x,y,x+w,y,r[0]);ctx.closePath();
+  if(fill&&fill!=='none'){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke&&stroke!=='none'){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}
+}
+
+/* ──────────────────────────────────────
+   LAYOUT CONSTANTS
+────────────────────────────────────── */
+const FX=18;          // frame box left x
+const FW=185;         // frame box width
+const ROW_H=26;       // height per variable row
+const FRAME_HDR=28;   // frame header height
+const FRAME_PAD=8;    // padding inside frame above/below rows
+
+// Two heap columns:
+//   COL_A = where list/dict/compound objects live (pointed to by frame vars)
+//   COL_B = where primitive children live (pointed to by list cells / dict values)
+const HX_A=310;       // first heap column left x  (compound objects)
+const HX_B=560;       // second heap column left x (primitive children)
+const HW=200;         // default heap box width
+const HW_PRIM=72;     // primitive box width
+
+// int/primitive box dimensions
+const INT_W=72;       // width of int/primitive box
+const INT_H=46;       // height of int/primitive box
+
+// list cell dimensions
+const CELL_W=36;      // width per list cell
+const CELL_H=40;      // height of list box content area
+const LIST_HDR=18;    // list box header height
+const LIST_H=LIST_HDR+CELL_H;  // total list box height
+
+// dict row height
+const DICT_ROW=22;
+const DICT_HDR=18;
+
+// vertical gap between heap objects
+const HEAP_GAP=18;
+
+// Arrow lane constants — frame arrows travel through dedicated horizontal lanes
+// between the frame right edge and HX_A, so they never overlap each other
+const LANE_START_X = FX+FW+4;   // just right of frame
+const LANE_END_X   = HX_A-4;    // just left of heap col A
+
+/* ──────────────────────────────────────
+   HEAP LAYOUT ENGINE
+   Assigns _x, _y, _w, _h to every heapMap entry
+────────────────────────────────────── */
+function measureHeapBox(obj){
+  if(!obj) return {w:INT_W,h:INT_H};
+  switch(obj.kind){
+    case 'list':case 'tuple':case 'set':{
+      const n=Math.max(1,(obj.items||[]).length);
+      return {w:Math.max(HW, n*CELL_W+4), h:LIST_H};
+    }
+    case 'dict':{
+      const n=Math.max(1,(obj.entries||[]).length);
+      return {w:HW, h:DICT_HDR+n*DICT_ROW+8};
+    }
+    case 'object':{
+      const n=Math.max(1,Object.keys(obj.attrs||{}).length);
+      return {w:HW, h:DICT_HDR+n*DICT_ROW+8};
+    }
+    default: return {w:INT_W, h:INT_H}; // primitives — sized for COL_B
+  }
+}
+
+/* ──────────────────────────────────────
+   MAIN PAINT
+────────────────────────────────────── */
+function redraw(){
+  const W=cW(),H=cH();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  drawGrid(W,H);
+  if(!frames.length){
+    ctx.fillStyle=C.txt3;ctx.font=`12px ${MF}`;ctx.textAlign='center';
+    ctx.fillText('Trace your code to see the memory diagram',W/2,H/2);
+    return;
+  }
+  ctx.save();
+  ctx.translate(camX,camY); ctx.scale(camZ,camZ);
+  paintDiagram(frames[cursor]);
+  ctx.restore();
+}
+
+function paintDiagram(f){
+  if(!f) return;
+  const locs=f.locals||{};
+  const entries=Object.entries(locs);
+
+  /* ── 1. Build heap map ── */
+  const heapMap={};
+  function registerObj(obj, varKey, isChild){
+    if(!obj) return;
+    const oid=String(obj.oid);
+    if(!heapMap[oid]) heapMap[oid]={obj, pointedBy:[], isChild:!!isChild, _x:0,_y:0,_w:0,_h:0,_leftSlots:[],_topSlots:[]};
+    if(varKey) heapMap[oid].pointedBy.push(varKey);
+  }
+  // Top-level frame vars → col A
+  entries.forEach(([k,v])=>{ if(v) registerObj(v,k,false); });
+  // Children (list items, dict values) → col B
+  entries.forEach(([,v])=>{
+    if(!v) return;
+    if(v.kind==='list'||v.kind==='tuple'||v.kind==='set')
+      (v.items||[]).forEach(item=>{ if(item) registerObj(item,null,true); });
+    else if(v.kind==='dict')
+      (v.entries||[]).forEach(e=>{
+        if(e.k) registerObj(e.k,null,true);
+        if(e.v) registerObj(e.v,null,true);
+      });
+    else if(v.kind==='object')
+      Object.values(v.attrs||{}).forEach(av=>{ if(av) registerObj(av,null,true); });
+  });
+
+  /* ── 2. Layout: COL A = compound/frame-pointed, COL B = primitives that are children ──
+     A primitive pointed to directly by a frame var (not a child) stays in col A.
+     A primitive that is only a child lives in col B.
+  */
+  const topOids = entries.map(([,v])=>v?String(v.oid):null).filter(Boolean);
+  const allOids  = [...new Set([...topOids,...Object.keys(heapMap)])];
+
+  // Decide column for each oid
+  allOids.forEach(oid=>{
+    const item=heapMap[oid]; if(!item) return;
+    const isCompound=['list','tuple','set','dict','object'].includes(item.obj.kind);
+    const isTopLevel = topOids.includes(oid);
+    // Goes to col B if: it's a child AND NOT directly pointed to by a frame var
+    item._col = (item.isChild && !isTopLevel) ? 'B' : 'A';
+  });
+
+  // Sort: col A gets compound objects first (so list appears before its integer children),
+  // then primitives that are directly pointed. Col B gets primitives.
+  const colA = allOids.filter(oid=>heapMap[oid]&&heapMap[oid]._col==='A');
+  const colB = allOids.filter(oid=>heapMap[oid]&&heapMap[oid]._col==='B');
+
+  /* ── 3. Assign Y positions — col A left-stacked, col B right-stacked ── */
+  let hyA=38, hyB=38;
+  colA.forEach(oid=>{
+    const item=heapMap[oid]; if(!item) return;
+    const {w,h}=measureHeapBox(item.obj);
+    item._x=HX_A; item._y=hyA; item._w=w; item._h=h;
+    hyA+=h+HEAP_GAP;
+  });
+  colB.forEach(oid=>{
+    const item=heapMap[oid]; if(!item) return;
+    const {w,h}=measureHeapBox(item.obj);
+    item._x=HX_B; item._y=hyB; item._w=w; item._h=h;
+    hyB+=h+HEAP_GAP;
+  });
+
+  /* ── 4. Section labels ── */
+  ctx.save();
+  ctx.fillStyle=C.txt3; ctx.font=`600 9px ${MF}`; ctx.textAlign='left';
+  ctx.fillText('FRAMES', FX, 20);
+  ctx.fillStyle=C.border2; ctx.fillRect(FX,23,70,1);
+  ctx.fillText('OBJECTS', HX_A, 20);
+  ctx.fillStyle=C.border2; ctx.fillRect(HX_A,23,70,1);
+  ctx.restore();
+
+  /* ── 5. Draw frame box ── */
+  const hasRetval = !!f.retval;
+  const extraRows = hasRetval ? 1 : 0;
+  const frameH=FRAME_HDR+FRAME_PAD+Math.max(1,entries.length+extraRows)*ROW_H+FRAME_PAD;
+  ctx.save();
+  ctx.shadowColor='rgba(212,138,0,0.12)'; ctx.shadowBlur=18;
+  rr(FX,28,FW,frameH,6,C.surface,'rgba(212,138,0,0.45)',1.2);
+  ctx.restore();
+  rr(FX,28,FW,FRAME_HDR,[6,6,0,0],'rgba(212,138,0,0.12)','none');
+  ctx.fillStyle=C.amber; ctx.font=`700 11px ${MF}`; ctx.textAlign='left';
+  ctx.fillText((f.func||'<module>')+'()', FX+10, 28+19);
+
+  const hasChanged=changedOids.size>0;
+  const DOT_X=FX+FW-12;
+  const arrows=[];
+
+  /* ── 6. Draw frame variable rows and collect frame→heap arrows ── */
+  // Pre-count how many frame arrows hit each heap box (for left-edge lane assignment)
+  const frameLandCount={};
+  entries.forEach(([,v])=>{
+    if(!v) return;
+    const oid=String(v.oid);
+    const target=heapMap[oid]; if(!target||target._x===0) return;
+    frameLandCount[oid]=(frameLandCount[oid]||0)+1;
+  });
+  const frameLandUsed={};
+
+  entries.forEach(([k,v],idx)=>{
+    const ry=28+FRAME_HDR+FRAME_PAD+idx*ROW_H;
+    const cy=ry+ROW_H/2;
+
+    if(idx>0){
+      ctx.strokeStyle=C.border; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(FX+1,ry); ctx.lineTo(FX+FW-1,ry); ctx.stroke();
+    }
+
+    const oid=v?String(v.oid):null;
+    const isActive=!hasChanged||(oid&&changedOids.has(oid));
+    const nameAlpha=isActive?1:0.5;
+
+    ctx.save(); ctx.globalAlpha=nameAlpha;
+    ctx.fillStyle=isActive?C.txt:C.txt2; ctx.font=`500 11px ${MF}`; ctx.textAlign='left';
+    ctx.fillText(k, FX+10, cy+4);
+    ctx.restore();
+
+    if(!v) return;
+    const color=typeColor(v.kind);
+    const target=heapMap[oid];
+    const dotAlpha=isActive?1:0.35;
+
+    ctx.save(); ctx.globalAlpha=dotAlpha;
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.arc(DOT_X,cy,4.5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=color; ctx.lineWidth=1; ctx.globalAlpha=dotAlpha*0.3;
+    ctx.beginPath(); ctx.arc(DOT_X,cy,7.5,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+
+    if(target && target._x>0){
+      // Assign a unique left-edge landing slot on the target box
+      // so multiple frame arrows never land at the same y
+      const total=frameLandCount[oid]||1;
+      const used=frameLandUsed[oid]||0;
+      frameLandUsed[oid]=used+1;
+      const padFrac=0.15;
+      const usableH=target._h*(1-padFrac*2);
+      const startY=target._y+target._h*padFrac;
+      const landY= total<=1 ? target._y+target._h/2
+                            : startY+(used/(total-1))*usableH;
+      // Arrow: source = right edge of frame dot, target = left edge of heap box
+      arrows.push({
+        x1:DOT_X, y1:cy,
+        x2:target._x, y2:landY,
+        color, isActive,
+        kind:'frame'  // frame→heap goes right
+      });
+    }
+  });
+
+  /* ── 7. Draw return value row ── */
+  if(hasRetval && f.retval){
+    const idx=entries.length;
+    const ry=28+FRAME_HDR+FRAME_PAD+idx*ROW_H;
+    const cy=ry+ROW_H/2;
+    rr(FX+1,ry,FW-2,ROW_H,0,'rgba(26,158,110,0.10)','none');
+    ctx.strokeStyle='rgba(26,158,110,0.35)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(FX+1,ry); ctx.lineTo(FX+FW-1,ry); ctx.stroke();
+    ctx.fillStyle=C.green; ctx.font=`700 10px ${MF}`; ctx.textAlign='left';
+    ctx.fillText('↩ return', FX+10, cy+4);
+    const rv=fmtVal(f.retval);
+    ctx.fillStyle=C.green; ctx.font=`700 12px ${MF}`; ctx.textAlign='right';
+    ctx.fillText(rv, FX+FW-10, cy+4);
+    // "RETURNED" badge in frame header
+    const badgeTxt='RETURNED';
+    ctx.font=`700 8px ${MF}`; ctx.textAlign='right';
+    const bw=ctx.measureText(badgeTxt).width+10;
+    const badgeX=FX+FW-6, badgeY=28+8;
+    rr(badgeX-bw,badgeY-8,bw,13,3,'rgba(26,158,110,0.15)',`rgba(26,158,110,0.4)`,1);
+    ctx.fillStyle=C.green; ctx.fillText(badgeTxt,badgeX-5,badgeY+2);
+  }
+
+  /* ── 8. Draw heap boxes (col A then col B), collecting child→B arrows ── */
+  // Draw dim inactive first, then active on top
+  // IMPORTANT: last frame (retval) = never fully dim — min alpha 0.55
+  const isLastFrame = hasRetval;
+  function heapAlpha(oid){
+    if(isLastFrame) return 1; // last frame: everything full opacity
+    if(!hasChanged) return 1;
+    const item=heapMap[oid];
+    const active=changedOids.has(oid)||
+      (item&&item.pointedBy.some(k=>{ const v=locs[k]; return v&&changedOids.has(String(v.oid)); }));
+    return active?1:0.22;
+  }
+
+  [...colA,...colB].forEach(oid=>{
+    const item=heapMap[oid]; if(!item||item._x===0) return;
+    const alpha=heapAlpha(oid);
+    ctx.save(); ctx.globalAlpha=alpha;
+    drawHeapBox(item.obj,item._x,item._y,item._w,item._h,heapMap,arrows,hasChanged);
+    ctx.restore();
+  });
+
+  /* ── 9. Draw all arrows — dim first, active on top ── */
+  arrows.sort((a,b)=>( (a.isActive?1:0)-(b.isActive?1:0) ));
+  arrows.forEach(a=>drawBowArrow(a.x1,a.y1,a.x2,a.y2,a.color,a.isActive,a.kind||'frame'));
+}
+
+/* ──────────────────────────────────────
+   HEAP BOX DRAWING
+   Each box type has its own renderer
+────────────────────────────────────── */
+function drawHeapBox(obj, x, y, w, h, heapMap, arrows, hasChanged){
+  if(!obj) return;
+  const color=typeColor(obj.kind);
+
+  switch(obj.kind){
+    case 'int': case 'float': case 'bool': case 'none': case 'str':
+    case 'ellipsis': case 'circular':
+      drawPrimBox(obj, x, y, w, h, color);
+      break;
+    case 'list': case 'tuple': case 'set':
+      drawListBox(obj, x, y, w, h, color, heapMap, arrows, hasChanged);
+      break;
+    case 'dict':
+      drawDictBox(obj, x, y, w, h, color, heapMap, arrows, hasChanged);
+      break;
+    case 'object':
+      drawObjectBox(obj, x, y, w, h, color, heapMap, arrows, hasChanged);
+      break;
+  }
+}
+
+/* Primitive box: type label top, large value centred */
+function drawPrimBox(obj, x, y, w, h, color){
+  // Box
+  ctx.save();
+  ctx.shadowColor=`rgba(${hexRGB(color)},0.18)`; ctx.shadowBlur=8;
+  rr(x,y,w,h,4,C.surface3,`rgba(${hexRGB(color)},0.55)`,1);
+  ctx.restore();
+  // Type label — small, top
+  ctx.fillStyle=color; ctx.font=`600 8px ${MF}`; ctx.textAlign='left';
+  ctx.fillText(obj.kind, x+5, y+10);
+  // Value — large, centred
+  let disp=obj.kind==='str'?`"${obj.val}"`:String(obj.val??'None');
+  ctx.font=`700 15px ${MF}`; ctx.textAlign='center'; ctx.fillStyle=color;
+  ctx.fillText(disp, x+w/2, y+h/2+6);
+}
+
+/* List/tuple/set box: horizontal cells with index labels */
+function drawListBox(obj, x, y, w, h, color, heapMap, arrows, hasChanged){
+  const items=obj.items||[];
+  const n=Math.max(1,items.length);
+  const cellW=(w-4)/n;
+
+  // Outer box
+  ctx.save();
+  ctx.shadowColor=`rgba(${hexRGB(color)},0.15)`; ctx.shadowBlur=8;
+  rr(x,y,w,h,4,C.surface3,`rgba(${hexRGB(color)},0.55)`,1);
+  ctx.restore();
+  // Type label
+  ctx.fillStyle=color; ctx.font=`600 8px ${MF}`; ctx.textAlign='left';
+  ctx.fillText(obj.kind.toUpperCase(), x+5, y+12);
+
+  // Cell dividers
+  for(let i=1;i<n;i++){
+    const cx=x+2+i*cellW;
+    ctx.strokeStyle=`rgba(${hexRGB(color)},0.3)`; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(cx,y+LIST_HDR); ctx.lineTo(cx,y+h); ctx.stroke();
+  }
+
+  items.forEach((item,i)=>{
+    if(!item) return;
+    const cx=x+2+i*cellW;
+    const cy=y+LIST_HDR;
+    const cellCx=cx+cellW/2;
+    const cellCy=cy+CELL_H/2;
+
+    // Index label
+    ctx.fillStyle=C.txt3; ctx.font=`8px ${MF}`; ctx.textAlign='center';
+    if(obj.kind!=='set') ctx.fillText(String(i), cellCx, y+LIST_HDR-3);
+
+    // Pointer dot inside cell
+    const itemColor=typeColor(item.kind);
+    ctx.fillStyle=itemColor;
+    ctx.beginPath(); ctx.arc(cellCx,cellCy,4,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=itemColor; ctx.lineWidth=0.8; ctx.globalAlpha=0.3;
+    ctx.beginPath(); ctx.arc(cellCx,cellCy,6.5,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // Arrow from cell dot → child heap box (col B)
+    const targetOid=String(item.oid);
+    const target=heapMap[targetOid];
+    if(target && target._x>0){
+      const isActive=!hasChanged||changedOids.has(targetOid);
+      // Land on left edge of target, centred vertically
+      arrows.push({
+        x1:cellCx, y1:cellCy,
+        x2:target._x, y2:target._y+target._h/2,
+        color:itemColor, isActive,
+        kind:'child'  // child arrows bow downward/right into col B
+      });
+    }
+  });
+}
+
+/* Dict box: key → value rows */
+function drawDictBox(obj, x, y, w, h, color, heapMap, arrows, hasChanged){
+  const entries=obj.entries||[];
+  ctx.save();
+  ctx.shadowColor=`rgba(${hexRGB(color)},0.15)`; ctx.shadowBlur=8;
+  rr(x,y,w,h,4,C.surface3,`rgba(${hexRGB(color)},0.55)`,1);
+  ctx.restore();
+  ctx.fillStyle=color; ctx.font=`600 8px ${MF}`; ctx.textAlign='left';
+  ctx.fillText('DICT', x+5, y+12);
+
+  entries.forEach(({k,v},i)=>{
+    const ry=y+DICT_HDR+i*DICT_ROW;
+    if(i>0){
+      ctx.strokeStyle=C.border; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(x+4,ry); ctx.lineTo(x+w-4,ry); ctx.stroke();
+    }
+    const cy=ry+DICT_ROW/2;
+    if(k){
+      const kc=typeColor(k.kind);
+      ctx.fillStyle=kc; ctx.font=`500 10px ${MF}`; ctx.textAlign='left';
+      const ktxt=k.kind==='str'?`"${k.val}"`:String(k.val??'');
+      ctx.fillText(ktxt, x+8, cy+4);
+    }
+    ctx.fillStyle=C.txt3; ctx.font=`10px ${MF}`; ctx.textAlign='left';
+    ctx.fillText(':', x+w/2-10, cy+4);
+
+    if(v){
+      const vc=typeColor(v.kind);
+      const dotX=x+w-14; const dotY=cy;
+      ctx.fillStyle=vc;
+      ctx.beginPath(); ctx.arc(dotX,dotY,4,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=vc; ctx.lineWidth=0.8; ctx.globalAlpha=0.28;
+      ctx.beginPath(); ctx.arc(dotX,dotY,6.5,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
+      const targetOid=String(v.oid);
+      const target=heapMap[targetOid];
+      if(target && target._x>0){
+        const isActive=!hasChanged||changedOids.has(targetOid);
+        arrows.push({x1:dotX,y1:dotY,x2:target._x,y2:target._y+target._h/2,
+          color:vc,isActive,kind:'child'});
+      }
+    }
+  });
+}
+
+/* Object/class instance box */
+function drawObjectBox(obj, x, y, w, h, color, heapMap, arrows, hasChanged){
+  const attrs=obj.attrs||{};
+  ctx.save();
+  ctx.shadowColor=`rgba(${hexRGB(color)},0.15)`; ctx.shadowBlur=8;
+  rr(x,y,w,h,4,C.surface3,`rgba(${hexRGB(color)},0.55)`,1);
+  ctx.restore();
+  ctx.fillStyle=color; ctx.font=`600 8px ${MF}`; ctx.textAlign='left';
+  ctx.fillText((obj.type||'object').toUpperCase(), x+5, y+12);
+  Object.entries(attrs).forEach(([k,v],i)=>{
+    const ry=y+DICT_HDR+i*DICT_ROW;
+    if(i>0){ctx.strokeStyle=C.border;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(x+4,ry);ctx.lineTo(x+w-4,ry);ctx.stroke();}
+    const cy=ry+DICT_ROW/2;
+    ctx.fillStyle=C.purple; ctx.font=`500 10px ${MF}`; ctx.textAlign='left';
+    ctx.fillText(k, x+8, cy+4);
+    if(v){
+      const vc=typeColor(v.kind);
+      const dotX=x+w-14;
+      ctx.fillStyle=vc; ctx.beginPath(); ctx.arc(dotX,cy,4,0,Math.PI*2); ctx.fill();
+      const targetOid=String(v.oid);
+      const target=heapMap[targetOid];
+      if(target && target._x>0){
+        const isActive=!hasChanged||changedOids.has(targetOid);
+        arrows.push({x1:dotX,y1:cy,x2:target._x,y2:target._y+target._h/2,color:vc,isActive,kind:'child'});
+      }
+    }
+  });
+}
+
+/* ──────────────────────────────────────
+   ARROW DRAWING — proper lane routing
+
+   kind='frame':  frame var → col A heap box
+     • Source is right edge of frame dot (x1 = DOT_X ≈ FX+FW-12)
+     • Target is left edge of col A box
+     • Both are roughly at same horizontal band → straightish rightward curve
+     • Bow UP or DOWN based on dy, keeping bow amount moderate
+
+   kind='child':  list/dict cell → col B heap box
+     • Source is inside col A box (cell dot)
+     • Target is left edge of col B box (further right)
+     • Always bows DOWNWARD-RIGHT (fan out from list cells)
+     • Each cell has a different source x (spread across the list), so
+       we get naturally separated curves by construction
+────────────────────────────────────── */
+function drawBowArrow(x1,y1,x2,y2,color,isActive,kind){
+  const alpha = isActive ? 1 : 0.12;
+  const lw    = isActive ? 1.8 : 0.8;
+  const dx = x2-x1, dy = y2-y1;
+
+  let cp1x,cp1y,cp2x,cp2y;
+
+  if(kind==='child'){
+    // Cell dot → col B box
+    // Source x varies per cell (naturally spread), target x is fixed col B left
+    // Bow: pull control point 1 DOWN-right of source, control point 2 UP-left of target
+    // This fans the curves elegantly without overlap
+    const bowX = Math.max(30, Math.abs(dx)*0.4);
+    const bowY = Math.max(20, Math.abs(dy)*0.5);
+    if(dy >= 0){
+      // Target is below or same row → sweep down-right
+      cp1x = x1+bowX;   cp1y = y1+bowY;
+      cp2x = x2-16;     cp2y = y2;
+    } else {
+      // Target is above → sweep up-right
+      cp1x = x1+bowX;   cp1y = y1-bowY;
+      cp2x = x2-16;     cp2y = y2;
+    }
+  } else {
+    // Frame dot → col A box (kind='frame')
+    // Source is just right of frame, target is left edge of col A
+    // Route: go right, then curve to target y
+    // Use vertical bow proportional to distance
+    const absDy = Math.abs(dy);
+    const bow = Math.max(18, absDy*0.45);
+    if(dy >= 0){
+      // Target is below source → sweep gently down-right
+      cp1x = x1+bow;    cp1y = y1;
+      cp2x = x2-12;     cp2y = y2;
+    } else {
+      // Target is above source → sweep gently up-right
+      cp1x = x1+bow;    cp1y = y1;
+      cp2x = x2-12;     cp2y = y2;
+    }
+  }
+
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.globalAlpha=alpha;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.bezierCurveTo(cp1x,cp1y, cp2x,cp2y, x2,y2);
+  ctx.stroke();
+
+  // Arrowhead — always pointing into target (left-ward for right-going arrows)
+  const angle = Math.atan2(y2-cp2y, x2-cp2x);
+  const aLen=7, aWid=0.40;
+  ctx.fillStyle=color; ctx.globalAlpha=alpha;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-aLen*Math.cos(angle-aWid), y2-aLen*Math.sin(angle-aWid));
+  ctx.lineTo(x2-aLen*Math.cos(angle+aWid), y2-aLen*Math.sin(angle+aWid));
+  ctx.closePath(); ctx.fill();
+
+  if(isActive){
+    ctx.fillStyle=`rgba(${hexRGB(color)},0.15)`;
+    ctx.beginPath(); ctx.arc(x2,y2,5,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+redraw();
+
+/* ═══════════════════════════════════════════════
+   TOAST NOTIFICATION
+═══════════════════════════════════════════════ */
+let toastTimer=null;
+function toast(msg, dur=1600){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+/* ═══════════════════════════════════════════════
+   CANVAS INFO BADGES  (call depth · vars · oids)
+═══════════════════════════════════════════════ */
+function updateCanvasInfo(f){
+  if(!f){ document.getElementById('canvas-info').innerHTML=''; return; }
+  const varCount=Object.keys(f.locals||{}).length;
+  const depth=(f.func&&f.func!=='<module>')?1:0;
+  const ci=document.getElementById('canvas-info');
+  ci.innerHTML=`
+    <span class="ci-badge ${depth?'active':''}">${depth?'fn: '+f.func:'module'}</span>
+    <span class="ci-badge">${varCount} var${varCount!==1?'s':''}</span>
+    <span class="ci-badge">line ${f.line}</span>
+  `;
+}
+
+/* ═══════════════════════════════════════════════
+   SAMPLE SNIPPETS
+═══════════════════════════════════════════════ */
+const SNIPPETS={
+  twosum:`def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []
+
+result = two_sum([2, 7, 11, 15], 9)
+print(result)`,
+
+  fib:`def fib(n):
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(n - 1):
+        a, b = b, a + b
+    return b
+
+print(fib(7))`,
+
+  bubble:`def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n):
+        for j in range(n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+    return arr
+
+nums = [64, 34, 25, 12, 22]
+result = bubble_sort(nums)
+print(result)`,
+
+  linked:`class Node:
+    def __init__(self, val):
+        self.val = val
+        self.next = None
+
+head = Node(1)
+head.next = Node(2)
+head.next.next = Node(3)
+
+cur = head
+vals = []
+while cur:
+    vals.append(cur.val)
+    cur = cur.next
+print(vals)`,
+
+  stack:`class Stack:
+    def __init__(self):
+        self.items = []
+    def push(self, x):
+        self.items.append(x)
+    def pop(self):
+        return self.items.pop()
+    def peek(self):
+        return self.items[-1]
+
+s = Stack()
+s.push(10)
+s.push(20)
+s.push(30)
+top = s.peek()
+val = s.pop()
+print(top, val)`
+};
+
+document.getElementById('snippet-picker').addEventListener('change', function(){
+  const key=this.value; if(!key) return;
+  const code=SNIPPETS[key];
+  if(code){
+    document.getElementById('code-editor').value=code;
+    updateLN();
+    toast('Loaded: '+key);
+  }
+  this.value='';
+});
+
+/* ═══════════════════════════════════════════════
+   EXTRA KEYBOARD SHORTCUTS
+═══════════════════════════════════════════════ */
+// R = reset view on canvas
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='TEXTAREA') return;
+  if(e.key==='r'||e.key==='R'){ resetView(); toast('view reset'); }
+  if(e.key==='t'||e.key==='T'){ document.getElementById('btn-run').click(); }
+});
+
+/* ═══════════════════════════════════════════════
+   PATCH renderStep to also call updateCanvasInfo
+═══════════════════════════════════════════════ */
+const _origRenderStep = renderStep;
+// Already calls redraw() + flashChanged() — we just wrap the canvas badge update
+const _origSeek = seek;
+</script>
+</body>
+</html>

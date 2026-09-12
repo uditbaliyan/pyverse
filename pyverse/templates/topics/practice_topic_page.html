@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+<div class="pe-root">
+  <div class="pe-shell">
+
+    {# ── Breadcrumb as file path ──────────────────────────────────── #}
+    <div class="pe-path">
+      <a href="/">practice</a>
+      {% for crumb in practice_breadcrumb %}
+        <span class="pe-sep">/</span>
+        <a href="{{ crumb.url }}">{{ crumb.slug }}</a>
+      {% endfor %}
+      <span class="pe-sep">/</span>
+      <span>{{ page.slug }}</span>
+    </div>
+
+    <h1 class="pe-title">{{ page.title }}</h1>
+
+    {# ── Theory (optional) ────────────────────────────────────────── #}
+    {% if page.theory_content %}
+      <div class="pe-theory">{{ page.theory_content|richtext }}</div>
+    {% endif %}
+
+    {# ── Subtopic grid ────────────────────────────────────────────── #}
+    {% with subtopics=page.get_children.live %}
+      {% if subtopics %}
+        <div class="pe-topic-grid">
+          {% for subtopic in subtopics %}
+            <a class="pe-topic-tile" href="{% pageurl subtopic %}">
+              <span class="pe-topic-name">{{ subtopic.title }}</span>
+              <span class="pe-topic-hint">{{ page.slug }}/{{ subtopic.slug }}/</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {# ── Tab bar ──────────────────────────────────────────────────── #}
+    <div class="pe-tabbar">
+      <a
+        class="pe-tab pe-tab--coding{% if active_type == 'coding' %} pe-tab--active{% endif %}"
+        href="?type=coding"
+      >
+        <span class="pe-dot"></span>
+        problems.py
+        <span class="pe-count">{{ coding_problems_page.paginator.count }}</span>
+      </a>
+      <a
+        class="pe-tab pe-tab--quiz{% if active_type == 'quiz' %} pe-tab--active{% endif %}"
+        href="?type=quiz"
+      >
+        <span class="pe-dot"></span>
+        quizzes.json
+        <span class="pe-count">{{ quizzes_page.paginator.count }}</span>
+      </a>
+    </div>
+
+    {# ── Content panel ────────────────────────────────────────────── #}
+    <div class="pe-panel">
+
+      {% if active_type == 'quiz' %}
+        {% include "topics/includes/quiz_panel.html" %}
+      {% else %}
+        {% include "topics/includes/coding_panel.html" %}
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+{% include "topics/includes/practice_styles.html" %}
+{% endblock %}

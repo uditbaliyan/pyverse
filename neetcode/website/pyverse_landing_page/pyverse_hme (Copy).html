@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PyVerse — Interactive Python Learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ─────────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────────── */
+:root {
+  --bg:        #0C0C0E;
+  --bg2:       #111113;
+  --bg3:       #18181B;
+  --rule:      #242428;
+  --rule2:     #2E2E34;
+  --text:      #F0EDE8;
+  --muted:     #7A7A85;
+  --dim:       #3A3A42;
+  --amber:     #F0B429;
+  --amber-dim: #7A5A10;
+  --blue:      #1C8EF9;
+  --blue-dim:  #0F3D72;
+  --red:       #FF4D4D;
+  --green:     #3DD68C;
+  --font-d:    'Syne', sans-serif;
+  --font-b:    'DM Sans', sans-serif;
+  --font-m:    'JetBrains Mono', monospace;
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out:  cubic-bezier(.25,.46,.45,.94);
+  --ease-in-out: cubic-bezier(.4,0,.2,1);
+}
+
+/* ─────────────────────────────────────────────────
+   RESET & BASE
+───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  font-family: var(--font-b);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+}
+
+/* subtle scanline texture */
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,.025) 2px, rgba(0,0,0,.025) 4px
+  );
+}
+
+/* mouse follow light */
+#cursor-light {
+  position: fixed;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240,180,41,.04) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity .6s;
+  will-change: left, top;
+}
+
+/* scroll progress bar */
+#scroll-progress {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px; z-index: 200;
+  background: linear-gradient(90deg, var(--amber), var(--green));
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform .05s linear;
+}
+
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+
+/* ─────────────────────────────────────────────────
+   TYPOGRAPHY SCALE — refined
+───────────────────────────────────────────────── */
+.t-eyebrow {
+  font-family: var(--font-m);
+  font-size: .7rem; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted);
+}
+.t-hero {
+  font-family: var(--font-d);
+  font-size: clamp(3.2rem, 7.5vw, 5.8rem);
+  font-weight: 800; line-height: .93;
+  letter-spacing: -.035em;
+}
+.t-h2 {
+  font-family: var(--font-d);
+  font-size: clamp(2.1rem, 4.2vw, 3.4rem);
+  font-weight: 700; line-height: .97;
+  letter-spacing: -.028em;
+}
+.t-h3 {
+  font-family: var(--font-d);
+  font-size: 1.2rem; font-weight: 600;
+  line-height: 1.2; letter-spacing: -.015em;
+}
+.t-body { font-size: 1rem; line-height: 1.7; color: var(--muted); }
+.t-sm   { font-size: .875rem; line-height: 1.6; color: var(--muted); }
+.t-mono { font-family: var(--font-m); }
+
+/* ─────────────────────────────────────────────────
+   LAYOUT UTILS
+───────────────────────────────────────────────── */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+@media (max-width: 768px) { .wrap { padding: 0 20px; } }
+
+.rule-h { height: 1px; background: var(--rule); }
+
+/* ─────────────────────────────────────────────────
+   NAVBAR — elevated
+───────────────────────────────────────────────── */
+#nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 56px;
+  border-bottom: 1px solid transparent;
+  transition: border-color .3s var(--ease-out),
+              background .3s var(--ease-out),
+              backdrop-filter .3s,
+              height .3s var(--ease-out);
+}
+#nav.stuck {
+  border-color: var(--rule);
+  background: rgba(12,12,14,.92);
+  backdrop-filter: blur(24px) saturate(1.5);
+  height: 52px;
+}
+
+.nav-inner {
+  height: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px;
+}
+
+/* Logo */
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-d); font-weight: 800; font-size: 1.05rem;
+  letter-spacing: -.02em; flex-shrink: 0;
+  transition: opacity .15s;
+}
+.nav-logo:hover { opacity: .8; }
+.logo-mark {
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  transition: transform .4s var(--ease-spring), box-shadow .3s;
+}
+.nav-logo:hover .logo-mark {
+  transform: rotate(8deg);
+  box-shadow: 0 0 12px rgba(240,180,41,.2);
+}
+.logo-mark span {
+  font-family: var(--font-m); font-size: .75rem; font-weight: 600;
+  color: var(--amber);
+}
+.logo-mark::before {
+  content: '';
+  position: absolute; inset: 3px;
+  background: var(--amber); opacity: .08;
+}
+
+/* Nav links */
+.nav-links {
+  display: flex; align-items: center; gap: 2px;
+  list-style: none;
+}
+.nav-links a {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  font-size: .85rem; font-weight: 400; color: var(--muted);
+  border-radius: 6px;
+  transition: color .15s, background .15s;
+  white-space: nowrap; position: relative;
+}
+.nav-links a::after {
+  content: ''; position: absolute;
+  bottom: 3px; left: 14px; right: 14px; height: 1px;
+  background: var(--amber); border-radius: 1px;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .2s var(--ease-out);
+}
+.nav-links a:hover { color: var(--text); background: var(--bg3); }
+.nav-links a:hover::after { transform: scaleX(1); }
+
+.nav-links a .nav-badge {
+  font-family: var(--font-m); font-size: .6rem; font-weight: 600;
+  background: var(--amber); color: var(--bg);
+  padding: 1px 5px; border-radius: 3px;
+  letter-spacing: .05em;
+}
+
+/* Research dropdown */
+.nav-research { position: relative; }
+.nav-research-panel {
+  position: absolute; top: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--bg2); border: 1px solid var(--rule2);
+  border-radius: 12px; padding: 8px;
+  min-width: 290px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s var(--ease-out), transform .25s var(--ease-spring);
+  box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.04) inset;
+}
+.nav-research:hover .nav-research-panel,
+.nav-research:focus-within .nav-research-panel {
+  opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0);
+}
+.research-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border-radius: 8px;
+  transition: background .15s; cursor: pointer;
+}
+.research-item:hover { background: var(--bg3); }
+.research-icon {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border: 1px solid var(--rule2); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem;
+  transition: border-color .15s, transform .2s var(--ease-spring);
+}
+.research-item:hover .research-icon { border-color: var(--rule2); transform: scale(1.08); }
+.research-item p { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+.research-item strong { font-size: .88rem; color: var(--text); display: block; }
+
+/* Nav actions */
+.nav-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ─────────────────────────────────────────────────
+   BUTTONS — premium
+───────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-d); font-weight: 600; font-size: .85rem;
+  padding: 8px 18px; border-radius: 7px;
+  transition: all .18s var(--ease-out);
+  white-space: nowrap; position: relative; overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+/* ripple */
+.btn::before {
+  content: '';
+  position: absolute;
+  width: 0; height: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  transform: translate(-50%, -50%);
+  transition: width .4s ease, height .4s ease, opacity .4s ease;
+  opacity: 0;
+  left: var(--rx, 50%); top: var(--ry, 50%);
+}
+.btn.rippling::before {
+  width: 300px; height: 300px; opacity: 1;
+}
+
+.btn-outline {
+  border: 1px solid var(--rule2); color: var(--muted);
+}
+.btn-outline:hover {
+  border-color: var(--rule2); color: var(--text);
+  background: var(--bg3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+.btn-outline:active { transform: translateY(0); box-shadow: none; }
+
+.btn-amber {
+  background: var(--amber); color: var(--bg);
+  box-shadow: 0 0 0 0 rgba(240,180,41,0);
+}
+.btn-amber:hover {
+  background: #f5c040;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(240,180,41,.3);
+}
+.btn-amber:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(240,180,41,.2); }
+
+/* arrow slide */
+.btn .arrow {
+  display: inline-block;
+  transition: transform .2s var(--ease-spring);
+}
+.btn:hover .arrow { transform: translateX(3px); }
+
+/* Hamburger */
+.nav-ham {
+  display: none; flex-direction: column; gap: 5px;
+  padding: 8px; border: 1px solid var(--rule); border-radius: 6px;
+  transition: border-color .15s;
+}
+.nav-ham:hover { border-color: var(--rule2); }
+.nav-ham span {
+  display: block; width: 18px; height: 1.5px;
+  background: var(--muted); border-radius: 2px;
+  transition: transform .28s var(--ease-spring), opacity .2s;
+}
+.nav-ham.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav-ham.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-ham.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* Mobile nav */
+#mobile-nav {
+  display: none;
+  position: fixed; top: 56px; left: 0; right: 0;
+  background: rgba(12,12,14,.97);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--rule);
+  padding: 16px 20px 24px;
+  z-index: 99;
+  flex-direction: column; gap: 4px;
+  transform: translateY(-8px);
+  transition: opacity .2s, transform .25s var(--ease-spring);
+}
+#mobile-nav.open { display: flex; opacity: 1; transform: translateY(0); }
+#mobile-nav a {
+  padding: 10px 12px; border-radius: 6px;
+  font-size: .95rem; color: var(--muted);
+  transition: background .15s, color .15s;
+}
+#mobile-nav a:hover { background: var(--bg3); color: var(--text); }
+#mobile-nav .mob-divider { height: 1px; background: var(--rule); margin: 8px 0; }
+
+@media (max-width: 900px) {
+  .nav-links, .nav-actions .btn-outline { display: none; }
+  .nav-ham { display: flex; }
+}
+
+/* ─────────────────────────────────────────────────
+   HERO — premium
+───────────────────────────────────────────────── */
+.hero {
+  padding: 148px 0 88px;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Parallax glow layer */
+.hero-glow {
+  position: absolute;
+  top: -10%; left: 50%; transform: translateX(-50%);
+  width: 1000px; height: 560px;
+  background: radial-gradient(ellipse at center,
+    rgba(240,180,41,.055) 0%,
+    rgba(28,142,249,.035) 45%,
+    transparent 70%);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+  position: relative; z-index: 1;
+}
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+}
+
+.hero-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 32px;
+}
+.hero-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(61,214,140,.4);
+  animation: dot-pulse 2.8s ease infinite;
+}
+@keyframes dot-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(61,214,140,.4); }
+  50%      { box-shadow: 0 0 0 9px rgba(61,214,140,0); }
+}
+
+.hero-title { margin-bottom: 20px; }
+.hero-title em { font-style: normal; color: var(--amber); }
+
+.hero-sub {
+  font-size: 1.08rem; line-height: 1.72;
+  color: var(--muted); max-width: 450px;
+  margin-bottom: 40px;
+}
+
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 56px; }
+
+/* Stats with hover interaction */
+.hero-stats {
+  display: flex; gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.hero-stat {
+  flex: 1; padding: 18px 22px;
+  border-right: 1px solid var(--rule);
+  cursor: default;
+  transition: background .2s;
+  position: relative;
+}
+.hero-stat::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(240,180,41,.06), transparent 70%);
+  opacity: 0; transition: opacity .3s;
+}
+.hero-stat:hover::before { opacity: 1; }
+.hero-stat:hover .hero-stat-n { color: var(--amber); }
+.hero-stat:last-child { border-right: none; }
+.hero-stat-n {
+  font-family: var(--font-d); font-weight: 800; font-size: 1.65rem;
+  color: var(--text); line-height: 1;
+  transition: color .2s;
+}
+.hero-stat-n span { color: var(--amber); }
+.hero-stat-l {
+  font-size: .72rem; color: var(--muted); margin-top: 5px;
+  font-family: var(--font-m); letter-spacing: .04em;
+}
+
+/* ─────────────────────────────────────────────────
+   CODE WINDOW — alive
+───────────────────────────────────────────────── */
+.code-window {
+  border: 1px solid var(--rule2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg2);
+  position: relative;
+  transition: box-shadow .3s var(--ease-out), transform .3s var(--ease-out), border-color .3s;
+}
+.code-window:hover {
+  box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(240,180,41,.08);
+  border-color: rgba(240,180,41,.12);
+}
+
+.cw-chrome {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg3);
+}
+.cw-dots { display: flex; gap: 6px; }
+.cw-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  transition: opacity .2s;
+}
+.code-window:not(:hover) .cw-dot { opacity: .5; }
+
+.cw-tabs {
+  display: flex; gap: 2px; margin-left: 4px;
+  overflow: hidden;
+}
+.cw-tab {
+  font-family: var(--font-m); font-size: .72rem;
+  padding: 4px 12px; border-radius: 5px;
+  color: var(--muted); cursor: pointer;
+  transition: background .15s, color .15s, transform .1s;
+}
+.cw-tab:hover { transform: translateY(-1px); }
+.cw-tab.active { background: var(--bg2); color: var(--text); }
+.cw-badge {
+  margin-left: auto; flex-shrink: 0;
+  font-family: var(--font-m); font-size: .65rem; font-weight: 600;
+  padding: 3px 8px; border-radius: 4px; letter-spacing: .06em;
+}
+
+/* Code body */
+.cw-body { padding: 20px; font-family: var(--font-m); font-size: .8rem; line-height: 1.85; }
+.ln { color: var(--dim); user-select: none; display: inline-block; width: 1.8em; margin-right: 8px; }
+.kw  { color: #C792EA; }
+.fn  { color: #82AAFF; }
+.str { color: #C3E88D; }
+.cm  { color: #546E7A; font-style: italic; }
+.nm  { color: #F78C6C; }
+.op  { color: #89DDFF; }
+.hl-err { background: rgba(255,77,77,.07); border-left: 2px solid var(--red); margin: 0 -20px; padding: 0 20px 0 18px; display: block; }
+.hl-ok  { background: rgba(61,214,140,.05); border-left: 2px solid var(--green); margin: 0 -20px; padding: 0 20px 0 18px; display: block; }
+
+/* Animated caret */
+.caret {
+  display: inline-block;
+  width: 2px; height: 1em;
+  background: var(--amber);
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  animation: blink .9s step-end infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Feedback bar */
+.cw-feedback {
+  border-top: 1px solid var(--rule);
+  padding: 12px 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--bg3);
+}
+.cw-feedback-icon {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* XP bar */
+.cw-xp {
+  border-top: 1px solid var(--rule);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg3);
+}
+.xp-track {
+  flex: 1; height: 3px; background: var(--rule2); border-radius: 2px; overflow: hidden;
+}
+.xp-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--amber), var(--green));
+  transition: width 1.4s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+.xp-fill::after {
+  content: '';
+  position: absolute; right: 0; top: -2px;
+  width: 6px; height: 7px; border-radius: 3px;
+  background: white;
+  opacity: .6;
+  box-shadow: 0 0 6px var(--amber);
+}
+
+/* XP gained toast */
+.xp-toast {
+  position: fixed; bottom: 32px; right: 32px;
+  background: var(--bg2); border: 1px solid rgba(240,180,41,.3);
+  border-radius: 10px; padding: 14px 20px;
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--font-m); font-size: .82rem;
+  box-shadow: 0 16px 48px rgba(0,0,0,.5);
+  transform: translateY(16px) scale(.96); opacity: 0;
+  transition: transform .4s var(--ease-spring), opacity .3s;
+  z-index: 500; pointer-events: none;
+}
+.xp-toast.show { transform: translateY(0) scale(1); opacity: 1; }
+.xp-toast-icon { font-size: 1.2rem; }
+.xp-toast-text { color: var(--amber); }
+.xp-toast-sub  { color: var(--muted); font-size: .72rem; }
+
+/* Floating lab chips */
+.hero-lab-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 12px;
+}
+.lab-chip {
+  font-family: var(--font-m); font-size: .7rem; font-weight: 500;
+  padding: 5px 12px; border-radius: 5px;
+  border: 1px solid var(--rule2); color: var(--muted);
+  cursor: pointer;
+  transition: border-color .18s, color .18s, background .18s, transform .18s var(--ease-spring);
+}
+.lab-chip:hover { transform: translateY(-1px); }
+.lab-chip.active {
+  border-color: var(--amber-dim); color: var(--amber);
+  background: rgba(240,180,41,.06);
+  transform: translateY(-1px);
+}
+
+/* ─────────────────────────────────────────────────
+   REVEAL ANIMATION — staggered
+───────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .6s var(--ease-out), transform .6s var(--ease-out);
+}
+.reveal.vis { opacity: 1; transform: none; }
+
+/* ─────────────────────────────────────────────────
+   SECTION LAYOUT — breathing room
+───────────────────────────────────────────────── */
+.section { padding: 104px 0; border-bottom: 1px solid var(--rule); position: relative; }
+.section-head { margin-bottom: 72px; }
+.section-head .t-eyebrow { margin-bottom: 16px; }
+
+/* ─────────────────────────────────────────────────
+   WHY — editorial
+───────────────────────────────────────────────── */
+.why-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+}
+@media (max-width: 900px) { .why-grid { grid-template-columns: 1fr; gap: 48px; } }
+
+.why-items { display: flex; flex-direction: column; }
+.why-item {
+  display: grid; grid-template-columns: 48px 1fr; gap: 20px;
+  padding: 24px 0; border-bottom: 1px solid var(--rule);
+  transition: transform .2s var(--ease-out);
+  cursor: default;
+}
+.why-item:first-child { border-top: 1px solid var(--rule); }
+.why-item:hover { transform: translateX(4px); }
+.why-item:hover .why-num { color: var(--amber); }
+.why-num {
+  font-family: var(--font-m); font-size: .72rem; font-weight: 600;
+  color: var(--dim); transition: color .2s; flex-shrink: 0;
+  margin-top: 3px;
+}
+.why-title {
+  font-family: var(--font-d); font-weight: 600; font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+.why-body { font-size: .9rem; line-height: 1.68; color: var(--muted); }
+
+/* Stats strip */
+.stats-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--rule); border-radius: 10px; overflow: hidden;
+  margin-top: 48px;
+}
+@media (max-width: 600px) { .stats-strip { grid-template-columns: 1fr 1fr; } }
+.stat-cell {
+  padding: 28px 24px;
+  border-right: 1px solid var(--rule);
+  position: relative; overflow: hidden;
+  transition: background .2s;
+  cursor: default;
+}
+.stat-cell:hover { background: var(--bg2); }
+.stat-cell:last-child { border-right: none; }
+.stat-n {
+  font-family: var(--font-d); font-weight: 800; font-size: 2.4rem;
+  color: var(--text); line-height: 1;
+  transition: transform .2s var(--ease-spring);
+}
+.stat-cell:hover .stat-n { transform: scale(1.05); }
+.stat-n span { color: var(--amber); }
+.stat-l { font-size: .78rem; color: var(--muted); margin-top: 6px; }
+
+/* ─────────────────────────────────────────────────
+   LABS — tabbed showcase
+───────────────────────────────────────────────── */
+.labs-tabs {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 56px;
+  position: relative;
+}
+.labs-tab {
+  font-family: var(--font-m); font-size: .78rem; font-weight: 500;
+  padding: 10px 18px; color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .2s;
+  cursor: pointer; white-space: nowrap;
+  position: relative; bottom: -1px;
+}
+.labs-tab.active { color: var(--text); border-color: var(--amber); }
+.labs-tab:hover:not(.active) { color: var(--text); }
+
+.lab-panel { display: none; }
+.lab-panel.active {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start;
+  animation: panel-in .3s var(--ease-out);
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (max-width: 768px) { .lab-panel.active { grid-template-columns: 1fr; } }
+
+.lab-desc { padding-top: 8px; }
+.lab-desc .t-eyebrow { margin-bottom: 12px; }
+.lab-desc .t-h3 { margin-bottom: 14px; }
+.lab-desc p { font-size: .92rem; line-height: 1.68; color: var(--muted); margin-bottom: 24px; }
+.lab-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.lab-features li {
+  display: flex; align-items: center; gap: 12px;
+  font-size: .87rem; color: var(--muted);
+}
+.lab-features li::before {
+  content: ''; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--amber); flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────
+   INTERACTIVE LAB DEMOS
+───────────────────────────────────────────────── */
+/* Drag & Drop */
+.drag-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.dchip {
+  font-family: var(--font-m); font-size: .8rem; font-weight: 500;
+  padding: 7px 14px; border-radius: 6px;
+  border: 1px solid var(--rule2); color: #F78C6C;
+  cursor: grab; user-select: none;
+  transition: border-color .15s, transform .15s var(--ease-spring), box-shadow .15s, background .15s;
+}
+.dchip:hover {
+  border-color: var(--amber-dim);
+  background: rgba(240,180,41,.05);
+  transform: scale(1.06) translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+.dchip.dragging { opacity: .35; cursor: grabbing; transform: scale(.97); }
+.dslot {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 80px; padding: 2px 12px; border-radius: 5px;
+  border: 1.5px dashed var(--dim); color: var(--dim);
+  font-family: var(--font-m); font-size: .78rem;
+  transition: border-color .15s, background .15s, color .15s, transform .15s;
+  cursor: default; vertical-align: middle;
+}
+.dslot.over {
+  border-color: var(--amber); background: rgba(240,180,41,.08);
+  color: var(--amber); transform: scale(1.04);
+}
+.dslot.filled { border-style: solid; border-color: var(--rule2); color: #F78C6C; }
+
+/* Bug lines */
+.bugline {
+  display: block; cursor: pointer; border-radius: 4px;
+  margin: 0 -20px; padding: 1px 20px;
+  transition: background .12s, transform .1s;
+}
+.bugline:hover { background: rgba(255,255,255,.04); transform: translateX(2px); }
+.bugline.wrong { background: rgba(255,77,77,.08) !important; animation: shake .4s ease; }
+.bugline.right { background: rgba(61,214,140,.08) !important; border-left: 2px solid var(--green); }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* Quiz options */
+.qopt {
+  display: block; width: 100%; text-align: left;
+  font-family: var(--font-m); font-size: .8rem;
+  padding: 10px 14px; border-radius: 7px;
+  border: 1px solid var(--rule2); color: var(--muted);
+  transition: border-color .15s, color .15s, background .15s, transform .15s var(--ease-spring);
+  margin-bottom: 6px;
+}
+.qopt:hover:not(:disabled) {
+  border-color: var(--blue-dim); color: var(--text);
+  background: rgba(28,142,249,.05);
+  transform: translateX(3px);
+}
+.qopt.correct { border-color: var(--green); color: var(--green); background: rgba(61,214,140,.06); }
+.qopt.wrong   { border-color: var(--red);   color: var(--red);   background: rgba(255,77,77,.06); animation: shake .4s ease; }
+
+/* Predict buttons */
+.popt {
+  font-family: var(--font-m); font-size: .8rem;
+  padding: 8px 16px; border-radius: 7px;
+  border: 1px solid var(--rule2); color: var(--muted);
+  transition: all .15s var(--ease-spring);
+}
+.popt:hover:not(:disabled) {
+  border-color: var(--blue-dim); color: var(--blue);
+  background: rgba(28,142,249,.06);
+  transform: translateY(-2px);
+}
+.popt.correct { border-color: var(--green); color: var(--green); background: rgba(61,214,140,.06); }
+.popt.wrong   { border-color: var(--red); color: var(--red); background: rgba(255,77,77,.06); }
+
+/* Syntax input */
+.syn-inp {
+  width: 100%; background: var(--bg); border: 1px solid var(--rule2);
+  border-radius: 7px; padding: 10px 14px;
+  font-family: var(--font-m); font-size: .82rem; color: var(--text);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.syn-inp:focus {
+  border-color: var(--amber-dim);
+  box-shadow: 0 0 0 3px rgba(240,180,41,.08);
+}
+
+.feedback-line {
+  font-family: var(--font-m); font-size: .78rem;
+  margin-top: 10px; padding: 8px 12px; border-radius: 6px;
+  display: none;
+}
+.feedback-line.ok  { color: var(--green); background: rgba(61,214,140,.07); }
+.feedback-line.err { color: var(--red);   background: rgba(255,77,77,.07); }
+.feedback-line.show { display: block; animation: fade-up .25s var(--ease-out); }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ─────────────────────────────────────────────────
+   VISUALIZER
+───────────────────────────────────────────────── */
+.vis-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center;
+}
+@media (max-width: 900px) { .vis-grid { grid-template-columns: 1fr; } }
+
+.vis-features { list-style: none; display: flex; flex-direction: column; gap: 0; margin-top: 36px; }
+.vis-feature {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 22px 0; border-bottom: 1px solid var(--rule);
+  transition: transform .2s var(--ease-out);
+}
+.vis-feature:first-child { border-top: 1px solid var(--rule); }
+.vis-feature:hover { transform: translateX(4px); }
+.vis-feature-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1px solid var(--rule2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 1rem;
+  transition: border-color .2s, transform .2s var(--ease-spring);
+}
+.vis-feature:hover .vis-feature-icon {
+  border-color: rgba(240,180,41,.3);
+  transform: scale(1.1) rotate(4deg);
+}
+.vis-feature strong { display: block; font-family: var(--font-d); font-weight: 600; font-size: .92rem; margin-bottom: 4px; }
+.vis-feature span { font-size: .83rem; color: var(--muted); }
+
+/* Memory diagram */
+.mem-diagram {
+  background: var(--bg2); border: 1px solid var(--rule2);
+  border-radius: 12px; overflow: hidden;
+  transition: box-shadow .3s, border-color .3s;
+}
+.mem-diagram:hover {
+  box-shadow: 0 16px 48px rgba(0,0,0,.4);
+  border-color: rgba(61,214,140,.15);
+}
+.mem-chrome {
+  padding: 10px 16px; border-bottom: 1px solid var(--rule);
+  background: var(--bg3);
+  display: flex; align-items: center; gap: 8px;
+}
+.mem-body { padding: 24px; }
+.mem-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.mem-section-label {
+  font-family: var(--font-m); font-size: .67rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 12px;
+}
+.mem-frame { border: 1px solid var(--rule2); border-radius: 8px; overflow: hidden; }
+.mem-frame-head {
+  padding: 6px 12px; background: var(--bg3);
+  font-family: var(--font-m); font-size: .72rem; color: var(--blue);
+  border-bottom: 1px solid var(--rule);
+}
+.mem-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 12px; border-bottom: 1px solid var(--rule);
+  font-family: var(--font-m); font-size: .75rem;
+}
+.mem-row:last-child { border-bottom: none; }
+.mem-var { color: var(--muted); }
+.mem-val { color: #F78C6C; }
+.mem-ref { color: var(--amber); }
+
+.heap-obj {
+  border: 1px solid rgba(61,214,140,.3); border-radius: 8px;
+  background: rgba(61,214,140,.04); padding: 12px;
+  transition: box-shadow .3s;
+}
+.heap-obj:hover { box-shadow: 0 0 16px rgba(61,214,140,.1); }
+.heap-label { font-family: var(--font-m); font-size: .72rem; color: var(--green); margin-bottom: 8px; }
+.heap-cells { display: flex; gap: 4px; flex-wrap: wrap; }
+.heap-cell {
+  padding: 5px 10px; border-radius: 5px;
+  font-family: var(--font-m); font-size: .75rem;
+  background: var(--bg3); border: 1px solid var(--rule2);
+  color: #F78C6C;
+}
+.heap-cell.new {
+  border-color: rgba(61,214,140,.4); color: var(--green);
+  background: rgba(61,214,140,.08);
+  animation: cell-pop .4s var(--ease-spring);
+}
+@keyframes cell-pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.mem-controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-top: 1px solid var(--rule);
+  background: var(--bg3);
+}
+.mem-btn {
+  font-family: var(--font-m); font-size: .75rem; font-weight: 500;
+  padding: 6px 14px; border-radius: 6px; border: 1px solid var(--rule2);
+  color: var(--muted);
+  transition: all .15s var(--ease-spring);
+}
+.mem-btn:hover {
+  border-color: var(--amber-dim); color: var(--amber);
+  background: rgba(240,180,41,.06);
+  transform: scale(1.03);
+}
+.mem-step-info { font-family: var(--font-m); font-size: .75rem; color: var(--dim); }
+.arrow-viz { padding: 0 24px 4px; }
+
+/* ─────────────────────────────────────────────────
+   COURSES
+───────────────────────────────────────────────── */
+.courses-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 12px; overflow: hidden;
+}
+@media (max-width: 900px) { .courses-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px)  { .courses-grid { grid-template-columns: 1fr; } }
+
+.course-card {
+  background: var(--bg); padding: 30px;
+  position: relative; overflow: hidden;
+  transition: background .25s;
+}
+.course-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .4s var(--ease-out);
+}
+.course-card:hover { background: var(--bg2); }
+.course-card:hover::before { transform: scaleX(1); }
+
+.course-card.locked { cursor: default; }
+.course-card.locked .course-body { opacity: .35; pointer-events: none; }
+
+.course-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.course-tag {
+  font-family: var(--font-m); font-size: .65rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px;
+}
+.tag-free  { color: var(--green); background: rgba(61,214,140,.1); border: 1px solid rgba(61,214,140,.2); }
+.tag-pro   { color: var(--amber); background: rgba(240,180,41,.08); border: 1px solid rgba(240,180,41,.2); }
+.course-count { font-family: var(--font-m); font-size: .72rem; color: var(--dim); }
+.course-title { font-family: var(--font-d); font-weight: 700; font-size: 1.05rem; margin-bottom: 10px; }
+.course-desc  { font-size: .85rem; color: var(--muted); line-height: 1.62; margin-bottom: 20px; }
+.course-xp { height: 2px; background: var(--rule2); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+.course-xp-fill { height: 100%; background: var(--amber); border-radius: 2px; transition: width 1s ease; }
+.course-progress { font-family: var(--font-m); font-size: .7rem; color: var(--dim); }
+.course-cta {
+  margin-top: 16px; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-d); font-weight: 600; font-size: .82rem;
+  color: var(--amber);
+  transition: gap .2s var(--ease-spring);
+}
+.course-cta:hover { gap: 12px; }
+
+.lock-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px;
+  background: rgba(12,12,14,.6); backdrop-filter: blur(3px);
+}
+.lock-badge {
+  font-family: var(--font-m); font-size: .72rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dim); margin-top: 4px;
+}
+
+/* ─────────────────────────────────────────────────
+   HOW IT WORKS
+───────────────────────────────────────────────── */
+.how-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 12px; overflow: hidden;
+}
+@media (max-width: 768px) { .how-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px)  { .how-grid { grid-template-columns: 1fr; } }
+
+.how-step {
+  background: var(--bg); padding: 36px 28px;
+  position: relative;
+  transition: background .2s;
+}
+.how-step:hover { background: var(--bg2); }
+.how-step:hover .how-n { color: var(--amber); }
+.how-n {
+  font-family: var(--font-m); font-size: .72rem; font-weight: 600;
+  color: var(--dim); margin-bottom: 20px;
+  transition: color .2s;
+}
+.how-icon {
+  font-size: 1.6rem; margin-bottom: 16px; display: block;
+  transition: transform .3s var(--ease-spring);
+}
+.how-step:hover .how-icon { transform: scale(1.15) translateY(-2px); }
+.how-title { font-family: var(--font-d); font-weight: 700; font-size: .95rem; margin-bottom: 10px; }
+.how-body  { font-size: .85rem; color: var(--muted); line-height: 1.62; }
+
+/* ─────────────────────────────────────────────────
+   RESEARCH
+───────────────────────────────────────────────── */
+.research-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start;
+}
+@media (max-width: 768px) { .research-grid { grid-template-columns: 1fr; } }
+
+.research-cards { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.rcard {
+  background: var(--bg); padding: 24px;
+  display: flex; gap: 20px; align-items: flex-start;
+  transition: background .15s, transform .2s var(--ease-out);
+  position: relative;
+}
+.rcard::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--amber);
+  transform: scaleY(0); transform-origin: bottom;
+  transition: transform .25s var(--ease-out);
+}
+.rcard:hover { background: var(--bg2); transform: translateX(4px); }
+.rcard:hover::before { transform: scaleY(1); }
+
+.rcard-icon {
+  width: 40px; height: 40px; border-radius: 8px;
+  border: 1px solid var(--rule2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+  transition: border-color .2s, transform .2s var(--ease-spring);
+}
+.rcard:hover .rcard-icon { border-color: rgba(240,180,41,.3); transform: rotate(5deg) scale(1.05); }
+.rcard-label { font-family: var(--font-m); font-size: .68rem; color: var(--amber); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.rcard-title { font-family: var(--font-d); font-weight: 600; font-size: .95rem; margin-bottom: 6px; }
+.rcard-desc  { font-size: .82rem; color: var(--muted); line-height: 1.62; }
+
+.research-pullquote {
+  padding: 36px; border: 1px solid var(--rule2); border-radius: 10px;
+  background: var(--bg2); position: sticky; top: 80px;
+  transition: border-color .3s;
+}
+.research-pullquote:hover { border-color: rgba(240,180,41,.2); }
+.rpq-text {
+  font-family: var(--font-d); font-size: 1.28rem; font-weight: 600;
+  line-height: 1.52; color: var(--text); margin-bottom: 20px;
+}
+.rpq-text em { color: var(--amber); font-style: normal; }
+.rpq-source { font-size: .8rem; color: var(--muted); }
+
+/* ─────────────────────────────────────────────────
+   PRICING
+───────────────────────────────────────────────── */
+.pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 800px; }
+@media (max-width: 640px) { .pricing-grid { grid-template-columns: 1fr; } }
+
+.pricing-card {
+  border: 1px solid var(--rule2); border-radius: 12px;
+  padding: 40px; background: var(--bg2); position: relative; overflow: hidden;
+  transition: border-color .3s, box-shadow .3s, transform .2s var(--ease-out);
+}
+.pricing-card:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(0,0,0,.4); }
+.pricing-card.featured { border-color: rgba(240,180,41,.3); }
+.pricing-card.featured::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+}
+.pricing-card.featured:hover { border-color: rgba(240,180,41,.5); }
+
+.pricing-tier { font-family: var(--font-m); font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.pricing-price {
+  font-family: var(--font-d); font-weight: 800;
+  font-size: 3.2rem; color: var(--text); line-height: 1;
+  margin-bottom: 8px;
+}
+.pricing-price sup { font-size: 1.2rem; vertical-align: super; margin-right: 2px; }
+.pricing-price sub { font-size: 1rem; color: var(--muted); font-weight: 400; }
+.pricing-sub { font-size: .87rem; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+.pricing-divider { height: 1px; background: var(--rule); margin-bottom: 24px; }
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
+.pricing-features li { display: flex; align-items: center; gap: 10px; font-size: .87rem; color: var(--muted); }
+.pricing-features li.off { opacity: .4; }
+.feat-check { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ─────────────────────────────────────────────────
+   CTA BANNER
+───────────────────────────────────────────────── */
+.cta-banner {
+  padding: 108px 0;
+  border-bottom: 1px solid var(--rule);
+  position: relative; overflow: hidden;
+  text-align: center;
+}
+.cta-banner::before {
+  content: '';
+  position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+  width: 640px; height: 420px;
+  background: radial-gradient(ellipse, rgba(240,180,41,.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-banner .t-h2 { margin-bottom: 16px; }
+.cta-banner .t-h2 em { font-style: normal; color: var(--amber); }
+.cta-banner p { color: var(--muted); margin-bottom: 44px; font-size: .98rem; }
+.cta-banner .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ─────────────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────────────── */
+footer { padding: 72px 0 40px; }
+.footer-grid {
+  display: grid; grid-template-columns: 280px 1fr 1fr 1fr;
+  gap: 48px; margin-bottom: 48px;
+}
+@media (max-width: 900px)  { .footer-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px)  { .footer-grid { grid-template-columns: 1fr; } }
+
+.footer-brand p { font-size: .87rem; color: var(--muted); line-height: 1.68; margin-top: 16px; margin-bottom: 20px; }
+.footer-link-group strong {
+  font-family: var(--font-m); font-size: .7rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--dim);
+  display: block; margin-bottom: 16px;
+}
+.footer-link-group ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-link-group a {
+  font-size: .875rem; color: var(--muted);
+  transition: color .15s, transform .15s;
+  display: inline-block;
+}
+.footer-link-group a:hover { color: var(--text); transform: translateX(2px); }
+
+.footer-bottom {
+  padding-top: 24px; border-top: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-bottom p { font-family: var(--font-m); font-size: .75rem; color: var(--dim); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-family: var(--font-m); font-size: .75rem; color: var(--dim); transition: color .15s; }
+.footer-links a:hover { color: var(--muted); }
+
+/* ─────────────────────────────────────────────────
+   SHIMMER
+───────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--dim) 25%, var(--muted) 50%, var(--dim) 75%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* ─────────────────────────────────────────────────
+   SCROLL INDICATOR
+───────────────────────────────────────────────── */
+.scroll-ind {
+  position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.scroll-ind span { font-family: var(--font-m); font-size: .65rem; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; }
+.scroll-ind-line {
+  width: 1px; height: 40px;
+  background: linear-gradient(to bottom, var(--rule2), transparent);
+  animation: scroll-drop 2s ease infinite;
+}
+@keyframes scroll-drop {
+  0% { transform: scaleY(0); transform-origin: top; opacity: 0; }
+  40% { transform: scaleY(1); opacity: 1; }
+  80% { transform: scaleY(1); transform-origin: bottom; opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────────
+   CARDS — 3D tilt
+───────────────────────────────────────────────── */
+.tilt-card { transform-style: preserve-3d; }
+
+/* ─────────────────────────────────────────────────
+   ACHIEVEMENT BADGE
+───────────────────────────────────────────────── */
+.achievement {
+  position: fixed; top: 80px; right: 32px;
+  background: var(--bg2); border: 1px solid rgba(240,180,41,.35);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-m); font-size: .78rem;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  transform: translateX(120%) translateY(0);
+  transition: transform .5s var(--ease-spring);
+  z-index: 400;
+}
+.achievement.show { transform: translateX(0); }
+.achievement-icon { font-size: 1.1rem; }
+
+/* ─────────────────────────────────────────────────
+   REDUCED MOTION
+───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+  #cursor-light { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Scroll progress -->
+<div id="scroll-progress"></div>
+
+<!-- Cursor light -->
+<div id="cursor-light"></div>
+
+<!-- XP Toast -->
+<div class="xp-toast" id="xp-toast">
+  <div class="xp-toast-icon">⚡</div>
+  <div>
+    <div class="xp-toast-text">+100 XP earned!</div>
+    <div class="xp-toast-sub">Bug found · Level up soon</div>
+  </div>
+</div>
+
+<!-- Achievement -->
+<div class="achievement" id="achievement">
+  <div class="achievement-icon">🏆</div>
+  <div>
+    <div style="color:var(--amber);font-size:.75rem;font-weight:600">First Solve</div>
+    <div style="color:var(--muted);font-size:.7rem;margin-top:1px">Badge unlocked</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     NAVBAR
+══════════════════════════════ -->
+<nav id="nav">
+  <div class="wrap nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="logo-mark"><span>Py</span></div>
+      PyVerse
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#why">Why PyVerse</a></li>
+      <li><a href="#labs">Labs</a></li>
+      <li><a href="#visualizer">Visualizer</a></li>
+      <li><a href="#courses">Courses</a></li>
+      <li class="nav-research">
+        <a href="#research" style="display:flex;align-items:center;gap:5px;">
+          Research
+          <span class="nav-badge">NEW</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px;color:var(--dim);transition:transform .2s" class="dd-caret"><path d="M6 9l6 6 6-6"/></svg>
+        </a>
+        <div class="nav-research-panel">
+          <a href="#research" class="research-item">
+            <div class="research-icon">🧠</div>
+            <div>
+              <strong>Learning Science</strong>
+              <p>How active recall and spaced repetition power PyVerse labs.</p>
+            </div>
+          </a>
+          <a href="#research" class="research-item">
+            <div class="research-icon">📊</div>
+            <div>
+              <strong>Effectiveness Data</strong>
+              <p>Internal benchmarks comparing passive vs interactive learning.</p>
+            </div>
+          </a>
+          <a href="#research" class="research-item">
+            <div class="research-icon">📄</div>
+            <div>
+              <strong>Design Principles</strong>
+              <p>The pedagogy behind lab types and curriculum sequencing.</p>
+            </div>
+          </a>
+        </div>
+      </li>
+      <li><a href="#pricing">Pricing</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <a href="#" class="btn btn-outline">Log in</a>
+      <a href="#" class="btn btn-amber">Start free <span class="arrow">→</span></a>
+    </div>
+
+    <button class="nav-ham" id="ham" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile nav -->
+<div id="mobile-nav">
+  <a href="#why">Why PyVerse</a>
+  <a href="#labs">Labs</a>
+  <a href="#visualizer">Visualizer</a>
+  <a href="#courses">Courses</a>
+  <a href="#research">Research</a>
+  <a href="#pricing">Pricing</a>
+  <div class="mob-divider"></div>
+  <a href="#" style="color:var(--text)">Log in</a>
+  <a href="#" class="btn btn-amber" style="margin-top:4px;justify-content:center">Start free →</a>
+</div>
+
+
+<!-- ══════════════════════════════
+     HERO
+══════════════════════════════ -->
+<section class="hero">
+  <div class="hero-glow" id="hero-glow"></div>
+
+  <div class="wrap">
+    <div class="hero-grid">
+
+      <!-- Left copy -->
+      <div>
+        <div class="hero-eyebrow">
+          <div class="hero-dot"></div>
+          <span class="t-eyebrow">Open Beta · Free to start</span>
+        </div>
+
+        <h1 class="t-hero hero-title">
+          Learn Python<br/>by<br/><em>doing,</em><br/>not watching.
+        </h1>
+
+        <p class="hero-sub">
+          Six interactive lab types. A built-in memory visualizer. Courses that teach Pythonic thinking — not just syntax.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#labs" class="btn btn-amber" style="padding:13px 30px;font-size:.97rem;">Explore Labs <span class="arrow">→</span></a>
+          <a href="#why"  class="btn btn-outline" style="padding:13px 22px;font-size:.97rem;">Why it works</a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-n">850<span>+</span></div>
+            <div class="hero-stat-l">Problems</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-n">6</div>
+            <div class="hero-stat-l">Lab types</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-n">0</div>
+            <div class="hero-stat-l">Setup needed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: code window -->
+      <div>
+        <div class="code-window tilt-card" id="hero-cw">
+          <div class="cw-chrome">
+            <div class="cw-dots">
+              <div class="cw-dot" style="background:#FF5F56"></div>
+              <div class="cw-dot" style="background:#FFBD2E"></div>
+              <div class="cw-dot" style="background:#27C93F"></div>
+            </div>
+            <div class="cw-tabs" id="hero-tabs">
+              <div class="cw-tab active" data-tab="bug">bug_hunt.py</div>
+              <div class="cw-tab" data-tab="drag">drag_drop.py</div>
+              <div class="cw-tab" data-tab="io">io_write.py</div>
+            </div>
+            <div class="cw-badge" id="hero-badge" style="background:rgba(255,77,77,.12);color:var(--red);border:1px solid rgba(255,77,77,.2)">BUG HUNT</div>
+          </div>
+
+          <div class="cw-body" id="hero-code">
+            <div id="tab-bug">
+              <div><span class="ln">1</span><span class="cm"># What's wrong with this function?</span></div>
+              <div><span class="ln">2</span></div>
+              <div><span class="ln">3</span><span class="kw">def </span><span class="fn">find_max</span><span class="op">(</span>nums<span class="op">):</span></div>
+              <div><span class="ln">4</span>&nbsp;&nbsp;&nbsp;&nbsp;max_val <span class="op">=</span> <span class="nm">0</span></div>
+              <span class="hl-err"><div><span class="ln">5</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> n <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span>nums<span class="op">):</span></div></span>
+              <div><span class="ln">6</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> n <span class="op">&gt;</span> max_val<span class="op">:</span></div>
+              <div><span class="ln">7</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_val <span class="op">=</span> n</div>
+              <div><span class="ln">8</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> max_val<span class="caret"></span></div>
+            </div>
+            <div id="tab-drag" style="display:none">
+              <div><span class="ln">1</span><span class="cm"># Fill in the blanks</span></div>
+              <div><span class="ln">2</span>evens <span class="op">=</span> <span class="op">[</span><span id="ds1" class="dslot" style="vertical-align:middle;display:inline-flex;min-width:70px">___</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span><span class="nm">10</span><span class="op">)</span></div>
+              <div><span class="ln">3</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> x <span class="op">%</span> <span class="nm">2</span> <span class="op">==</span> <span id="ds2" class="dslot" style="vertical-align:middle;display:inline-flex;min-width:40px">___</span><span class="op">]</span></div>
+              <div><span class="ln">4</span></div>
+              <div style="margin-top:12px"><span class="t-eyebrow" style="font-size:.65rem;display:block;margin-bottom:8px">drag a token into a blank ↑</span></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div class="dchip" draggable="true" data-val="x**2">x**2</div>
+                <div class="dchip" draggable="true" data-val="0">0</div>
+                <div class="dchip" draggable="true" data-val="x">x</div>
+                <div class="dchip" draggable="true" data-val="1">1</div>
+              </div>
+            </div>
+            <div id="tab-io" style="display:none">
+              <div><span class="ln">1</span><span class="cm"># Write a function that satisfies:</span></div>
+              <div><span class="ln">2</span><span class="cm"># Input:  [3, 1, 4, 1, 5, 9]</span></div>
+              <div><span class="ln">3</span><span class="cm"># Output: [1, 1, 3, 4, 5, 9]</span></div>
+              <div><span class="ln">4</span></div>
+              <div><span class="ln">5</span><span class="kw">def </span><span class="fn">solution</span><span class="op">(</span>nums<span class="op">):</span></div>
+              <div><span class="ln">6</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># your code here</span></div>
+              <div><span class="ln">7</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> <span class="fn">sorted</span><span class="op">(</span>nums<span class="op">)</span>&nbsp;&nbsp;<span class="cm"># ← runs in browser</span><span class="caret"></span></div>
+            </div>
+          </div>
+
+          <div class="cw-feedback" id="hero-fb">
+            <div class="cw-feedback-icon" style="background:rgba(255,77,77,.1);border:1px solid rgba(255,77,77,.2)">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><path d="M12 9v4m0 4h.01"/></svg>
+            </div>
+            <div>
+              <div style="font-family:var(--font-m);font-size:.75rem;color:var(--red);margin-bottom:2px">TypeError — line 5</div>
+              <div style="font-size:.8rem;color:var(--muted)">Hint: iterate <em style="color:var(--text)">over</em> the list, not over <code style="color:var(--green);font-family:var(--font-m)">range(nums)</code></div>
+            </div>
+            <button id="hero-fix" style="margin-left:auto;font-family:var(--font-m);font-size:.72rem;padding:5px 12px;border-radius:5px;border:1px solid rgba(255,77,77,.3);color:var(--red);transition:all .2s;flex-shrink:0">Fix it</button>
+          </div>
+
+          <div class="cw-xp">
+            <span class="t-mono" style="font-size:.7rem;color:var(--dim)">XP</span>
+            <div class="xp-track">
+              <div class="xp-fill" id="hero-xp" style="width:0%"></div>
+            </div>
+            <span class="t-mono" style="font-size:.72rem;color:var(--dim)" id="hero-xp-label">420 / 1000</span>
+          </div>
+        </div>
+
+        <div class="hero-lab-chips" style="margin-top:12px">
+          <span class="lab-chip active" data-tab="bug">🐛 Bug Hunt</span>
+          <span class="lab-chip" data-tab="drag">✦ Drag &amp; Drop</span>
+          <span class="lab-chip" data-tab="io">⟶ I/O Write</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-ind">
+    <span>scroll</span>
+    <div class="scroll-ind-line"></div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     WHY PYVERSE
+══════════════════════════════ -->
+<section class="section" id="why">
+  <div class="wrap">
+    <div class="why-grid">
+      <div class="reveal">
+        <div class="t-eyebrow" style="margin-bottom:16px">Why PyVerse</div>
+        <h2 class="t-h2" style="margin-bottom:20px">Reading code<br/>doesn't build<br/>muscle memory.</h2>
+        <p class="t-body" style="max-width:320px">Most tutorials let you stay passive. PyVerse forces your brain to produce the answer — the only way real learning happens.</p>
+
+        <div class="stats-strip" style="margin-top:40px">
+          <div class="stat-cell">
+            <div class="stat-n">850<span>+</span></div>
+            <div class="stat-l">Problems</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-n">6</div>
+            <div class="stat-l">Lab types</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-n">∞</div>
+            <div class="stat-l">Free tier</div>
+          </div>
+          <div class="stat-cell" style="border-right:none">
+            <div class="stat-n">0</div>
+            <div class="stat-l">Setup</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal" style="transition-delay:.12s">
+        <div class="why-items">
+          <div class="why-item">
+            <span class="why-num">01</span>
+            <div>
+              <div class="why-title">Active retrieval, not passive reading</div>
+              <div class="why-body">Each lab forces you to produce an answer before seeing it — the mechanism behind long-term retention. Scrolling through syntax doesn't wire patterns into memory. Producing them does.</div>
+            </div>
+          </div>
+          <div class="why-item">
+            <span class="why-num">02</span>
+            <div>
+              <div class="why-title">Pythonic from day one</div>
+              <div class="why-body">PyVerse doesn't teach Python the way C is taught. List comprehensions, generators, and context managers are introduced as primary patterns — not advanced features.</div>
+            </div>
+          </div>
+          <div class="why-item">
+            <span class="why-num">03</span>
+            <div>
+              <div class="why-title">See what Python actually does</div>
+              <div class="why-body">The built-in memory visualizer shows stack frames and heap objects as you step through code. No more guessing what <code style="font-family:var(--font-m);color:var(--green);font-size:.82rem">is</code> vs <code style="font-family:var(--font-m);color:var(--green);font-size:.82rem">==</code> means in practice.</div>
+            </div>
+          </div>
+          <div class="why-item" style="border-bottom:none">
+            <span class="why-num">04</span>
+            <div>
+              <div class="why-title">Five minutes, real progress</div>
+              <div class="why-body">Sessions are designed to fit between meetings. One lab, one concept, instant feedback. No setup. No context-switching cost.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     LABS
+══════════════════════════════ -->
+<section class="section" id="labs">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="t-eyebrow">Lab Types</div>
+      <h2 class="t-h2" style="margin-top:16px;max-width:480px">Six ways to make knowledge stick.</h2>
+    </div>
+
+    <div class="labs-tabs reveal" style="transition-delay:.08s">
+      <div class="labs-tab active" data-lab="drag">Drag &amp; Drop</div>
+      <div class="labs-tab" data-lab="bug">Bug Hunt</div>
+      <div class="labs-tab" data-lab="io">I/O Write</div>
+      <div class="labs-tab" data-lab="syntax">Syntax Fix</div>
+      <div class="labs-tab" data-lab="quiz">Theory Quiz</div>
+      <div class="labs-tab" data-lab="predict">Predict Output</div>
+    </div>
+
+    <!-- Panel: Drag & Drop -->
+    <div class="lab-panel active reveal" id="lab-drag" style="transition-delay:.12s">
+      <div class="lab-desc">
+        <div class="t-eyebrow" style="margin-bottom:12px;color:var(--amber)">Drag &amp; Drop</div>
+        <h3 class="t-h3" style="margin-bottom:12px">Assemble code from tokens</h3>
+        <p>Missing tokens are scattered below the code. Drag the right pieces into the blank slots. No keyboard required — just reasoning about what goes where.</p>
+        <ul class="lab-features">
+          <li>Instant visual feedback on drop</li>
+          <li>Wrong slots flash and reset</li>
+          <li>Covers expressions, keywords, operators</li>
+          <li>Works on mobile with touch drag</li>
+        </ul>
+      </div>
+      <div>
+        <div class="code-window">
+          <div class="cw-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">fill_blanks.py</span>
+            <div class="cw-badge" style="background:rgba(28,142,249,.1);color:var(--blue);border:1px solid rgba(28,142,249,.2)">DRAG &amp; DROP</div>
+          </div>
+          <div class="cw-body">
+            <div><span class="ln">1</span><span class="cm"># Complete the list comprehension</span></div>
+            <div><span class="ln">2</span>squares <span class="op">=</span> <span class="op">[</span><span class="dslot" id="dd1" style="display:inline-flex;min-width:60px;vertical-align:middle">___</span> <span class="kw">for</span> n <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span><span class="nm">10</span><span class="op">)</span><span class="op">]</span></div>
+            <div><span class="ln">3</span></div>
+            <div><span class="ln">4</span>filtered <span class="op">=</span> <span class="op">[</span>n <span class="kw">for</span> n <span class="kw">in</span> squares <span class="kw">if</span> n <span class="op">%</span> <span class="nm">2</span> <span class="op">==</span> <span class="dslot" id="dd2" style="display:inline-flex;min-width:40px;vertical-align:middle">___</span><span class="op">]</span></div>
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid var(--rule);background:var(--bg3)">
+            <div class="t-eyebrow" style="margin-bottom:8px;font-size:.62rem">available tokens</div>
+            <div class="drag-chips" id="dchips-main">
+              <div class="dchip" draggable="true" data-val="n**2">n**2</div>
+              <div class="dchip" draggable="true" data-val="0">0</div>
+              <div class="dchip" draggable="true" data-val="n*2">n*2</div>
+              <div class="dchip" draggable="true" data-val="1">1</div>
+            </div>
+          </div>
+          <div class="cw-xp">
+            <span class="t-mono" style="font-size:.7rem;color:var(--dim)">XP</span>
+            <div class="xp-track"><div class="xp-fill" style="width:25%"></div></div>
+            <span class="t-mono" style="font-size:.72rem;color:var(--dim)">250 / 1000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Bug Hunt -->
+    <div class="lab-panel" id="lab-bug">
+      <div class="lab-desc">
+        <div class="t-eyebrow" style="margin-bottom:12px;color:var(--red)">Bug Hunt</div>
+        <h3 class="t-h3" style="margin-bottom:12px">Find the broken line</h3>
+        <p>A real bug is hidden in a short function. Click the offending line. You get a targeted hint — not just "wrong" — so you actually understand what happened.</p>
+        <ul class="lab-features">
+          <li>Real Python bugs, not toy examples</li>
+          <li>Targeted explanations, not generic hints</li>
+          <li>Logic bugs, type errors, off-by-ones</li>
+          <li>Fixes shown in-context after solve</li>
+        </ul>
+      </div>
+      <div>
+        <div class="code-window">
+          <div class="cw-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">bug_challenge.py</span>
+            <div class="cw-badge" style="background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.2)">BUG HUNT</div>
+          </div>
+          <div class="cw-body">
+            <div style="font-family:var(--font-m);font-size:.7rem;color:var(--dim);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase">click the buggy line ↓</div>
+            <div class="bugline" id="bug1"><span class="ln">1</span><span class="kw">def </span><span class="fn">greet</span><span class="op">(</span>name<span class="op">):</span></div>
+            <div class="bugline" id="bug2"><span class="ln">2</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> <span class="str">"Hello, "</span> <span class="op">+</span> name <span class="op">+</span> <span class="str">"!"</span></div>
+            <div class="bugline" id="bug3"><span class="ln">3</span></div>
+            <div class="bugline" id="bug4"><span class="ln">4</span><span class="fn">print</span><span class="op">(</span>greet<span class="op">(</span><span class="nm">42</span><span class="op">))</span>&nbsp;&nbsp;<span class="cm"># ← something wrong here</span></div>
+          </div>
+          <div id="bug-fb" class="cw-feedback" style="display:none">
+            <div class="cw-feedback-icon" style="background:rgba(61,214,140,.1);border:1px solid rgba(61,214,140,.2)">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div style="font-size:.82rem">
+              <span style="color:var(--green);font-family:var(--font-m)">Correct.</span>
+              <span style="color:var(--muted)"> Line 4 passes <code style="font-family:var(--font-m);color:var(--red)">int</code> to a function expecting <code style="font-family:var(--font-m);color:var(--green)">str</code>. Fix: <code style="font-family:var(--font-m);color:var(--green)">greet(str(42))</code></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: I/O Write -->
+    <div class="lab-panel" id="lab-io">
+      <div class="lab-desc">
+        <div class="t-eyebrow" style="margin-bottom:12px;color:var(--green)">I/O Write</div>
+        <h3 class="t-h3" style="margin-bottom:12px">Spec in, solution out</h3>
+        <p>You're given an input and the expected output. Write a function that satisfies both — then run it directly in your browser via Pyodide. No server, no latency.</p>
+        <ul class="lab-features">
+          <li>Runs real Python in the browser (Pyodide)</li>
+          <li>Multiple test cases checked at once</li>
+          <li>Encourages creative, idiomatic solutions</li>
+          <li>Difficulty ladder from easy to hard</li>
+        </ul>
+      </div>
+      <div>
+        <div class="code-window">
+          <div class="cw-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">io_challenge.py</span>
+            <div class="cw-badge" style="background:rgba(61,214,140,.1);color:var(--green);border:1px solid rgba(61,214,140,.2)">I/O WRITE</div>
+          </div>
+          <div class="cw-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+              <div style="border:1px solid var(--rule2);border-radius:7px;padding:10px 12px">
+                <div class="t-eyebrow" style="font-size:.62rem;margin-bottom:6px">Input</div>
+                <div><span class="nm">[3, 1, 4, 1, 5, 9]</span></div>
+              </div>
+              <div style="border:1px solid var(--rule2);border-radius:7px;padding:10px 12px">
+                <div class="t-eyebrow" style="font-size:.62rem;margin-bottom:6px">Expected</div>
+                <div><span class="str">[1, 1, 3, 4, 5, 9]</span></div>
+              </div>
+            </div>
+            <div><span class="ln">1</span><span class="kw">def </span><span class="fn">solution</span><span class="op">(</span>nums<span class="op">):</span></div>
+            <div><span class="ln">2</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># your code</span></div>
+            <div><span class="ln">3</span>&nbsp;&nbsp;&nbsp;&nbsp;...<span class="caret"></span></div>
+          </div>
+          <div style="padding:12px 16px;border-top:1px solid var(--rule);background:var(--bg3);display:flex;gap:8px">
+            <button class="btn btn-amber" style="padding:8px 20px;font-size:.82rem;flex:1;justify-content:center">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run in browser
+            </button>
+            <button class="btn btn-outline" style="padding:8px 16px;font-size:.82rem">Tests</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Syntax Fix -->
+    <div class="lab-panel" id="lab-syntax">
+      <div class="lab-desc">
+        <div class="t-eyebrow" style="margin-bottom:12px;color:var(--amber)">Syntax Fix</div>
+        <h3 class="t-h3" style="margin-bottom:12px">Fix the broken line</h3>
+        <p>The error is flagged. Type the corrected version. Builds pattern recognition for the small things — missing colons, wrong indentation, bad operators — that trip up everyone.</p>
+        <ul class="lab-features">
+          <li>Real SyntaxErrors and IndentationErrors</li>
+          <li>Inline fix input, no page reload</li>
+          <li>Tracks which error types trip you most</li>
+          <li>Smart hints reveal progressively</li>
+        </ul>
+      </div>
+      <div>
+        <div class="code-window">
+          <div class="cw-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">syntax_fix.py</span>
+            <div class="cw-badge" style="background:rgba(240,180,41,.08);color:var(--amber);border:1px solid rgba(240,180,41,.2)">SYNTAX FIX</div>
+          </div>
+          <div class="cw-body">
+            <div><span class="ln">1</span><span class="cm"># SyntaxError on the for loop — fix it</span></div>
+            <span class="hl-err"><div><span class="ln">2</span><span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span><span class="nm">5</span><span class="op">)</span></div></span>
+            <div><span class="ln">3</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span><span class="op">(</span>i<span class="op">)</span></div>
+            <div style="margin-top:16px;display:flex;gap:8px">
+              <input class="syn-inp" id="syn-main" placeholder="rewrite line 2 correctly…" />
+              <button class="btn btn-amber" id="syn-check" style="padding:8px 18px;font-size:.82rem;flex-shrink:0">Check</button>
+            </div>
+            <div class="feedback-line" id="syn-fb"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Theory Quiz -->
+    <div class="lab-panel" id="lab-quiz">
+      <div class="lab-desc">
+        <div class="t-eyebrow" style="margin-bottom:12px;color:var(--blue)">Theory Quiz</div>
+        <h3 class="t-h3" style="margin-bottom:12px">Test your mental model</h3>
+        <p>Quick-fire questions on Python's behavior — scope, mutability, GIL, dunder methods. The stuff that's not in the syntax but determines how you think about the language.</p>
+        <ul class="lab-features">
+          <li>Multiple choice and true/false formats</li>
+          <li>Explanation shown after each answer</li>
+          <li>Organized by concept, not difficulty</li>
+          <li>Spaced repetition surfaces weak spots (Pro)</li>
+        </ul>
+      </div>
+      <div>
+        <div class="code-window">
+          <div class="cw-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">theory_quiz.py</span>
+            <div class="cw-badge" style="background:rgba(28,142,249,.1);color:var(--blue);border:1px solid rgba(28,142,249,.2)">THEORY</div>
+          </div>
+          <div class="cw-body">
+            <div style="font-family:var(--font-m);font-size:.82rem;color:var(--text);margin-bottom:16px">What does <code style="color:var(--green)">list[:]</code> return?</div>
+            <div id="quiz-opts">
+              <button class="qopt" data-correct="false">A reference to the same list</button>
+              <button class="qopt" data-correct="true">A shallow copy of the list</button>
+              <button class="qopt" data-correct="false">An empty list</button>
+            </div>
+            <div class="feedback-line" id="quiz-fb"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Predict Output -->
+    <div class="lab-panel" id="lab-predict">
+      <div class="lab-desc">
+        <div class="t-eyebrow" style="margin-bottom:12px;color:var(--green)">Predict Output</div>
+        <h3 class="t-h3" style="margin-bottom:12px">Read first. Run second.</h3>
+        <p>A snippet runs in your head before the computer runs it. Predict the output. This forces real understanding of execution order, scoping, and mutability — not just memorizing syntax.</p>
+        <ul class="lab-features">
+          <li>Covers closures, mutation, iteration order</li>
+          <li>Graded: wrong attempts reveal a hint</li>
+          <li>Common Python gotchas are featured</li>
+          <li>Links to memory visualizer for deep dives</li>
+        </ul>
+      </div>
+      <div>
+        <div class="code-window">
+          <div class="cw-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">predict.py</span>
+            <div class="cw-badge" style="background:rgba(61,214,140,.1);color:var(--green);border:1px solid rgba(61,214,140,.2)">PREDICT</div>
+          </div>
+          <div class="cw-body">
+            <div><span class="ln">1</span>x <span class="op">=</span> <span class="op">[</span><span class="nm">1</span><span class="op">,</span><span class="nm">2</span><span class="op">,</span><span class="nm">3</span><span class="op">]</span></div>
+            <div><span class="ln">2</span>y <span class="op">=</span> x</div>
+            <div><span class="ln">3</span>y<span class="op">.</span><span class="fn">append</span><span class="op">(</span><span class="nm">4</span><span class="op">)</span></div>
+            <div><span class="ln">4</span><span class="fn">print</span><span class="op">(</span>x<span class="op">)</span></div>
+            <div style="margin-top:16px">
+              <div class="t-eyebrow" style="font-size:.62rem;margin-bottom:10px">what does line 4 print?</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="popt" id="p1" data-val="wrong">[1, 2, 3]</button>
+                <button class="popt" id="p2" data-val="correct">[1, 2, 3, 4]</button>
+                <button class="popt" id="p3" data-val="wrong">TypeError</button>
+              </div>
+            </div>
+            <div class="feedback-line" id="predict-fb"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     VISUALIZER
+══════════════════════════════ -->
+<section class="section" id="visualizer">
+  <div class="wrap">
+    <div class="vis-grid">
+      <div class="reveal">
+        <div class="t-eyebrow" style="margin-bottom:16px">Memory Visualizer</div>
+        <h2 class="t-h2" style="margin-bottom:16px">See what Python<br/>does in memory.</h2>
+        <p class="t-body" style="max-width:360px">Step through code line by line. Watch stack frames appear, heap objects mutate, and reference arrows move. No more guessing.</p>
+        <ul class="vis-features">
+          <li class="vis-feature">
+            <div class="vis-feature-icon">📦</div>
+            <div><strong>Stack &amp; heap separation</strong><span>Frames on the left, objects on the right — exactly how CPython models it.</span></div>
+          </li>
+          <li class="vis-feature">
+            <div class="vis-feature-icon">🔗</div>
+            <div><strong>Reference arrows</strong><span>See which names point to which objects. Object identity becomes visible.</span></div>
+          </li>
+          <li class="vis-feature">
+            <div class="vis-feature-icon">🎯</div>
+            <div><strong>Mutable vs immutable cues</strong><span>Lists glow when mutated. Integers and strings are shown as shared objects.</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="reveal" style="transition-delay:.15s">
+        <div class="mem-diagram">
+          <div class="mem-chrome">
+            <div class="cw-dots"><div class="cw-dot" style="background:#FF5F56"></div><div class="cw-dot" style="background:#FFBD2E"></div><div class="cw-dot" style="background:#27C93F"></div></div>
+            <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-left:8px">memory_tracer</span>
+            <span style="margin-left:auto;font-family:var(--font-m);font-size:.65rem;padding:3px 8px;border-radius:4px;background:rgba(61,214,140,.1);color:var(--green);border:1px solid rgba(61,214,140,.2)">LIVE</span>
+          </div>
+          <div class="mem-body">
+            <div class="mem-cols">
+              <div>
+                <div class="mem-section-label">Stack</div>
+                <div class="mem-frame">
+                  <div class="mem-frame-head">frame: __main__</div>
+                  <div class="mem-row"><span class="mem-var">x</span><span class="mem-ref">→ list#1</span></div>
+                  <div class="mem-row"><span class="mem-var">y</span><span class="mem-ref">→ list#1</span></div>
+                  <div class="mem-row"><span class="mem-var">z</span><span class="mem-val">42</span></div>
+                </div>
+              </div>
+              <div>
+                <div class="mem-section-label">Heap</div>
+                <div class="heap-obj">
+                  <div class="heap-label">list #1</div>
+                  <div class="heap-cells">
+                    <div class="heap-cell">1</div>
+                    <div class="heap-cell">2</div>
+                    <div class="heap-cell">3</div>
+                    <div class="heap-cell new">4</div>
+                  </div>
+                  <div style="font-family:var(--font-m);font-size:.68rem;color:var(--dim);margin-top:8px">mutated by y.append(4)</div>
+                </div>
+              </div>
+            </div>
+            <div class="arrow-viz" style="padding:12px 0 0">
+              <svg width="100%" height="44" viewBox="0 0 360 44">
+                <defs>
+                  <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="rgba(240,180,41,.6)"/></marker>
+                  <marker id="ah2" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="rgba(240,180,41,.6)"/></marker>
+                </defs>
+                <text x="4" y="16" font-family="JetBrains Mono" font-size="11" fill="var(--muted)">x</text>
+                <line x1="16" y1="13" x2="170" y2="13" stroke="rgba(240,180,41,.5)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#ah)"/>
+                <text x="4" y="36" font-family="JetBrains Mono" font-size="11" fill="var(--muted)">y</text>
+                <line x1="16" y1="33" x2="170" y2="18" stroke="rgba(240,180,41,.5)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#ah2)"/>
+                <rect x="176" y="6" width="80" height="30" rx="5" fill="rgba(61,214,140,.08)" stroke="rgba(61,214,140,.35)" stroke-width="1"/>
+                <text x="184" y="26" font-family="JetBrains Mono" font-size="10" fill="var(--green)">[1, 2, 3, 4]</text>
+              </svg>
+            </div>
+          </div>
+          <div class="mem-controls">
+            <button class="mem-btn">← Prev</button>
+            <span class="mem-step-info" style="flex:1;text-align:center">Step 3 of 4 — <span style="color:var(--amber)">y.append(4)</span></span>
+            <button class="mem-btn">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     COURSES
+══════════════════════════════ -->
+<section class="section" id="courses">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="t-eyebrow">Courses</div>
+      <h2 class="t-h2" style="margin-top:16px;max-width:420px">Structured paths for every stage.</h2>
+    </div>
+
+    <div class="courses-grid reveal" style="transition-delay:.1s">
+      <div class="course-card">
+        <div class="course-body">
+          <div class="course-top"><span class="course-tag tag-free">Free</span><span class="course-count">24 labs</span></div>
+          <div class="course-title">Python Foundations</div>
+          <div class="course-desc">Variables, control flow, functions — taught the Pythonic way from the very first line. No C habits.</div>
+          <div class="course-xp"><div class="course-xp-fill" style="width:0%"></div></div>
+          <div class="course-progress">0 of 24 complete</div>
+          <a href="#" class="course-cta">Start course <span class="arrow">→</span></a>
+        </div>
+      </div>
+      <div class="course-card">
+        <div class="course-body">
+          <div class="course-top"><span class="course-tag tag-free">Free</span><span class="course-count">31 labs</span></div>
+          <div class="course-title">Data Structures</div>
+          <div class="course-desc">Lists, dicts, sets, deques — with memory visualizer and Big-O tradeoffs built in.</div>
+          <div class="course-xp"><div class="course-xp-fill" style="width:0%"></div></div>
+          <div class="course-progress">0 of 31 complete</div>
+          <a href="#" class="course-cta">Start course <span class="arrow">→</span></a>
+        </div>
+      </div>
+      <div class="course-card">
+        <div class="course-body">
+          <div class="course-top"><span class="course-tag tag-free">Free</span><span class="course-count">18 labs</span></div>
+          <div class="course-title">Pythonic Patterns</div>
+          <div class="course-desc">List comps, generators, decorators, context managers — idioms that separate beginners from practitioners.</div>
+          <div class="course-xp"><div class="course-xp-fill" style="width:0%"></div></div>
+          <div class="course-progress">0 of 18 complete</div>
+          <a href="#" class="course-cta">Start course <span class="arrow">→</span></a>
+        </div>
+      </div>
+      <div class="course-card locked">
+        <div class="lock-overlay">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div class="lock-badge shimmer">Coming Soon</div>
+        </div>
+        <div class="course-body">
+          <div class="course-top"><span class="course-tag tag-pro">Pro</span><span class="course-count">40 labs</span></div>
+          <div class="course-title">OOP &amp; Design Patterns</div>
+          <div class="course-desc">Classes, dunders, MRO, SOLID — with interactive class diagrams.</div>
+        </div>
+      </div>
+      <div class="course-card locked">
+        <div class="lock-overlay">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div class="lock-badge shimmer">Coming Soon</div>
+        </div>
+        <div class="course-body">
+          <div class="course-top"><span class="course-tag tag-pro">Pro</span><span class="course-count">29 labs</span></div>
+          <div class="course-title">Async &amp; Concurrency</div>
+          <div class="course-desc">asyncio, threading, GIL — visualized with interactive timeline diagrams.</div>
+        </div>
+      </div>
+      <div class="course-card locked">
+        <div class="lock-overlay">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div class="lock-badge shimmer">Coming Soon</div>
+        </div>
+        <div class="course-body">
+          <div class="course-top"><span class="course-tag tag-pro">Pro</span><span class="course-count">35 labs</span></div>
+          <div class="course-title">CPython Internals</div>
+          <div class="course-desc">Bytecode, reference counting, the import system — for people who want to go all the way down.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     HOW IT WORKS
+══════════════════════════════ -->
+<section class="section">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="t-eyebrow">How it works</div>
+      <h2 class="t-h2" style="margin-top:16px">From zero to Pythonic<br/>in four steps.</h2>
+    </div>
+
+    <div class="how-grid reveal" style="transition-delay:.1s">
+      <div class="how-step">
+        <div class="how-n">01</div>
+        <span class="how-icon">📂</span>
+        <div class="how-title">Pick a course or lab</div>
+        <div class="how-body">Browse by topic or difficulty. No sign-up needed for free content.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-n">02</div>
+        <span class="how-icon">⌨️</span>
+        <div class="how-title">Interact with code</div>
+        <div class="how-body">Drag, type, click, fix — six lab types keep every session different.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-n">03</div>
+        <span class="how-icon">💡</span>
+        <div class="how-title">Get targeted feedback</div>
+        <div class="how-body">Not just right or wrong. A targeted explanation shows you exactly why.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-n">04</div>
+        <span class="how-icon">📈</span>
+        <div class="how-title">Track what you know</div>
+        <div class="how-body">XP, streaks, and concept maps reveal exactly what's solid and what's shaky.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     RESEARCH
+══════════════════════════════ -->
+<section class="section" id="research">
+  <div class="wrap">
+    <div class="research-grid">
+      <div>
+        <div class="section-head reveal">
+          <div class="t-eyebrow">Research</div>
+          <h2 class="t-h2" style="margin-top:16px">Built on learning<br/>science, not vibes.</h2>
+        </div>
+        <div class="research-cards reveal" style="transition-delay:.1s">
+          <a href="#" class="rcard">
+            <div class="rcard-icon">🧠</div>
+            <div>
+              <div class="rcard-label">Active Recall</div>
+              <div class="rcard-title">Why producing answers beats reading them</div>
+              <div class="rcard-desc">The testing effect — how forcing retrieval dramatically outperforms re-reading for long-term retention.</div>
+            </div>
+          </a>
+          <a href="#" class="rcard">
+            <div class="rcard-icon">🔁</div>
+            <div>
+              <div class="rcard-label">Spaced Repetition</div>
+              <div class="rcard-title">SM-2 and how PyVerse schedules practice</div>
+              <div class="rcard-desc">How the SM-2 algorithm surfaces weak concepts at precisely the right interval to maximize retention per minute.</div>
+            </div>
+          </a>
+          <a href="#" class="rcard">
+            <div class="rcard-icon">🎯</div>
+            <div>
+              <div class="rcard-label">Interleaving</div>
+              <div class="rcard-title">Mixed lab types are harder — and that's the point</div>
+              <div class="rcard-desc">Varying the challenge type within a session triggers deeper processing and stronger transfer to novel problems.</div>
+            </div>
+          </a>
+          <a href="#" class="rcard">
+            <div class="rcard-icon">📊</div>
+            <div>
+              <div class="rcard-label">Bayesian KT</div>
+              <div class="rcard-title">Estimating mastery, not just counting correctness</div>
+              <div class="rcard-desc">PyVerse tracks knowledge state probabilistically — so a lucky correct answer doesn't fool the system.</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="reveal" style="transition-delay:.15s">
+        <div class="research-pullquote">
+          <div class="rpq-text">"Students who retrieved information from memory remembered <em>50% more</em> a week later than students who re-read the material — even when the re-readers had more time."</div>
+          <div class="rpq-source">— Karpicke & Roediger, 2008, <em>Science</em> · The Testing Effect</div>
+          <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--rule)">
+            <div class="rpq-text" style="font-size:1rem">"The spacing effect is one of the most replicated findings in cognitive psychology, yet almost no formal education uses it."</div>
+            <div class="rpq-source">— Ebbinghaus, H. (1885). <em>Memory: A Contribution to Experimental Psychology</em></div>
+          </div>
+          <a href="#" class="btn btn-outline" style="margin-top:28px;font-size:.82rem">Read all research <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     PRICING
+══════════════════════════════ -->
+<section class="section" id="pricing">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="t-eyebrow">Pricing</div>
+      <h2 class="t-h2" style="margin-top:16px">Simple. No tricks.</h2>
+      <p class="t-body" style="margin-top:12px">The core experience is free — and stays that way.</p>
+    </div>
+
+    <div class="pricing-grid reveal" style="transition-delay:.1s">
+      <div class="pricing-card">
+        <div class="pricing-tier">Free</div>
+        <div class="pricing-price">₹<span>0</span><sub>/mo</sub></div>
+        <div class="pricing-sub">Everything you need to start thinking in Python.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--green)" stroke-opacity=".3"/><path d="M5 8l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>All 6 lab types</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--green)" stroke-opacity=".3"/><path d="M5 8l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>3 full courses (73 labs)</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--green)" stroke-opacity=".3"/><path d="M5 8l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Memory visualizer</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--green)" stroke-opacity=".3"/><path d="M5 8l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Basic XP tracking</li>
+          <li class="off"><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--dim)"/><path d="M5 8h6" stroke="var(--dim)" stroke-width="1.5"/></svg>Spaced repetition</li>
+          <li class="off"><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--dim)"/><path d="M5 8h6" stroke="var(--dim)" stroke-width="1.5"/></svg>Concept mastery maps</li>
+        </ul>
+        <a href="#" class="btn btn-outline" style="width:100%;justify-content:center">Get started free</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-tier" style="color:var(--amber)">Pro — Coming Soon</div>
+        <div class="pricing-price shimmer">₹<span>?</span><sub>/mo</sub></div>
+        <div class="pricing-sub">Everything in Free, plus deep tracking and all content.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--amber)" stroke-opacity=".4"/><path d="M5 8l2 2 4-4" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Everything in Free</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--amber)" stroke-opacity=".4"/><path d="M5 8l2 2 4-4" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>SM-2 spaced repetition</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--amber)" stroke-opacity=".4"/><path d="M5 8l2 2 4-4" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Concept mastery heatmaps</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--amber)" stroke-opacity=".4"/><path d="M5 8l2 2 4-4" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>All Pro courses (OOP, Async, CPython)</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--amber)" stroke-opacity=".4"/><path d="M5 8l2 2 4-4" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Streak &amp; goal tracking</li>
+          <li><svg class="feat-check" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7.5" stroke="var(--amber)" stroke-opacity=".4"/><path d="M5 8l2 2 4-4" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>AI weakness analysis</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;justify-content:center;opacity:.5;cursor:not-allowed" disabled>Notify me at launch</button>
+        <p style="font-family:var(--font-m);font-size:.7rem;color:var(--dim);margin-top:10px;text-align:center">No spam. One email when Pro launches.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════
+     CTA BANNER
+══════════════════════════════ -->
+<div class="cta-banner">
+  <div class="wrap reveal">
+    <h2 class="t-h2"><em>Stop watching.</em><br/>Start building intuition.</h2>
+    <p style="margin-top:14px">Every lab is under 5 minutes. No setup. No credit card.</p>
+    <div class="btn-group" style="margin-top:44px">
+      <a href="#labs" class="btn btn-amber" style="padding:15px 40px;font-size:1rem">Start your first lab <span class="arrow">→</span></a>
+      <a href="#courses" class="btn btn-outline" style="padding:15px 28px;font-size:1rem">Browse courses</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     FOOTER
+══════════════════════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo" style="display:inline-flex">
+          <div class="logo-mark"><span>Py</span></div>
+          PyVerse
+        </a>
+        <p>Interactive Python learning for developers who want to understand what they're writing — not just copy-paste it.</p>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="hero-dot" style="animation:dot-pulse 2.5s ease infinite"></div>
+          <span style="font-family:var(--font-m);font-size:.72rem;color:var(--green)">Open Beta · Free</span>
+        </div>
+      </div>
+
+      <div class="footer-link-group">
+        <strong>Learn</strong>
+        <ul>
+          <li><a href="#labs">Lab Types</a></li>
+          <li><a href="#courses">Courses</a></li>
+          <li><a href="#visualizer">Memory Visualizer</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-link-group">
+        <strong>Labs</strong>
+        <ul>
+          <li><a href="#">Drag &amp; Drop</a></li>
+          <li><a href="#">Bug Hunt</a></li>
+          <li><a href="#">I/O Write</a></li>
+          <li><a href="#">Syntax Fix</a></li>
+          <li><a href="#">Theory Quiz</a></li>
+          <li><a href="#">Predict Output</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-link-group">
+        <strong>Project</strong>
+        <ul>
+          <li><a href="#research">Research</a></li>
+          <li><a href="#why">Why PyVerse</a></li>
+          <li><a href="#">Changelog</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2025 PyVerse. Built for the Python community.</p>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#" style="display:flex;align-items:center;gap:6px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<script>
+// ── Scroll progress ──
+const scrollProg = document.getElementById('scroll-progress');
+window.addEventListener('scroll', () => {
+  const pct = scrollY / (document.documentElement.scrollHeight - innerHeight);
+  scrollProg.style.transform = `scaleX(${pct})`;
+}, {passive:true});
+
+// ── Navbar scroll ──
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('stuck', scrollY > 20), {passive:true});
+
+// ── Research dropdown caret ──
+const navRes = document.querySelector('.nav-research');
+const ddCaret = navRes.querySelector('.dd-caret');
+navRes.addEventListener('mouseenter', () => ddCaret.style.transform = 'rotate(180deg)');
+navRes.addEventListener('mouseleave', () => ddCaret.style.transform = '');
+
+// ── Mouse cursor light ──
+const cursorLight = document.getElementById('cursor-light');
+let mouseX = 0, mouseY = 0;
+let lightX = 0, lightY = 0;
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  // also parallax hero glow slightly
+  const glow = document.getElementById('hero-glow');
+  if (glow) {
+    const dx = (e.clientX / innerWidth - 0.5) * 24;
+    const dy = (e.clientY / innerHeight - 0.5) * 16;
+    glow.style.transform = `translateX(calc(-50% + ${dx}px)) translateY(${dy}px)`;
+  }
+}, {passive:true});
+function animLight() {
+  lightX += (mouseX - lightX) * .08;
+  lightY += (mouseY - lightY) * .08;
+  cursorLight.style.left = lightX + 'px';
+  cursorLight.style.top  = lightY + 'px';
+  requestAnimationFrame(animLight);
+}
+animLight();
+
+// ── Hamburger ──
+const ham = document.getElementById('ham');
+const mob = document.getElementById('mobile-nav');
+ham.addEventListener('click', () => {
+  ham.classList.toggle('open');
+  mob.classList.toggle('open');
+});
+mob.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  ham.classList.remove('open'); mob.classList.remove('open');
+}));
+
+// ── Reveal ──
+const reveals = document.querySelectorAll('.reveal');
+const rio = new IntersectionObserver(es => es.forEach((e,i) => {
+  if (e.isIntersecting) {
+    e.target.style.transitionDelay = e.target.style.transitionDelay || `${i * 0.04}s`;
+    e.target.classList.add('vis');
+    rio.unobserve(e.target);
+  }
+}), {threshold:.08});
+reveals.forEach(r => rio.observe(r));
+
+// ── Button ripple ──
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const rect = this.getBoundingClientRect();
+    this.style.setProperty('--rx', (e.clientX - rect.left) + 'px');
+    this.style.setProperty('--ry', (e.clientY - rect.top)  + 'px');
+    this.classList.add('rippling');
+    setTimeout(() => this.classList.remove('rippling'), 600);
+  });
+});
+
+// ── Hero code window 3D tilt ──
+const heroCW = document.getElementById('hero-cw');
+if (heroCW) {
+  heroCW.addEventListener('mousemove', e => {
+    const rect = heroCW.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width  / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    heroCW.style.transform = `perspective(800px) rotateY(${dx * 2.5}deg) rotateX(${-dy * 1.8}deg)`;
+  });
+  heroCW.addEventListener('mouseleave', () => {
+    heroCW.style.transition = 'transform .5s var(--ease-spring), box-shadow .3s, border-color .3s';
+    heroCW.style.transform = '';
+    setTimeout(() => heroCW.style.transition = '', 500);
+  });
+}
+
+// ── XP toast ──
+function showXPToast(msg, sub) {
+  const t = document.getElementById('xp-toast');
+  t.querySelector('.xp-toast-text').textContent = msg;
+  t.querySelector('.xp-toast-sub').textContent  = sub;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+function showAchievement() {
+  const a = document.getElementById('achievement');
+  a.classList.add('show');
+  setTimeout(() => a.classList.remove('show'), 3500);
+}
+
+// ── Hero tabs ──
+const heroBadgeColors = {
+  bug:  {bg:'rgba(255,77,77,.12)',    color:'var(--red)',   border:'rgba(255,77,77,.2)',   label:'BUG HUNT'},
+  drag: {bg:'rgba(28,142,249,.12)',   color:'var(--blue)',  border:'rgba(28,142,249,.2)', label:'DRAG & DROP'},
+  io:   {bg:'rgba(61,214,140,.1)',    color:'var(--green)', border:'rgba(61,214,140,.2)', label:'I/O WRITE'},
+};
+function switchHeroTab(t) {
+  document.querySelectorAll('.cw-tab').forEach(c => c.classList.toggle('active', c.dataset.tab === t));
+  ['bug','drag','io'].forEach(id => {
+    const el = document.getElementById('tab-'+id);
+    if (el) el.style.display = id === t ? '' : 'none';
+  });
+  const b = heroBadgeColors[t];
+  const badge = document.getElementById('hero-badge');
+  badge.style.background = b.bg; badge.style.color = b.color;
+  badge.style.border = '1px solid '+b.border; badge.textContent = b.label;
+  const fb = document.getElementById('hero-fb');
+  fb.style.display = t === 'bug' ? '' : 'none';
+}
+document.querySelectorAll('.cw-tab').forEach(tab => tab.addEventListener('click', () => switchHeroTab(tab.dataset.tab)));
+document.querySelectorAll('.lab-chip').forEach(chip => chip.addEventListener('click', () => {
+  document.querySelectorAll('.lab-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  switchHeroTab(chip.dataset.tab);
+}));
+
+// ── XP bar animate ──
+setTimeout(() => { const x = document.getElementById('hero-xp'); if(x) x.style.width = '42%'; }, 500);
+
+// ── Hero fix button ──
+document.getElementById('hero-fix').addEventListener('click', function() {
+  this.textContent = '✓ Fixed';
+  this.style.color = 'var(--green)';
+  this.style.borderColor = 'rgba(61,214,140,.3)';
+  const xp = document.getElementById('hero-xp');
+  xp.style.width = '52%';
+  document.getElementById('hero-xp-label').textContent = '520 / 1000';
+  setTimeout(() => showXPToast('+100 XP earned!', 'Bug found · Level up soon'), 400);
+  setTimeout(() => showAchievement(), 1200);
+});
+
+// ── Labs tabs ──
+document.querySelectorAll('.labs-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.labs-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.lab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const panel = document.getElementById('lab-'+tab.dataset.lab);
+    if (panel) panel.classList.add('active');
+  });
+});
+
+// ── Drag & drop ──
+let dragging = null;
+function initDrag(container) {
+  container.querySelectorAll('.dchip').forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      dragging = chip.dataset.val;
+      chip.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+  });
+}
+function initSlots(slotParent) {
+  slotParent.querySelectorAll('.dslot').forEach(slot => {
+    slot.addEventListener('dragover',  e => { e.preventDefault(); slot.classList.add('over'); });
+    slot.addEventListener('dragleave', ()  => slot.classList.remove('over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault(); slot.classList.remove('over');
+      slot.textContent = dragging; slot.classList.add('filled');
+      dragging = null;
+    });
+  });
+}
+initDrag(document.body);
+initSlots(document.body);
+
+// ── Bug hunt ──
+document.querySelectorAll('.bugline').forEach(line => {
+  line.addEventListener('click', () => {
+    const fb = document.getElementById('bug-fb');
+    if (line.id === 'bug4') {
+      line.classList.add('right');
+      fb.style.display = 'flex';
+      setTimeout(() => showXPToast('+75 XP earned!', 'TypeError detected'), 300);
+    } else {
+      line.classList.add('wrong');
+      setTimeout(() => line.classList.remove('wrong'), 700);
+    }
+  });
+});
+
+// ── Syntax fix ──
+document.getElementById('syn-check').addEventListener('click', () => {
+  const val = document.getElementById('syn-main').value.trim();
+  const fb  = document.getElementById('syn-fb');
+  fb.classList.remove('ok','err','show');
+  if (val.endsWith(':')) {
+    fb.textContent = '✓ Correct — the for loop was missing its colon.';
+    fb.classList.add('ok','show');
+  } else {
+    fb.textContent = '✗ Not quite — look at the very end of the line.';
+    fb.classList.add('err','show');
+  }
+});
+document.getElementById('syn-main').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('syn-check').click();
+});
+
+// ── Theory quiz ──
+document.querySelectorAll('.qopt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    document.querySelectorAll('.qopt').forEach(b => b.disabled = true);
+    btn.classList.add(btn.dataset.correct === 'true' ? 'correct' : 'wrong');
+    document.querySelectorAll('.qopt').forEach(b => { if(b.dataset.correct === 'true') b.classList.add('correct'); });
+    const fb = document.getElementById('quiz-fb');
+    if (btn.dataset.correct === 'true') {
+      fb.textContent = '✓ Correct. list[:] creates a new list object with the same elements — a shallow copy.';
+      fb.classList.add('ok','show');
+    } else {
+      fb.textContent = '✗ Not quite. Try again — think about what slicing returns.';
+      fb.classList.add('err','show');
+    }
+  });
+});
+
+// ── Predict output ──
+document.querySelectorAll('.popt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    document.querySelectorAll('.popt').forEach(b => b.disabled = true);
+    const fb = document.getElementById('predict-fb');
+    if (btn.dataset.val === 'correct') {
+      btn.classList.add('correct');
+      fb.textContent = '✓ Correct. y = x makes y point to the same list — not a copy. Both names reflect the mutation.';
+      fb.classList.add('ok','show');
+    } else {
+      btn.classList.add('wrong');
+      document.getElementById('p2').classList.add('correct');
+      fb.textContent = '✗ Close. y is not a copy — it is another name for the same list object in memory.';
+      fb.classList.add('err','show');
+    }
+  });
+});
+
+// ── Python easter egg in console ──
+console.log('%c🐍 PyVerse', 'font-size:20px;font-weight:bold;color:#F0B429');
+console.log('%c>>> import pyverse; pyverse.learn()', 'font-family:monospace;color:#3DD68C');
+console.log('%cWelcome to the source. You are exactly the kind of person who should build here.', 'color:#7A7A85');
+</script>
+</body>
+</html>

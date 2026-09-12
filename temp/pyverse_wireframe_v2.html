@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyVerse — Sitemap Prototype v2</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#131a22; --panel2:#1a2330; --panel3:#0f151c; --line:#243040;
+    --amber:#e8a33d; --amber-dim:#8a6423; --blue:#5b7fe0; --green:#4fae6d; --red:#e0645b;
+    --text:#e7ebf0; --sub:#8b96a5; --sub2:#5b6675;
+  }
+  body{background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .card{background:var(--panel); border:1px solid var(--line); transition:border-color .15s ease, transform .15s ease;}
+  .card:hover{border-color:var(--amber);}
+  .btn{transition:all .15s ease;}
+  .btn:hover{transform:translateY(-1px);}
+  .pill{border:1px solid var(--line); color:var(--sub);}
+  .pill.active{border-color:var(--amber); color:var(--amber); background:rgba(232,163,61,.08);}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  .badge-Easy{color:var(--green); background:rgba(79,174,109,.1); border:1px solid rgba(79,174,109,.3);}
+  .badge-Medium{color:var(--amber); background:rgba(232,163,61,.1); border:1px solid rgba(232,163,61,.3);}
+  .badge-Hard{color:var(--red); background:rgba(224,100,91,.1); border:1px solid rgba(224,100,91,.3);}
+  .progress-track{background:var(--panel3); border:1px solid var(--line);}
+  .progress-fill{background:var(--amber);}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;} }
+</style>
+</head>
+<body x-data="app()" class="min-h-screen">
+
+  <!-- NAVBAR -->
+  <header class="sticky top-0 z-30" style="border-bottom:1px solid var(--line); background:rgba(11,15,20,.94); backdrop-filter:blur(8px);">
+    <div class="max-w-6xl mx-auto flex items-center gap-6 px-6 py-3">
+      <button @click="go('home')" class="mono font-semibold text-lg tracking-tight flex items-center gap-2 shrink-0">
+        <span style="color:var(--amber)">&gt;_</span>PyVerse
+      </button>
+
+      <nav class="hidden md:flex gap-1 mono text-sm">
+        <template x-for="item in nav" :key="item.id">
+          <button @click="go(item.id)" class="btn px-3 py-1.5 rounded"
+            :style="topSection===item.id ? 'background:var(--panel2); color:var(--amber)' : 'color:var(--sub)'">
+            <span x-text="item.label"></span>
+          </button>
+        </template>
+      </nav>
+
+      <div class="flex-1 hidden lg:flex items-center gap-2 mono text-xs px-3 py-1.5 rounded" style="border:1px solid var(--line); color:var(--sub2)">
+        <span>⌕</span><span>search lessons, problems, tags…</span>
+        <span class="ml-auto" style="color:var(--sub2)">⌘K</span>
+      </div>
+
+      <div class="flex items-center gap-3 ml-auto md:ml-0 shrink-0">
+        <div class="hidden sm:flex items-center gap-1 mono text-xs px-2 py-1 rounded" style="border:1px solid var(--line); color:var(--amber)">
+          <span>🔥</span><span x-text="streak"></span><span style="color:var(--sub)">day streak</span>
+        </div>
+        <div class="w-8 h-8 rounded-full mono text-xs flex items-center justify-center font-semibold" style="background:var(--panel2); border:1px solid var(--line); color:var(--amber)">U</div>
+      </div>
+    </div>
+
+    <!-- breadcrumb -->
+    <div class="max-w-6xl mx-auto px-6 pb-2.5 mono text-xs flex items-center gap-2 overflow-x-auto" style="color:var(--sub)">
+      <template x-for="(crumb, i) in trail" :key="i">
+        <span class="flex items-center gap-2 shrink-0">
+          <button @click="jumpTo(i)" class="hover:underline whitespace-nowrap" :style="i===trail.length-1?'color:var(--text)':''" x-text="crumb.label"></button>
+          <span x-show="i < trail.length-1" style="color:var(--line)">/</span>
+        </span>
+      </template>
+      <span class="ml-auto shrink-0" :style="trail.length-1>2?'color:#ef6d6d':''" x-text="(trail.length-1)+' clicks deep'"></span>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-10">
+
+  <!-- ============ HOME ============ -->
+  <template x-if="topSection==='home'">
+    <div>
+      <div class="rounded-xl p-8 mb-10 card" style="background:linear-gradient(135deg, var(--panel) 0%, var(--panel3) 100%);">
+        <div class="mono text-xs mb-3" style="color:var(--amber)">$ python -c "import future"</div>
+        <h1 class="text-3xl md:text-4xl font-semibold mb-3 max-w-xl">Learn Python like it's a codebase, not a slideshow.</h1>
+        <p class="max-w-lg mb-6" style="color:var(--sub)">Tracks that build on each other, problems that grade themselves, and a test at the end that actually means something.</p>
+        <div class="flex gap-3">
+          <button @click="go('tutorials')" class="btn mono text-sm px-4 py-2 rounded font-medium" style="background:var(--amber); color:#1a1204">Continue: Python Zero to Job-Ready</button>
+          <button @click="go('practice')" class="btn mono text-sm px-4 py-2 rounded" style="border:1px solid var(--line); color:var(--sub)">Jump into Practice</button>
+        </div>
+        <div class="mt-6 max-w-xs">
+          <div class="flex justify-between mono text-xs mb-1" style="color:var(--sub)"><span>Track progress</span><span>34%</span></div>
+          <div class="progress-track rounded-full h-2"><div class="progress-fill rounded-full h-2" style="width:34%"></div></div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        <template x-for="item in nav.filter(n=>n.id!=='home')" :key="item.id">
+          <button @click="go(item.id)" class="btn card text-left rounded-lg p-5">
+            <div class="mono text-xs mb-2" style="color:var(--amber)" x-text="item.tag"></div>
+            <div class="font-semibold mb-1" x-text="item.label"></div>
+            <div class="text-sm" style="color:var(--sub)" x-text="item.blurb"></div>
+          </button>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ TUTORIALS HUB ============ -->
+  <template x-if="topSection==='tutorials'">
+    <div>
+      <h2 class="text-2xl font-semibold mb-1">Tutorials</h2>
+      <p class="mb-5" style="color:var(--sub)">Three formats, same content spine: microcourses for one idea, courses for a subject, tracks for a job-ready outcome.</p>
+
+      <div class="flex gap-2 mb-6 mono text-sm">
+        <template x-for="t in [{id:'track',label:'Tracks'},{id:'course',label:'Courses'},{id:'micro',label:'Microcourses'}]" :key="t.id">
+          <button @click="tutorialsTab=t.id" class="btn pill px-3 py-1.5 rounded-full" :class="tutorialsTab===t.id?'active':''" x-text="t.label"></button>
+        </template>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <template x-for="c in courses.filter(c=>c.type===tutorialsTab)" :key="c.id">
+          <button @click="openCourse(c)" class="btn card text-left rounded-lg p-5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="mono text-xs px-2 py-0.5 rounded" style="background:var(--panel2); color:var(--sub)" x-text="c.level"></span>
+              <span class="mono text-xs" style="color:var(--sub)" x-text="c.duration"></span>
+            </div>
+            <div class="font-semibold mb-1" x-text="c.title"></div>
+            <div class="text-sm mb-3" style="color:var(--sub)" x-text="c.desc"></div>
+            <div class="progress-track rounded-full h-1.5"><div class="progress-fill rounded-full h-1.5" :style="'width:'+c.progress+'%'"></div></div>
+          </button>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ COURSE DETAIL ============ -->
+  <template x-if="topSection==='course'">
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="md:col-span-2">
+        <div class="mono text-xs mb-2" style="color:var(--amber)" x-text="activeCourse.level+' · '+activeCourse.duration"></div>
+        <h2 class="text-2xl font-semibold mb-2" x-text="activeCourse.title"></h2>
+        <p class="mb-6" style="color:var(--sub)" x-text="activeCourse.desc"></p>
+
+        <div class="space-y-3">
+          <template x-for="m in activeCourse.modules" :key="m.id">
+            <div class="card rounded-lg overflow-hidden">
+              <button @click="toggleModule(m.id)" class="w-full flex items-center justify-between p-4 text-left">
+                <div class="flex items-center gap-3">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs mono"
+                    :style="m.done ? 'background:var(--green); color:#06210f' : 'border:1px solid var(--line); color:var(--sub)'"
+                    x-text="m.done?'✓':''"></span>
+                  <span class="font-medium" x-text="m.title"></span>
+                </div>
+                <span class="mono text-xs" style="color:var(--sub)" x-text="(expandedModule===m.id?'▲':'▼')"></span>
+              </button>
+              <div x-show="expandedModule===m.id" class="px-4 pb-4 space-y-2" style="border-top:1px solid var(--line)">
+                <template x-for="it in m.items" :key="it.type+it.title">
+                  <button @click="openItem(m, it)" class="btn w-full flex items-center justify-between rounded p-2.5 mt-2" style="background:var(--panel3)">
+                    <span class="flex items-center gap-2 text-sm">
+                      <span class="mono text-xs px-1.5 py-0.5 rounded" :style="itemBadge(it.type)" x-text="itemLabel(it.type)"></span>
+                      <span x-text="it.title"></span>
+                    </span>
+                    <span class="mono text-xs" style="color:var(--sub)" x-text="it.meta"></span>
+                  </button>
+                </template>
+                <button @click="markModuleDone(m)" class="mono text-xs mt-2" style="color:var(--sub)" x-show="!m.done">mark module complete →</button>
+              </div>
+            </div>
+          </template>
+
+          <!-- final test -->
+          <div class="card rounded-lg p-5" :style="allDone ? 'border-color:var(--amber)' : ''">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="mono text-xs mb-1" style="color:var(--sub)" x-text="allDone ? 'unlocked' : '🔒 locked · complete all modules'"></div>
+                <div class="font-semibold" x-text="'Final Assessment — '+activeCourse.title"></div>
+                <div class="text-sm mt-1" style="color:var(--sub)">25 questions · code + concept · pass mark 70%</div>
+              </div>
+              <button @click="allDone && openFinalTest()" class="btn mono text-sm px-4 py-2 rounded shrink-0"
+                :style="allDone ? 'background:var(--amber); color:#1a1204' : 'border:1px solid var(--line); color:var(--sub2); cursor:not-allowed'">
+                Take test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- item preview drawer -->
+      <div class="card rounded-lg p-5 h-fit sticky top-28">
+        <template x-if="!activeItem.title">
+          <div class="text-sm" style="color:var(--sub)">Select a lesson, quiz, or lab from the left to preview it here.</div>
+        </template>
+        <template x-if="activeItem.title">
+          <div>
+            <div class="mono text-xs px-1.5 py-0.5 rounded inline-block mb-3" :style="itemBadge(activeItem.type)" x-text="itemLabel(activeItem.type)"></div>
+            <div class="font-semibold mb-3" x-text="activeItem.title"></div>
+
+            <template x-if="activeItem.type==='reading'">
+              <div class="text-sm space-y-2" style="color:var(--sub)">
+                <p x-text="activeItem.body"></p>
+                <div class="mono text-xs px-2 py-1.5 rounded flex items-center gap-2" style="background:var(--panel3); color:var(--blue)">📎 <span x-text="activeItem.attachment"></span></div>
+              </div>
+            </template>
+            <template x-if="activeItem.type==='lesson'">
+              <p class="text-sm" style="color:var(--sub)" x-text="activeItem.body"></p>
+            </template>
+            <template x-if="activeItem.type==='quiz'">
+              <div>
+                <p class="text-sm mb-3" x-text="activeItem.q"></p>
+                <div class="space-y-2">
+                  <template x-for="(opt,i) in activeItem.options" :key="i">
+                    <button @click="activeItem.picked=i" class="btn w-full text-left text-sm px-3 py-2 rounded"
+                      :style="activeItem.picked===i ? (i===activeItem.correct?'background:rgba(79,174,109,.15); border:1px solid var(--green)':'background:rgba(224,100,91,.15); border:1px solid var(--red)') : 'border:1px solid var(--line)'"
+                      x-text="opt"></button>
+                  </template>
+                </div>
+              </div>
+            </template>
+            <template x-if="activeItem.type==='lab'">
+              <div class="rounded overflow-hidden" style="border:1px solid var(--line)">
+                <div class="mono text-xs px-3 py-1.5" style="background:var(--panel3); color:var(--sub)">lab.py</div>
+                <pre class="mono text-xs p-3" x-text="activeItem.starter"></pre>
+                <div class="p-2"><button class="mono text-xs px-3 py-1.5 rounded" style="background:var(--amber); color:#1a1204">Run ▶</button></div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ FINAL TEST ============ -->
+  <template x-if="topSection==='finaltest'">
+    <div class="max-w-xl">
+      <div class="mono text-xs mb-2" style="color:var(--amber)">Final Assessment</div>
+      <h2 class="text-2xl font-semibold mb-6" x-text="activeCourse.title"></h2>
+      <div class="card rounded-lg p-5 mb-4">
+        <p class="text-sm mb-4">Q3 of 25 — What does this print?</p>
+        <pre class="mono text-xs p-3 rounded mb-4" style="background:var(--panel3)">print([x*2 for x in range(3)])</pre>
+        <div class="space-y-2 mono text-sm">
+          <template x-for="opt in ['[0, 2, 4]','[0, 1, 2]','[2, 4, 6]','TypeError']" :key="opt">
+            <button class="w-full text-left px-3 py-2 rounded btn" style="border:1px solid var(--line)" x-text="opt"></button>
+          </template>
+        </div>
+      </div>
+      <div class="progress-track rounded-full h-1.5 mb-2"><div class="progress-fill rounded-full h-1.5" style="width:12%"></div></div>
+      <p class="mono text-xs" style="color:var(--sub)">3 / 25 answered · pass mark 70%</p>
+    </div>
+  </template>
+
+  <!-- ============ PRACTICE HUB ============ -->
+  <template x-if="topSection==='practice'">
+    <div>
+      <h2 class="text-2xl font-semibold mb-1">Practice</h2>
+      <p class="mb-5" style="color:var(--sub)">A LeetCode-shaped home for problems: sheets to follow, topics to drill, contests to race the clock.</p>
+
+      <div class="flex gap-2 mb-6 mono text-sm">
+        <template x-for="t in [{id:'problems',label:'Problems'},{id:'sheets',label:'Sheets'},{id:'topics',label:'Topics'},{id:'contests',label:'Contests'}]" :key="t.id">
+          <button @click="practiceTab=t.id" class="btn pill px-3 py-1.5 rounded-full" :class="practiceTab===t.id?'active':''" x-text="t.label"></button>
+        </template>
+      </div>
+
+      <!-- PROBLEMS -->
+      <template x-if="practiceTab==='problems'">
+        <div>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <template x-for="d in ['All','Easy','Medium','Hard']" :key="d">
+              <button @click="difficultyFilter=d" class="btn pill px-3 py-1 rounded-full mono text-xs" :class="difficultyFilter===d?'active':''" x-text="d"></button>
+            </template>
+            <select x-model="topicFilter" class="mono text-xs px-2 py-1.5 rounded ml-auto" style="background:var(--panel); border:1px solid var(--line); color:var(--sub)">
+              <option value="All">All topics</option>
+              <template x-for="t in allTopics" :key="t"><option :value="t" x-text="t"></option></template>
+            </select>
+            <span class="mono text-xs" style="color:var(--sub2)" x-text="filteredProblems.length+' problems'"></span>
+          </div>
+
+          <div class="card rounded-lg overflow-hidden">
+            <div class="grid grid-cols-12 mono text-xs px-4 py-2" style="background:var(--panel3); color:var(--sub2)">
+              <span class="col-span-1">✓</span><span class="col-span-5">Title</span><span class="col-span-2">Difficulty</span><span class="col-span-2">Acceptance</span><span class="col-span-2">Topics</span>
+            </div>
+            <template x-for="p in filteredProblems" :key="p.id">
+              <button @click="openProblem(p)" class="w-full grid grid-cols-12 items-center px-4 py-2.5 text-left text-sm btn" style="border-top:1px solid var(--line)">
+                <span class="col-span-1" x-text="p.status==='solved'?'✅':(p.status==='attempted'?'🟡':'')"></span>
+                <span class="col-span-5" x-text="p.title"></span>
+                <span class="col-span-2"><span class="mono text-xs px-2 py-0.5 rounded" :class="'badge-'+p.difficulty" x-text="p.difficulty"></span></span>
+                <span class="col-span-2 mono text-xs" style="color:var(--sub)" x-text="p.acceptance+'%'"></span>
+                <span class="col-span-2 mono text-xs truncate" style="color:var(--sub2)" x-text="p.topics.join(', ')"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- SHEETS -->
+      <template x-if="practiceTab==='sheets'">
+        <div class="grid md:grid-cols-2 gap-4">
+          <template x-for="s in sheets" :key="s.id">
+            <button @click="openSheet(s)" class="btn card text-left rounded-lg p-5">
+              <div class="font-semibold mb-1" x-text="s.title"></div>
+              <div class="text-sm mb-3" style="color:var(--sub)" x-text="s.desc"></div>
+              <div class="flex justify-between mono text-xs mb-1" style="color:var(--sub)"><span x-text="s.solved+' / '+s.count+' solved'"></span></div>
+              <div class="progress-track rounded-full h-1.5"><div class="progress-fill rounded-full h-1.5" :style="'width:'+Math.round(s.solved/s.count*100)+'%'"></div></div>
+            </button>
+          </template>
+        </div>
+      </template>
+
+      <!-- TOPICS -->
+      <template x-if="practiceTab==='topics'">
+        <div class="flex flex-wrap gap-2">
+          <template x-for="t in allTopics" :key="t">
+            <button @click="openTopic(t)" class="btn pill px-3 py-1.5 rounded-full mono text-sm" x-text="t+' · '+problems.filter(p=>p.topics.includes(t)).length"></button>
+          </template>
+        </div>
+      </template>
+
+      <!-- CONTESTS -->
+      <template x-if="practiceTab==='contests'">
+        <div class="space-y-3">
+          <template x-for="c in contests" :key="c.id">
+            <div class="card rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <div class="font-medium" x-text="c.title"></div>
+                <div class="mono text-xs mt-1" style="color:var(--sub)" x-text="c.date+' · '+c.duration"></div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="mono text-xs px-2 py-1 rounded" :style="c.status==='live'?'color:var(--green); background:rgba(79,174,109,.1)':'color:var(--sub)'" x-text="c.status"></span>
+                <button class="btn mono text-xs px-3 py-1.5 rounded" style="background:var(--amber); color:#1a1204" x-text="c.status==='upcoming'?'Remind me':'Enter'"></button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  <!-- ============ PROBLEM DETAIL ============ -->
+  <template x-if="topSection==='problem'">
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card rounded-lg p-0 overflow-hidden">
+        <div class="flex mono text-xs" style="border-bottom:1px solid var(--line)">
+          <template x-for="t in ['description','editorial','submissions','discussion']" :key="t">
+            <button @click="problemDetailTab=t" class="px-4 py-2.5 capitalize" :style="problemDetailTab===t?'color:var(--amber); border-bottom:2px solid var(--amber)':'color:var(--sub)'" x-text="t"></button>
+          </template>
+        </div>
+        <div class="p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-xl font-semibold" x-text="activeProblem.title"></h2>
+            <span class="mono text-xs px-2 py-0.5 rounded" :class="'badge-'+activeProblem.difficulty" x-text="activeProblem.difficulty"></span>
+          </div>
+          <template x-if="problemDetailTab==='description'">
+            <div class="text-sm space-y-3" style="color:var(--sub)">
+              <p x-text="activeProblem.prompt"></p>
+              <pre class="mono text-xs p-3 rounded" style="background:var(--panel3)" x-text="activeProblem.example"></pre>
+              <div class="flex gap-2 flex-wrap">
+                <template x-for="t in activeProblem.topics" :key="t"><span class="mono text-xs px-2 py-0.5 rounded" style="background:var(--panel2)" x-text="t"></span></template>
+              </div>
+            </div>
+          </template>
+          <template x-if="problemDetailTab==='editorial'">
+            <p class="text-sm" style="color:var(--sub)">Two approaches: brute force O(n²), then hash-map O(n). Editorial walks through the trade-off and why the second passes the constraint bound.</p>
+          </template>
+          <template x-if="problemDetailTab==='submissions'">
+            <p class="text-sm" style="color:var(--sub)">No submissions yet for this problem.</p>
+          </template>
+          <template x-if="problemDetailTab==='discussion'">
+            <p class="text-sm" style="color:var(--sub)">12 threads. Top post: "O(1) space variant using two pointers."</p>
+          </template>
+        </div>
+      </div>
+
+      <div class="card rounded-lg p-0 overflow-hidden">
+        <div class="mono text-xs px-4 py-2 flex items-center gap-2" style="border-bottom:1px solid var(--line); color:var(--sub)">
+          <span class="w-2 h-2 rounded-full inline-block" style="background:var(--amber)"></span>
+          <span class="w-2 h-2 rounded-full inline-block" style="background:var(--blue)"></span>
+          solution.py
+        </div>
+        <pre class="mono text-sm p-4">def solve(nums, target):
+    <span style="color:var(--sub)"># write here</span>
+    pass
+</pre>
+        <div class="px-4 pb-4 flex gap-2">
+          <button class="btn mono text-xs px-3 py-1.5 rounded" style="background:var(--panel2); color:var(--text)">Run ▶</button>
+          <button class="btn mono text-xs px-3 py-1.5 rounded" style="background:var(--amber); color:#1a1204">Submit</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ QUIZZES & CHALLENGES ============ -->
+  <template x-if="topSection==='quizzes'">
+    <div>
+      <h2 class="text-2xl font-semibold mb-1">Quizzes & Challenges</h2>
+      <p class="mb-5" style="color:var(--sub)">Knowledge checks tied to what you've read, plus games that make you argue with the interpreter.</p>
+
+      <div class="flex gap-2 mb-6 mono text-sm">
+        <template x-for="t in [{id:'daily',label:'Daily Challenge'},{id:'knowledge',label:'Knowledge Quizzes'},{id:'games',label:'Games'}]" :key="t.id">
+          <button @click="quizTab=t.id" class="btn pill px-3 py-1.5 rounded-full" :class="quizTab===t.id?'active':''" x-text="t.label"></button>
+        </template>
+      </div>
+
+      <template x-if="quizTab==='daily'">
+        <div class="card rounded-lg p-5 max-w-md">
+          <div class="flex items-center justify-between mb-3">
+            <span class="mono text-xs" style="color:var(--amber)">Today · #142</span>
+            <span class="mono text-xs" style="color:var(--sub)">🔥 <span x-text="streak"></span> day streak</span>
+          </div>
+          <div class="font-medium mb-3">Predict the output before you run it.</div>
+          <div class="flex gap-1 mb-4">
+            <template x-for="d in [1,2,3,4,5,6,7]" :key="d">
+              <span class="w-6 h-6 rounded-full text-xs flex items-center justify-center mono" :style="d<7?'background:var(--green); color:#06210f':'border:1px solid var(--amber); color:var(--amber)'" x-text="d===7?'?':'✓'"></span>
+            </template>
+          </div>
+          <button class="btn mono text-sm px-4 py-2 rounded" style="background:var(--amber); color:#1a1204">Start today's challenge</button>
+        </div>
+      </template>
+
+      <template x-if="quizTab==='knowledge'">
+        <div class="grid md:grid-cols-2 gap-3">
+          <template x-for="q in knowledgeQuizzes" :key="q.id">
+            <button @click="openQuiz(q)" class="btn card text-left rounded-lg p-4">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium" x-text="q.title"></span>
+                <span class="mono text-xs px-2 py-0.5 rounded" style="background:var(--panel2); color:var(--sub)" x-text="q.type"></span>
+              </div>
+              <div class="text-xs" style="color:var(--sub)" x-text="q.topic+' · '+q.questions+' questions'"></div>
+            </button>
+          </template>
+        </div>
+      </template>
+
+      <template x-if="quizTab==='games'">
+        <div class="grid md:grid-cols-3 gap-3">
+          <template x-for="g in games" :key="g.name">
+            <div class="card rounded-lg p-4">
+              <div class="font-medium mb-1" x-text="g.name"></div>
+              <div class="text-xs" style="color:var(--sub)" x-text="g.how"></div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  <!-- ============ QUIZ RUNNER ============ -->
+  <template x-if="topSection==='quizrunner'">
+    <div class="max-w-lg">
+      <div class="mono text-xs mb-2" style="color:var(--amber)" x-text="activeQuiz.type"></div>
+      <h2 class="text-2xl font-semibold mb-6" x-text="activeQuiz.title"></h2>
+      <div class="card rounded-lg p-5">
+        <p class="text-sm mb-4" x-text="activeQuiz.sampleQ"></p>
+        <div class="space-y-2">
+          <template x-for="(opt,i) in activeQuiz.sampleOptions" :key="i">
+            <button @click="activeQuiz.picked=i" class="btn w-full text-left text-sm px-3 py-2 rounded"
+              :style="activeQuiz.picked===i ? (i===activeQuiz.sampleCorrect?'background:rgba(79,174,109,.15); border:1px solid var(--green)':'background:rgba(224,100,91,.15); border:1px solid var(--red)') : 'border:1px solid var(--line)'"
+              x-text="opt"></button>
+          </template>
+        </div>
+        <p class="mono text-xs mt-4" style="color:var(--sub)" x-text="'question 1 of '+activeQuiz.questions"></p>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ TOOLS ============ -->
+  <template x-if="topSection==='tools'">
+    <div>
+      <h2 class="text-2xl font-semibold mb-1">Tools</h2>
+      <p class="mb-6" style="color:var(--sub)">The playgrounds that power labs, problems, and the final tests above.</p>
+      <div class="grid md:grid-cols-2 gap-3">
+        <template x-for="tool in tools" :key="tool.name">
+          <div class="card rounded-lg p-4">
+            <div class="font-medium mb-1" x-text="tool.name"></div>
+            <div class="text-sm" style="color:var(--sub)" x-text="tool.desc"></div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ BLOG ============ -->
+  <template x-if="topSection==='blog'">
+    <div>
+      <h2 class="text-2xl font-semibold mb-1">Blog</h2>
+      <p class="mb-6" style="color:var(--sub)">Editorial content, tagged into the same taxonomy as tracks and problems.</p>
+      <div class="grid gap-3">
+        <template x-for="post in posts" :key="post.id">
+          <button @click="openPost(post)" class="btn card rounded-lg p-4 text-left flex items-center justify-between">
+            <div>
+              <div class="font-medium" x-text="post.title"></div>
+              <div class="mono text-xs mt-1" style="color:var(--sub)">
+                <template x-for="tag in post.tags" :key="tag"><span class="mr-2">#<span x-text="tag"></span></span></template>
+              </div>
+            </div>
+            <span class="mono text-xs" style="color:var(--amber)">read →</span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <template x-if="topSection==='post'">
+    <div class="max-w-2xl">
+      <h2 class="text-2xl font-semibold mb-2" x-text="activePost.title"></h2>
+      <div class="mono text-xs mb-6" style="color:var(--sub)">
+        <template x-for="tag in activePost.tags" :key="tag"><span class="mr-2">#<span x-text="tag"></span></span></template>
+      </div>
+      <div class="card rounded-lg p-6 text-sm leading-relaxed" x-text="activePost.body"></div>
+    </div>
+  </template>
+
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-6 py-8 mono text-xs" style="color:var(--sub); border-top:1px solid var(--line)">
+    sitemap: Home / Tutorials (Tracks·Courses·Microcourses → modules → final test) / Practice (Problems·Sheets·Topics·Contests) / Quizzes & Challenges / Tools / Blog
+  </footer>
+
+<script>
+function app(){
+  return {
+    topSection: 'home',
+    streak: 6,
+    trail: [{id:'home', label:'Home'}],
+    nav: [
+      {id:'home', label:'Home', tag:'00', blurb:''},
+      {id:'tutorials', label:'Tutorials', tag:'01', blurb:'Tracks, courses, microcourses — lessons to final test'},
+      {id:'practice', label:'Practice', tag:'02', blurb:'Problems, sheets, topics, contests'},
+      {id:'quizzes', label:'Quizzes & Challenges', tag:'03', blurb:'Daily challenge, knowledge checks, games'},
+      {id:'tools', label:'Tools', tag:'04', blurb:'Compiler, PyVisualizer, LeetWasm'},
+      {id:'blog', label:'Blog', tag:'05', blurb:'Articles, tips, case studies'},
+    ],
+
+    // ---- Tutorials ----
+    tutorialsTab: 'track',
+    expandedModule: null,
+    activeItem: {},
+    courses: [
+      {id:'t1', type:'track', level:'0→Job', duration:'4 courses · 42h', progress:34,
+        title:'Python Zero to Job-Ready', desc:'Full track: fundamentals → data structures → web basics → capstone project + final certificate test.',
+        modules:[
+          {id:'m1', title:'Module 1 — Syntax & Control Flow', done:true, items:[
+            {type:'lesson', title:'Variables & Types', meta:'12 min', body:'Covers dynamic typing, mutability, and the object model underneath every variable.'},
+            {type:'quiz', title:'Checkpoint: control flow', meta:'5 Q', q:'What does this print?\nfor i in range(3): print(i)', options:['0 1 2','1 2 3','0 1 2 3','SyntaxError'], correct:0},
+            {type:'lab', title:'FizzBuzz variant', meta:'lab', starter:'def fizzbuzz(n):\n    # your code\n    pass'},
+          ]},
+          {id:'m2', title:'Module 2 — Functions & Scope', done:true, items:[
+            {type:'reading', title:'Closures, explained slowly', meta:'8 min read', body:'Why a nested function remembers its enclosing scope, with a diagram of the cell object.', attachment:'closures_diagram.pdf'},
+            {type:'quiz', title:'Checkpoint: scope', meta:'5 Q', q:'What does `nonlocal` do?', options:['Declares a new global','Binds to nearest enclosing scope','Deletes a variable','Nothing, invalid keyword'], correct:1},
+          ]},
+          {id:'m3', title:'Module 3 — Data Structures', done:false, items:[
+            {type:'lesson', title:'Lists vs tuples vs sets', meta:'15 min', body:'When mutability and ordering actually matter for performance and correctness.'},
+            {type:'lab', title:'Build a frequency counter', meta:'lab', starter:'def word_freq(text):\n    # your code\n    pass'},
+          ]},
+          {id:'m4', title:'Module 4 — Capstone Project', done:false, items:[
+            {type:'reading', title:'Capstone brief', meta:'attached', body:'Build a CLI tool that ingests a CSV and reports summary stats.', attachment:'capstone_brief.pdf'},
+          ]},
+        ]},
+      {id:'c1', type:'course', level:'Intermediate', duration:'6 modules · 8h', progress:60,
+        title:'Data Structures in Python', desc:'Arrays through trees, with a lab and quiz per structure.',
+        modules:[
+          {id:'m1', title:'Arrays & Strings', done:true, items:[
+            {type:'lesson', title:'Amortized growth', meta:'10 min', body:'Why appending to a list is O(1) amortized, and when it is not.'},
+            {type:'quiz', title:'Checkpoint', meta:'4 Q', q:'Appending to a Python list is:', options:['O(n) always','O(1) amortized','O(log n)','Undefined'], correct:1},
+          ]},
+          {id:'m2', title:'Linked Lists', done:false, items:[
+            {type:'lab', title:'Reverse a linked list', meta:'lab', starter:'class Node:\n    def __init__(self, val):\n        self.val = val\n        self.next = None\n\ndef reverse(head):\n    pass'},
+          ]},
+        ]},
+      {id:'mc1', type:'micro', level:'Beginner', duration:'35 min', progress:0,
+        title:'F-strings & String Formatting', desc:'One sitting, one skill: modern string formatting end to end.',
+        modules:[
+          {id:'m1', title:'Single Lesson', done:false, items:[
+            {type:'lesson', title:'f-strings, .format, %', meta:'20 min', body:'The three formatting styles and why f-strings won.'},
+            {type:'quiz', title:'Quick check', meta:'3 Q', q:"What does f'{3+4}' evaluate to?", options:["'3+4'","'7'","7","SyntaxError"], correct:1},
+          ]},
+        ]},
+      {id:'mc2', type:'micro', level:'Beginner', duration:'25 min', progress:100,
+        title:'List Comprehensions in 25 Minutes', desc:'One idea, drilled until it is automatic.',
+        modules:[{id:'m1', title:'Single Lesson', done:true, items:[
+          {type:'lesson', title:'Comprehension syntax', meta:'15 min', body:'Map + filter, collapsed into one readable line.'},
+        ]}]},
+      {id:'c2', type:'course', level:'Advanced', duration:'5 modules · 6h', progress:10,
+        title:'Async Python', desc:'asyncio, event loops, and where threads still win.',
+        modules:[{id:'m1', title:'Event Loop Basics', done:false, items:[
+          {type:'lesson', title:'What actually blocks', meta:'12 min', body:'Distinguishing CPU-bound from I/O-bound to pick the right concurrency model.'},
+        ]}]},
+    ],
+    activeCourse: {},
+    get allDone(){ return this.activeCourse.modules ? this.activeCourse.modules.every(m=>m.done) : false; },
+    itemLabel(t){ return {lesson:'Lesson', quiz:'Quiz', lab:'Lab', reading:'Reading'}[t]; },
+    itemBadge(t){
+      const map = {lesson:'color:var(--blue); background:rgba(91,127,224,.1)', quiz:'color:var(--amber); background:rgba(232,163,61,.1)', lab:'color:var(--green); background:rgba(79,174,109,.1)', reading:'color:var(--sub); background:var(--panel2)'};
+      return map[t];
+    },
+    openCourse(c){
+      this.activeCourse = c; this.topSection='course'; this.expandedModule = c.modules[0].id; this.activeItem = {};
+      this.trail = [{id:'home',label:'Home'},{id:'tutorials',label:'Tutorials'},{id:'course',label:c.title}];
+    },
+    toggleModule(id){ this.expandedModule = this.expandedModule===id ? null : id; },
+    openItem(m, it){ this.activeItem = it; },
+    markModuleDone(m){ m.done = true; },
+    openFinalTest(){
+      this.topSection='finaltest';
+      this.trail = [{id:'home',label:'Home'},{id:'tutorials',label:'Tutorials'},{id:'course',label:this.activeCourse.title},{id:'finaltest',label:'Final Test'}];
+    },
+
+    // ---- Practice ----
+    practiceTab: 'problems',
+    difficultyFilter: 'All',
+    topicFilter: 'All',
+    problems: [
+      {id:1, title:'Two Sum', difficulty:'Easy', acceptance:52, topics:['arrays','hash-map'], status:'solved', prompt:'Given an array of integers and a target, return indices of the two numbers that add up to target.', example:'Input: nums=[2,7,11,15], target=9\nOutput: [0,1]'},
+      {id:2, title:'Valid Parentheses', difficulty:'Easy', acceptance:41, topics:['stack'], status:'attempted', prompt:'Given a string of brackets, determine if it is validly nested.', example:"Input: s='()[]{}'\nOutput: true"},
+      {id:3, title:'LRU Cache', difficulty:'Hard', acceptance:38, topics:['hash-map','linked-list'], status:'todo', prompt:'Design an LRU cache with O(1) get and put.', example:'cache = LRUCache(2)\ncache.put(1,1); cache.get(1) -> 1'},
+      {id:4, title:'Longest Substring Without Repeats', difficulty:'Medium', acceptance:34, topics:['sliding-window','hash-map'], status:'todo', prompt:'Find the length of the longest substring without repeating characters.', example:"Input: s='abcabcbb'\nOutput: 3"},
+      {id:5, title:'Merge Intervals', difficulty:'Medium', acceptance:46, topics:['arrays','sorting'], status:'todo', prompt:'Merge all overlapping intervals.', example:'Input: [[1,3],[2,6],[8,10]]\nOutput: [[1,6],[8,10]]'},
+      {id:6, title:'Binary Tree Level Order', difficulty:'Medium', acceptance:63, topics:['tree','bfs'], status:'solved', prompt:'Return level-order traversal of a binary tree.', example:'Input: [3,9,20,null,null,15,7]\nOutput: [[3],[9,20],[15,7]]'},
+      {id:7, title:'N-Queens', difficulty:'Hard', acceptance:29, topics:['backtracking'], status:'todo', prompt:'Place N queens on an N×N board with no attacks.', example:'Input: n=4\nOutput: 2 solutions'},
+      {id:8, title:'Climbing Stairs', difficulty:'Easy', acceptance:51, topics:['dp'], status:'solved', prompt:'Count distinct ways to climb n stairs, 1 or 2 steps at a time.', example:'Input: n=3\nOutput: 3'},
+    ],
+    sheets: [
+      {id:'s1', title:'Blind 75', desc:'The canonical interview prep set, curated by topic and difficulty.', count:75, solved:22},
+      {id:'s2', title:'Two Pointers Mastery', desc:'Every pattern variant of the two-pointer technique.', count:20, solved:20},
+      {id:'s3', title:'SQL 50', desc:'Fifty query problems, joins through window functions.', count:50, solved:4},
+    ],
+    contests: [
+      {id:'w1', title:'Weekly Sprint #42', date:'Sun 20 Jul, 8:00 PM IST', duration:'90 min', status:'upcoming'},
+      {id:'w2', title:'Weekly Sprint #41', date:'Sun 13 Jul', duration:'90 min', status:'ended'},
+      {id:'w3', title:'DP Marathon', date:'Live now', duration:'3 hr', status:'live'},
+    ],
+    get allTopics(){ return [...new Set(this.problems.flatMap(p=>p.topics))]; },
+    get filteredProblems(){
+      return this.problems.filter(p=>
+        (this.difficultyFilter==='All' || p.difficulty===this.difficultyFilter) &&
+        (this.topicFilter==='All' || p.topics.includes(this.topicFilter))
+      );
+    },
+    activeProblem: {}, problemDetailTab: 'description',
+    openProblem(p){
+      this.activeProblem = p; this.topSection='problem'; this.problemDetailTab='description';
+      this.trail = [{id:'home',label:'Home'},{id:'practice',label:'Practice'},{id:'problem',label:p.title}];
+    },
+    openSheet(s){ this.practiceTab='problems'; this.difficultyFilter='All'; this.topicFilter='All'; },
+    openTopic(t){ this.practiceTab='problems'; this.topicFilter=t; },
+
+    // ---- Quizzes & Challenges ----
+    quizTab: 'daily',
+    knowledgeQuizzes: [
+      {id:'q1', title:'Predict the Output: Loops', type:'Predict Output', topic:'control-flow', questions:8},
+      {id:'q2', title:'Trace This: Recursion', type:'Trace Table', topic:'recursion', questions:6},
+      {id:'q3', title:'Mutable Default Args', type:'MCQ', topic:'gotchas', questions:5},
+      {id:'q4', title:'Dunder Methods Rapid Fire', type:'MCQ', topic:'oop', questions:10},
+    ],
+    activeQuiz: {},
+    openQuiz(q){
+      this.activeQuiz = {...q, sampleQ:'What gets printed?\ndef f(x, l=[]):\n    l.append(x)\n    return l\nprint(f(1)); print(f(2))', sampleOptions:['[1] [2]','[1] [1, 2]','[1, 2] [1, 2]','Error'], sampleCorrect:1, picked:null};
+      this.topSection='quizrunner';
+      this.trail = [{id:'home',label:'Home'},{id:'quizzes',label:'Quizzes & Challenges'},{id:'quizrunner',label:q.title}];
+    },
+    games: [
+      {name:'Black Box', how:'Guess the function from input/output pairs alone.'},
+      {name:'Code Archaeology', how:'Read legacy code and answer what it actually does.'},
+      {name:'Code Memory', how:'Memorize a snippet, then reproduce it from a blanked template.'},
+      {name:'Parsons Puzzle', how:'Drag scrambled lines into the correct order.'},
+      {name:'Schema Matcher', how:'Match data structures to the problems they solve.'},
+      {name:'Trace Table', how:'Fill in variable states line by line as code executes.'},
+    ],
+
+    // ---- Tools ----
+    tools: [
+      {name:'Online Compiler', desc:'Run Python in the browser via Pyodide, no server cost.'},
+      {name:'PyMonkey', desc:'Typing tutor for Python syntax speed and muscle memory.'},
+      {name:'PyVisualizer', desc:'Step through execution and watch memory/state change.'},
+      {name:'LeetWasm', desc:'Browser coding lab, MicroPython + Pyodide dual runtime.'},
+    ],
+
+    // ---- Blog ----
+    posts: [
+      {id:1, title:'Why recursion clicks once you draw it', tags:['recursion','beginner'], body:'A short walkthrough of visualizing call stacks before writing another recursive function.'},
+      {id:2, title:'Static site, zero server cost: how PyVerse ships', tags:['architecture','wagtail'], body:'Notes on going fully static with django-distill while keeping Python execution client-side.'},
+    ],
+    activePost: {},
+    openPost(post){
+      this.activePost = post; this.topSection='post';
+      this.trail = [{id:'home',label:'Home'},{id:'blog',label:'Blog'},{id:'post',label:post.title}];
+    },
+
+    // ---- Top-level nav ----
+    go(id){
+      this.topSection = id;
+      this.trail = id==='home' ? [{id:'home',label:'Home'}] : [{id:'home',label:'Home'},{id, label:this.nav.find(n=>n.id===id).label}];
+    },
+    jumpTo(i){
+      const t = this.trail[i];
+      if(['home','tutorials','practice','quizzes','tools','blog'].includes(t.id)) this.go(t.id);
+    }
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{% load wagtailimages_tags %}
+
+<figure
+  class="my-6 {% if value.width == 'half' %}max-w-md{% elif value.width == 'wide' %}max-w-2xl{% else %}max-w-full{% endif %}"
+>
+  {% image value.image width-800 class="w-full rounded-xl" %} {% if value.caption %}
+  <figcaption class="text-sm text-neutral-500 mt-2 text-center">{{ value.caption }}</figcaption>
+  {% endif %}
+</figure>

@@ -1,0 +1,137 @@
+{% extends "base.html" %} {% load wagtailcore_tags %} {% block content %}
+<main class="max-w-3xl mx-auto px-6 py-12">
+  <a href="/practice/" class="text-sm text-neutral-500 hover:underline">← Back to Practice Hub</a>
+
+  <div class="mt-4 mb-8">
+    <h1 class="text-3xl font-bold">{{ quiz.title }}</h1>
+    <p class="text-neutral-500 mt-1">
+      Type: {{ quiz.get_quiz_type_display }} · Concept: {{ concept.title }}
+    </p>
+  </div>
+
+  <!-- The UI Container -->
+  <div id="quiz-app" class="space-y-8">
+    <!-- Vanilla JS will inject questions here -->
+  </div>
+
+  <!-- Client-Side Logic (NO SERVER POSTS) -->
+  <script>
+    // Safely dump Django context into JS
+    const quizData = {{ quiz.questions_data|safe }};
+    let currentQuestion = 0;
+    let score = 0;
+
+    function renderQuestion() {
+        const app = document.getElementById('quiz-app');
+        const q = quizData[currentQuestion];
+        if (!q) {
+            showResults();
+            return;
+        }
+
+        let html = `<div class="border border-neutral-200 rounded-xl p-6 bg-white">`;
+
+        // Render Code Snippet if exists
+        if (q.code_snippet) {
+            html += `<pre class="bg-neutral-900 text-neutral-100 p-4 rounded-lg text-sm mb-4 overflow-x-auto"><code>${q.code_snippet}</code></pre>`;
+        }
+        if (q.input) {
+            html += `<div class="bg-neutral-50 p-3 rounded-lg text-sm font-mono mb-4 text-neutral-600">Input: ${q.input}</div>`;
+        }
+
+        // Route by Quiz Type
+        if (q.type === 'true_false') {
+            html += `<p class="text-lg font-medium mb-6">${q.statement}</p>
+                     <div class="flex gap-4">
+                        <button onclick="checkAnswer(true, ${q.is_true})" class="flex-1 py-3 border-2 border-green-200 rounded-lg text-green-700 font-semibold hover:bg-green-50 transition">True</button>
+                        <button onclick="checkAnswer(false, ${q.is_true})" class="flex-1 py-3 border-2 border-red-200 rounded-lg text-red-700 font-semibold hover:bg-red-50 transition">False</button>
+                     </div>`;
+        }
+        else if (q.type === 'fill_blank') {
+            html += `<p class="text-lg mb-4">${q.template.replace('_______', '<input type="text" id="blank-input" class="border-b-2 border-neutral-900 mx-1 outline-none px-1 w-48 text-center font-bold">')}</p>
+                     <button onclick="checkFillBlank()" class="px-6 py-2 bg-neutral-900 text-white rounded-lg font-semibold hover:bg-neutral-800">Submit</button>`;
+        }
+        else if (q.type === 'bug_hunt') {
+            html += `<p class="font-medium mb-4">${q.question}</p><div class="space-y-1">`;
+            q.code_snippet.split('\n').forEach((line, index) => {
+                html += `<div onclick="checkBugHunt(${index}, ${q.correct_line_index})" id="line-${index}" class="p-2 rounded font-mono text-sm hover:bg-neutral-100 cursor-pointer border border-transparent hover:border-neutral-300 transition flex"><span class="w-8 text-neutral-400 select-none mr-2">${index + 1}</span>${line}</div>`;
+            });
+            html += `</div>`;
+        }
+        else if (q.type === 'complexity' || q.type === 'output_prediction') {
+            html += `<p class="font-medium mb-4">${q.question}</p><div class="space-y-2">`;
+            q.options.forEach((opt, index) => {
+                html += `<button onclick="checkAnswer(${index}, ${q.correct_index})" class="w-full text-left p-3 border border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition text-sm">${opt}</button>`;
+            });
+            html += `</div>`;
+        }
+
+        html += `</div><div id="explanation-box" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800"></div>`;
+
+        app.innerHTML = html;
+    }
+
+    function showFeedback(isCorrect, explanation) {
+        const box = document.getElementById('explanation-box');
+        box.classList.remove('hidden');
+        if (isCorrect) {
+            score++;
+            box.className = "mt-4 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800";
+            box.innerHTML = `<strong>✅ Correct!</strong> ${explanation}`;
+        } else {
+            box.className = "mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800";
+            box.innerHTML = `<strong>❌ Incorrect.</strong> ${explanation}`;
+        }
+        // Disable buttons after answer
+        setTimeout(() => {
+            document.querySelectorAll('button').forEach(b => b.disabled = true);
+            // Add Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.onclick = () => { currentQuestion++; renderQuestion(); };
+            nextBtn.className = "mt-6 px-6 py-2 bg-neutral-900 text-white rounded-lg font-semibold hover:bg-neutral-800 block mx-auto";
+            nextBtn.innerText = currentQuestion < quizData.length - 1 ? "Next Question →" : "See Results";
+            document.getElementById('quiz-app').appendChild(nextBtn);
+        }, 100);
+    }
+
+    function checkAnswer(selected, correct) {
+        const q = quizData[currentQuestion];
+        showFeedback(selected === correct, q.explanation);
+    }
+
+    function checkBugHunt(selectedLine, correctLine) {
+        const q = quizData[currentQuestion];
+        const lineEl = document.getElementById(`line-${selectedLine}`);
+        if (selectedLine === correctLine) {
+            lineEl.classList.add('bg-green-100', 'border-green-400');
+        } else {
+            lineEl.classList.add('bg-red-100', 'border-red-400');
+            document.getElementById(`line-${correctLine}`).classList.add('bg-green-100', 'border-green-400');
+        }
+        showFeedback(selectedLine === correctLine, q.explanation);
+    }
+
+    function checkFillBlank() {
+        const q = quizData[currentQuestion];
+        const input = document.getElementById('blank-input').value.trim();
+        const isCorrect = q.accepted_answers.some(ans =>
+            q.is_case_sensitive ? input === ans : input.toLowerCase() === ans.toLowerCase()
+        );
+        showFeedback(isCorrect, q.explanation);
+    }
+
+    function showResults() {
+        const app = document.getElementById('quiz-app');
+        app.innerHTML = `
+            <div class="text-center p-12 border border-neutral-200 rounded-xl bg-white">
+                <div class="text-5xl font-bold text-neutral-900 mb-2">${score}/${quizData.length}</div>
+                <p class="text-neutral-500 text-lg">Questions Answered Correctly</p>
+                <a href="/practice/" class="mt-8 inline-block text-sm text-neutral-500 hover:underline">← Back to Practice Hub</a>
+            </div>`;
+    }
+
+    // Boot
+    renderQuestion();
+  </script>
+</main>
+{% endblock %}

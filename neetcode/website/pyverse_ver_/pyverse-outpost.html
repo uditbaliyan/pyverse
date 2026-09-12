@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyVerse Outpost — Python Training, Assembled From Scrap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4F1EA;
+    --charcoal:#221F1C;
+    --amber:#C97A3D;
+    --amber-dim:#EDD9C4;
+    --line: rgba(34,31,28,0.16);
+    --shadow-off: 4px 4px 0px 0px #221F1C;
+    --shadow-off-sm: 2px 2px 0px 0px #221F1C;
+    --panel: #FFFDF9;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    background-color:var(--cream);
+    background-image: radial-gradient(var(--line) 1px, transparent 0);
+    background-size: 22px 22px;
+    color:var(--charcoal);
+    font-family:'Inter', sans-serif;
+    cursor:default;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{ font-family:'Space Mono', monospace; }
+  a, button, .interactive{ cursor: crosshair; }
+  ::selection{ background:var(--amber); color:var(--cream); }
+  :focus-visible{ outline: 2px dashed var(--charcoal); outline-offset: 3px; }
+
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+  /* hazard stripe — used sparingly as the signature motif */
+  .hazard{
+    height: 8px;
+    background: repeating-linear-gradient(135deg, var(--charcoal) 0 10px, var(--amber) 10px 20px);
+  }
+
+  /* ---------- HEADER ---------- */
+  header{ position: sticky; top: 0; z-index: 50; background: var(--cream); border-bottom: 1px solid var(--charcoal); }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding: 14px 0; }
+  .logo{ font-family:'Space Mono', monospace; font-weight:700; font-size: 17px; letter-spacing: -0.02em; display:flex; align-items:center; gap:8px; }
+  .logo .dot{ width:9px; height:9px; background:var(--amber); display:inline-block; animation: blink 1.6s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0.15; } }
+  .callsign{ font-size: 10px; letter-spacing:0.12em; color:#6b655e; text-transform:uppercase; }
+
+  .chrono{
+    font-family:'Space Mono', monospace; font-size: 12.5px;
+    border: 1px solid var(--charcoal); padding: 6px 12px;
+    background: var(--panel); box-shadow: var(--shadow-off-sm);
+    letter-spacing: 0.04em; display:flex; gap:10px; align-items:center;
+  }
+  .chrono .lbl{ color:#6b655e; }
+
+  /* ---------- HERO ---------- */
+  .hero{ padding: 84px 0 60px; display:grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items:center; }
+  .eyebrow{
+    font-family:'Space Mono', monospace; font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--amber);
+    border-bottom: 1px solid var(--amber); display:inline-block; padding-bottom: 4px; margin-bottom: 20px;
+  }
+  h1{
+    font-family:'Space Mono', monospace; font-weight:700; font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+    line-height: 0.98; letter-spacing: -0.02em; margin-bottom: 20px;
+  }
+  h1 .glow{ color: var(--amber); }
+  .hero p.lede{ font-size: 16.5px; max-width: 46ch; color: #4a453f; margin-bottom: 30px; }
+
+  .btn{
+    font-family:'Space Mono', monospace; font-weight:700; font-size: 13.5px; letter-spacing: 0.03em;
+    text-transform:uppercase; background: var(--charcoal); color: var(--cream);
+    border: 1px solid var(--charcoal); padding: 14px 24px; box-shadow: var(--shadow-off);
+    display:inline-flex; align-items:center; gap: 10px; transition: transform .05s ease;
+  }
+  .btn:active{ transform: translate(3px, 3px); box-shadow: none; }
+  .btn.secondary{ background: transparent; color: var(--charcoal); }
+  .cta-row{ display:flex; gap:14px; flex-wrap:wrap; }
+
+  .boot-box{
+    border: 1px solid var(--charcoal); background: #17140F; color: #E3C79F;
+    box-shadow: var(--shadow-off); font-family:'Space Mono', monospace; font-size: 12.5px;
+    padding: 20px; min-height: 210px;
+  }
+  .boot-box .bar{ display:flex; gap:6px; margin-bottom:14px; align-items:center; justify-content:space-between; }
+  .boot-box .bar .lights{ display:flex; gap:6px; }
+  .boot-box .bar span{ width:9px; height:9px; background:#4a3f30; display:inline-block; }
+  .boot-box .bar .power-label{ font-size:10px; color:#8a7script; letter-spacing:0.1em; color:#a8916b; }
+  #boot-text{ white-space: pre-wrap; }
+  .cursor-blink{ display:inline-block; width:8px; height:14px; background:var(--amber); animation: blink 1s steps(1) infinite; vertical-align: middle; margin-left: 2px; }
+
+  /* ---------- SECTIONS ---------- */
+  .section{ padding: 58px 0; border-top: 1px solid var(--line); }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 36px; gap: 20px; flex-wrap: wrap; }
+  .section-head .tag{ font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--amber); margin-bottom:8px; display:block; }
+  .section-head h2{ font-family:'Space Mono', monospace; font-weight:700; font-size: 1.6rem; letter-spacing: -0.01em; }
+  .section-head p{ font-size: 13.5px; color:#5c564e; max-width: 40ch; }
+
+  /* ---------- MODULE GRID (all 7 cards) ---------- */
+  .gridN{ display:grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--charcoal); border-left: 1px solid var(--charcoal); }
+  .card{ border-right: 1px solid var(--charcoal); border-bottom: 1px solid var(--charcoal); background: var(--panel); padding: 26px 22px; transition: background .12s ease, color .12s ease; }
+  .card:hover{ background: var(--charcoal); color: var(--cream); }
+  .card:hover svg *{ stroke: var(--cream); }
+  .card:hover .card-tag{ color: var(--amber); }
+  .card svg{ width:34px; height:34px; margin-bottom:16px; }
+  .card svg *{ stroke: var(--charcoal); transition: stroke .12s ease; }
+  .card-tag{ font-family:'Space Mono', monospace; font-size: 10.5px; letter-spacing:0.1em; text-transform:uppercase; color: var(--amber); display:block; margin-bottom: 8px; }
+  .card h3{ font-family:'Space Mono', monospace; font-size: 15px; margin-bottom: 8px; }
+  .card p{ font-size: 12.5px; color: inherit; opacity: 0.85; }
+  @media (max-width: 980px){ .gridN{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px){ .gridN{ grid-template-columns: 1fr; } }
+
+  /* ---------- FEATURED: SCHEMATIC TABLE ---------- */
+  .split{ display:grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--charcoal); box-shadow: var(--shadow-off); }
+  @media (max-width: 860px){ .split{ grid-template-columns: 1fr; } }
+  .split > div{ padding: 24px; }
+  .split .left{ border-right: 1px solid var(--charcoal); background: var(--panel); }
+  @media (max-width: 860px){ .split .left{ border-right:none; border-bottom:1px solid var(--charcoal); } }
+  .split .right{ background: #17140F; color:#E3C79F; }
+  .schem-label{ font-family:'Space Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:#6b655e; margin-bottom:14px; }
+  .split .right .schem-label{ color:#8a7550; }
+
+  .node-box{ border: 1.6px solid var(--charcoal); padding: 10px 14px; font-family:'Space Mono', monospace; font-size:12.5px; display:inline-block; background:var(--cream); }
+  .node-row{ display:flex; align-items:center; gap: 18px; margin-bottom: 22px; }
+  .node-row svg{ flex-shrink:0; }
+
+  /* ---------- FLIGHT BAY (coding lab dual pane) ---------- */
+  .flightbay{ border:1px solid var(--charcoal); box-shadow: var(--shadow-off); background:var(--panel); }
+  .fb-head{ display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--charcoal); padding:10px 16px; font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; }
+  .fb-head .rec{ display:flex; align-items:center; gap:8px; color:#8a3d1f; }
+  .rec .rdot{ width:8px; height:8px; background:var(--amber); border-radius:50%; animation: blink 1.4s steps(1) infinite; }
+  .fb-body{ display:grid; grid-template-columns: 1.3fr 1fr; }
+  @media (max-width: 860px){ .fb-body{ grid-template-columns: 1fr; } }
+  .fb-code{ padding:18px 20px; font-family:'Space Mono', monospace; font-size:12.5px; border-right:1px solid var(--charcoal); background:#17140F; color:#dfe6d8; white-space:pre; overflow-x:auto; }
+  @media (max-width: 860px){ .fb-code{ border-right:none; border-bottom:1px solid var(--charcoal); } }
+  .fb-stream{ padding:18px 20px; font-family:'Space Mono', monospace; font-size:12.5px; }
+  .fb-stream .pass{ color:var(--amber); }
+
+  /* ---------- CARGO MANIFEST ---------- */
+  .manifest{ border:1px solid var(--charcoal); box-shadow: var(--shadow-off); background:var(--panel); }
+  .manifest-row{ display:grid; grid-template-columns: 1fr 40px 1fr; align-items:center; padding: 14px 18px; border-top:1px solid var(--line); font-family:'Space Mono', monospace; font-size:13px; }
+  .manifest-row:first-child{ border-top:none; background:var(--amber-dim); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#6b4423; }
+  .manifest-row .arrow{ text-align:center; color:var(--amber); }
+  .manifest-row .q{ color:#8a857c; }
+
+  /* ---------- DETONATOR ---------- */
+  .detonator{ border:1px solid var(--charcoal); box-shadow: var(--shadow-off); background:#17140F; color:#E3C79F; padding: 26px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+  .det-clock{ font-family:'Space Mono', monospace; font-size: 2.4rem; font-weight:700; letter-spacing:0.04em; }
+  .det-clock.warn{ color: var(--amber); animation: blink .6s steps(1) infinite; }
+  .det-label{ font-family:'Space Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:#8a7550; margin-bottom:6px; }
+
+  /* ---------- MEMORY CORE flip card ---------- */
+  .flip-wrap{ display:flex; gap:22px; flex-wrap:wrap; }
+  .flip-card{ width: 190px; height: 130px; perspective: 800px; }
+  .flip-inner{ position:relative; width:100%; height:100%; transition: transform 0.35s; transform-style: preserve-3d; }
+  .flip-card.flipped .flip-inner{ transform: rotateY(180deg); }
+  .flip-face{ position:absolute; inset:0; border:1px solid var(--charcoal); display:flex; align-items:center; justify-content:center; text-align:center; padding:14px; backface-visibility: hidden; font-family:'Space Mono', monospace; font-size:13px; box-shadow: var(--shadow-off-sm); }
+  .flip-front{ background:var(--panel); }
+  .flip-back{ background:var(--charcoal); color:var(--cream); transform: rotateY(180deg); font-size:12px; }
+
+  /* ---------- TRAINING DRONE tokens ---------- */
+  .token-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .token{ font-family:'Space Mono', monospace; font-size:12.5px; border:1.6px solid var(--charcoal); padding:8px 14px; background:var(--panel); box-shadow: var(--shadow-off-sm); }
+  .token.slot{ border-style:dashed; opacity:0.6; }
+
+  /* ---------- MISSION LOG feed ---------- */
+  .feed{ border: 1px solid var(--charcoal); box-shadow: var(--shadow-off); background: var(--panel); }
+  .feed-head{ display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--charcoal); padding: 12px 18px; font-family:'Space Mono', monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .feed-body{ padding: 20px; font-family:'Space Mono', monospace; font-size: 13px; min-height: 160px; }
+  #feed-text .ok{ color: var(--amber); }
+
+  footer{ border-top: 1px solid var(--charcoal); padding: 30px 0; font-family:'Space Mono', monospace; font-size: 11.5px; display:flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; color:#6b655e; }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="hazard"></div>
+
+<header>
+  <div class="wrap nav-inner">
+    <div>
+      <div class="logo"><span class="dot"></span>PYVERSE OUTPOST</div>
+      <div class="callsign">Unit designation: salvage crew // training deck</div>
+    </div>
+    <div class="chrono mono"><span class="lbl">MISSION CLOCK</span> <span id="clock">00:00:00</span></div>
+  </div>
+</header>
+
+<section class="wrap hero">
+  <div>
+    <span class="eyebrow">Assembled from scrap · Runs on nothing but your browser</span>
+    <h1>Python training,<br>built by a crew that<br><span class="glow">fixes things.</span></h1>
+    <p class="lede">No two consoles on this outpost matched to begin with — so we rebuilt the whole training deck from salvaged parts into one working ship. Every panel still shows its wiring on purpose.</p>
+    <div class="cta-row">
+      <button class="btn" id="boot-btn">Power Up Deck →</button>
+      <button class="btn secondary">View Ship's Manifest</button>
+    </div>
+  </div>
+
+  <div class="boot-box mono">
+    <div class="bar">
+      <div class="lights"><span></span><span></span><span></span></div>
+      <span style="font-size:10px;letter-spacing:0.1em;color:#a8916b;">PWR // AUX</span>
+    </div>
+    <div id="boot-text"></div>
+  </div>
+</section>
+
+<!-- ================= MODULE GRID ================= -->
+<section class="section wrap" id="modules">
+  <div class="section-head">
+    <div>
+      <span class="tag">Deck Layout</span>
+      <h2>Seven stations,<br>one training deck.</h2>
+    </div>
+    <p>Every module below was scavenged from a different, half-broken prototype and refitted to the same hull.</p>
+  </div>
+
+  <div class="gridN">
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><path d="M4 8h26M4 8v18h26V8" stroke-width="1.5"/><path d="M8 13h5M8 18h9M8 23h6" stroke-width="1.5"/></svg>
+      <span class="card-tag">Station 01</span>
+      <h3>Static Relay</h3>
+      <p>Character-level typing drills tuned to real Python syntax. Clean keystrokes lock in instantly; static means you mistyped.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><rect x="3" y="3" width="12" height="12" stroke-width="1.5"/><rect x="19" y="3" width="12" height="12" stroke-width="1.5"/><path d="M9 15v5M25 15v5M9 20h16v-5" stroke-width="1.5"/></svg>
+      <span class="card-tag">Station 02</span>
+      <h3>Schematic Table</h3>
+      <p>A local trace &amp; memory visualizer. Objects and pointers render as hard rectangles and right-angle wiring — see below.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><rect x="3" y="3" width="28" height="28" stroke-width="1.5"/><path d="M17 3v28M3 17h14" stroke-width="1.5"/></svg>
+      <span class="card-tag">Station 03</span>
+      <h3>Flight Bay</h3>
+      <p>A sandboxed coding lab, split like a cockpit: your code on the left, live assertion telemetry streaming on the right.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><path d="M3 10h12v14H3z" stroke-width="1.5"/><path d="M19 17h12" stroke-width="1.5"/><path d="M27 12l5 5-5 5" stroke-width="1.5"/></svg>
+      <span class="card-tag">Station 04</span>
+      <h3>Cargo Manifest</h3>
+      <p>Functional input → output deduction. You're handed the cargo hold's contents and have to guess what the crate does.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="13" stroke-width="1.5"/><path d="M17 10v7l5 3" stroke-width="1.5"/></svg>
+      <span class="card-tag">Station 05</span>
+      <h3>Detonator</h3>
+      <p>Time-decay debugging. A countdown ticks while you defuse a broken script — panic optional, partial credit given.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><rect x="3" y="9" width="9" height="9" stroke-width="1.5"/><rect x="13" y="3" width="9" height="9" stroke-width="1.5"/><rect x="22" y="16" width="9" height="9" stroke-width="1.5"/></svg>
+      <span class="card-tag">Station 06</span>
+      <h3>Training Drone</h3>
+      <p>Tactile logic modules — tokens clip into hard-bordered slots. Loud, mechanical feedback confirms every correct fit.</p>
+    </div>
+    <div class="card interactive">
+      <svg viewBox="0 0 34 34" fill="none"><rect x="4" y="6" width="26" height="18" stroke-width="1.5"/><path d="M4 15h26" stroke-width="1.5" stroke-dasharray="2 2"/></svg>
+      <span class="card-tag">Station 07</span>
+      <h3>Memory Core</h3>
+      <p>Active-recall flashcards. No spinning transitions — the card just flips, hard, like flicking a toggle switch.</p>
+    </div>
+    <div class="card interactive" style="background:var(--amber-dim);">
+      <svg viewBox="0 0 34 34" fill="none"><path d="M17 3l14 8v12l-14 8-14-8V11z" stroke-width="1.5"/><path d="M17 3v28M3 11l14 8 14-8" stroke-width="1.5"/></svg>
+      <span class="card-tag">The Hull</span>
+      <h3>Mission Control</h3>
+      <p>The router welding all seven stations to one deck. No page reloads — panels swap in place, deck stays powered.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SCHEMATIC TABLE ================= -->
+<section class="section wrap" id="schematic">
+  <div class="section-head">
+    <div>
+      <span class="tag">Station 02 — Featured</span>
+      <h2>The schematic table</h2>
+    </div>
+    <p>Objects don't float. They're bolted rectangles with wiring you can trace by eye.</p>
+  </div>
+
+  <div class="split">
+    <div class="left">
+      <div class="schem-label">// object graph</div>
+      <div class="node-row">
+        <svg width="60" height="40" viewBox="0 0 60 40" fill="none"><rect x="2" y="2" width="24" height="24" stroke="#221F1C" stroke-width="1.6"/><text x="6" y="17" font-family="Space Mono" font-size="8">crew</text></svg>
+        <svg width="20" height="10" viewBox="0 0 20 10"><path d="M0 5h20M14 1l6 4-6 4" stroke="#C97A3D" stroke-width="1.6" fill="none"/></svg>
+        <svg width="60" height="40" viewBox="0 0 60 40" fill="none"><rect x="2" y="2" width="24" height="24" stroke="#221F1C" stroke-width="1.6"/><text x="10" y="17" font-family="Space Mono" font-size="8">pilot</text></svg>
+      </div>
+      <div class="node-box">crew = {"{"}"pilot": pilot{"}"}</div>
+    </div>
+    <div class="right">
+      <div class="schem-label">// call stack</div>
+      <div class="mono" style="font-size:12.5px; line-height:1.9;">
+        frame[2] navigate(heading)<br>
+        frame[1] plot_course(dest)<br>
+        frame[0] main()<span class="cursor-blink"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FLIGHT BAY ================= -->
+<section class="section wrap" id="flightbay">
+  <div class="section-head">
+    <div>
+      <span class="tag">Station 03 — Featured</span>
+      <h2>Flight bay</h2>
+    </div>
+    <p>Code on the left. Whatever it actually does, on the right — no simulated results.</p>
+  </div>
+
+  <div class="flightbay">
+    <div class="fb-head">
+      <span>/ flight_bay.py</span>
+      <span class="rec"><span class="rdot"></span>local runtime</span>
+    </div>
+    <div class="fb-body">
+      <div class="fb-code">def plot_course(dest):
+    fuel = 100
+    while fuel > 0:
+        fuel -= 12
+        yield dest, fuel
+
+for leg, remaining in plot_course("outer rim"):
+    print(leg, remaining)</div>
+      <div class="fb-stream">
+        <div>&gt; outer rim 88</div>
+        <div>&gt; outer rim 76</div>
+        <div>&gt; outer rim 64</div>
+        <div>&gt; outer rim 52</div>
+        <div style="margin-top:10px;" class="pass">✓ 4/4 assertions passed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CARGO MANIFEST ================= -->
+<section class="section wrap" id="manifest">
+  <div class="section-head">
+    <div>
+      <span class="tag">Station 04</span>
+      <h2>Cargo manifest</h2>
+    </div>
+    <p>Guess the function from what goes in and what comes back out.</p>
+  </div>
+
+  <div class="manifest">
+    <div class="manifest-row"><span>Input</span><span></span><span>Output</span></div>
+    <div class="manifest-row"><span>[4, 1, 7, 2]</span><span class="arrow">→</span><span>[1, 2, 4, 7]</span></div>
+    <div class="manifest-row"><span>[9, 9, 3]</span><span class="arrow">→</span><span>[3, 9, 9]</span></div>
+    <div class="manifest-row"><span class="q">[?, ?, ?]</span><span class="arrow">→</span><span class="q">your guess</span></div>
+  </div>
+</section>
+
+<!-- ================= DETONATOR ================= -->
+<section class="section wrap" id="detonator">
+  <div class="section-head">
+    <div>
+      <span class="tag">Station 05</span>
+      <h2>Detonator</h2>
+    </div>
+    <p>The bug is real. So is the clock. Fix it before it hits zero.</p>
+  </div>
+
+  <div class="detonator">
+    <div>
+      <div class="det-label">Time remaining</div>
+      <div class="det-clock mono" id="det-clock">02:30</div>
+    </div>
+    <button class="btn" id="det-btn" style="background:var(--amber); border-color:var(--amber);">Arm Countdown</button>
+  </div>
+</section>
+
+<!-- ================= TRAINING DRONE + MEMORY CORE ================= -->
+<section class="section wrap" id="retention">
+  <div class="section-head">
+    <div>
+      <span class="tag">Stations 06 &amp; 07</span>
+      <h2>Training drone &amp; memory core</h2>
+    </div>
+    <p>Slot the right token into place, then flip the card to check yourself.</p>
+  </div>
+
+  <div class="schem-label" style="margin-bottom:10px;">// training drone: sort these tokens into execution order</div>
+  <div class="token-row" style="margin-bottom:36px;">
+    <span class="token">for i in range(3):</span>
+    <span class="token">    total += i</span>
+    <span class="token">print(total)</span>
+    <span class="token slot">drop next token here</span>
+  </div>
+
+  <div class="schem-label" style="margin-bottom:10px;">// memory core: click a card to flip it</div>
+  <div class="flip-wrap">
+    <div class="flip-card interactive" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">What does <b>&nbsp;len()&nbsp;</b> return?</div>
+        <div class="flip-face flip-back">The number of items in a sequence.</div>
+      </div>
+    </div>
+    <div class="flip-card interactive" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">What's a mutable type?</div>
+        <div class="flip-face flip-back">One you can change after creation — like a list.</div>
+      </div>
+    </div>
+    <div class="flip-card interactive" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">What does <b>&nbsp;yield&nbsp;</b> do?</div>
+        <div class="flip-face flip-back">Pauses a function and hands back one value at a time.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MISSION LOG ================= -->
+<section class="section wrap" id="feed">
+  <div class="section-head">
+    <div>
+      <span class="tag">Mission Control</span>
+      <h2>Mission log</h2>
+    </div>
+    <p>What the deck is doing right now, in this demo.</p>
+  </div>
+
+  <div class="feed">
+    <div class="feed-head"><span>/ deck_output.log</span><span class="callsign">local · no uplink</span></div>
+    <div class="feed-body"><div id="feed-text"></div></div>
+  </div>
+</section>
+
+<div class="hazard"></div>
+
+<footer class="wrap">
+  <span>PYVERSE OUTPOST © 2026 — SALVAGED, NOT SPONSORED</span>
+  <span>NO SERVER STORAGE // 100% CLIENT-SIDE</span>
+</footer>
+
+<script>
+  function tick(){
+    const d = new Date();
+    const p = n => String(n).padStart(2,'0');
+    document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  const bootLines = [
+    "PYVERSE OUTPOST — DECK OS v3.1",
+    "diagnostics... all stations nominal",
+    "mounting local sandbox... ok",
+    "",
+    ">>> for i in range(3):",
+    "...     print(i, 'station online')",
+    "0 station online",
+    "1 station online",
+    "2 station online",
+    "",
+    "deck ready."
+  ];
+  const bootEl = document.getElementById('boot-text');
+  function typeBoot(){
+    bootEl.innerHTML = '';
+    let li = 0, ci = 0;
+    function step(){
+      if(li >= bootLines.length){ bootEl.innerHTML += '<span class="cursor-blink"></span>'; return; }
+      const line = bootLines[li];
+      if(ci <= line.length){
+        bootEl.textContent = bootLines.slice(0, li).join('\n') + (li>0?'\n':'') + line.slice(0, ci);
+        ci++; setTimeout(step, line.length === 0 ? 40 : 16);
+      } else { li++; ci = 0; setTimeout(step, 90); }
+    }
+    step();
+  }
+  typeBoot();
+  document.getElementById('boot-btn').addEventListener('click', typeBoot);
+
+  const feedLines = [
+    "[T+00:01] sandbox: pyodide runtime initialized",
+    "[T+00:02] crew: defined plot_course(dest)",
+    "[T+00:03] schematic: frame pushed — plot_course",
+    "[T+00:04] flight bay: 4/4 assertions passed",
+    "[T+00:05] detonator: script defused, 0:47 remaining",
+    "[T+00:06] deck: all stations nominal"
+  ];
+  const feedEl = document.getElementById('feed-text');
+  function typeFeed(){
+    feedEl.innerHTML = '';
+    let li = 0;
+    function addLine(){
+      if(li >= feedLines.length) return;
+      const line = feedLines[li];
+      const div = document.createElement('div');
+      if(line.includes('passed') || line.includes('nominal') || line.includes('defused')){
+        div.innerHTML = line.replace(/(passed|nominal|defused)/, '<span class="ok">$1</span>');
+      } else { div.textContent = line; }
+      feedEl.appendChild(div);
+      li++; setTimeout(addLine, 460);
+    }
+    addLine();
+  }
+  const feedSection = document.getElementById('feed');
+  let feedStarted = false;
+  new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if(entry.isIntersecting && !feedStarted){ feedStarted = true; typeFeed(); } });
+  }, { threshold: 0.3 }).observe(feedSection);
+
+  // Detonator countdown
+  let detSeconds = 150;
+  let detInterval = null;
+  const detClockEl = document.getElementById('det-clock');
+  const detBtn = document.getElementById('det-btn');
+  function renderDet(){
+    const m = Math.floor(detSeconds/60), s = detSeconds%60;
+    detClockEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    detClockEl.classList.toggle('warn', detSeconds <= 30);
+  }
+  detBtn.addEventListener('click', () => {
+    if(detInterval) clearInterval(detInterval);
+    detSeconds = 150; renderDet();
+    detInterval = setInterval(() => {
+      detSeconds--;
+      if(detSeconds <= 0){ clearInterval(detInterval); detSeconds = 0; }
+      renderDet();
+    }, 1000);
+  });
+  renderDet();
+</script>
+
+</body>
+</html>

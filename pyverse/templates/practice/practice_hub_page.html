@@ -1,0 +1,75 @@
+{% extends "base.html" %} {% load wagtailcore_tags %} {% block content %}
+<main class="max-w-6xl mx-auto px-6 py-12">
+  <h1 class="text-3xl font-bold mb-2">Practice Arena</h1>
+  <p class="text-neutral-500 mb-8">Master concepts through code and quizzes.</p>
+
+  <!-- Filter Bar -->
+  <div class="flex flex-wrap gap-2 mb-8 p-4 border border-neutral-200 rounded-lg bg-neutral-50">
+    <span class="text-sm font-medium text-neutral-600 mr-2">Filter:</span>
+    <a
+      href="/practice/"
+      class="px-3 py-1 text-sm rounded-full border {% if not current_type and not current_tag %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-300 text-neutral-600 hover:bg-white{% endif %}"
+      >All</a
+    >
+    <a
+      href="?type=coding"
+      class="px-3 py-1 text-sm rounded-full border {% if current_type == 'coding' %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-300 text-neutral-600 hover:bg-white{% endif %}"
+      >💻 Coding Only</a
+    >
+    <a
+      href="?type=quiz&quiz_type=bug_hunt"
+      class="px-3 py-1 text-sm rounded-full border {% if request.GET.quiz_type == 'bug_hunt' %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-300 text-neutral-600 hover:bg-white{% endif %}"
+      >🪲 Bug Hunts</a
+    >
+    <a
+      href="?type=quiz&quiz_type=complexity"
+      class="px-3 py-1 text-sm rounded-full border {% if request.GET.quiz_type == 'complexity' %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-300 text-neutral-600 hover:bg-white{% endif %}"
+      >⏱️ Complexity</a
+    >
+    <a
+      href="?type=quiz&quiz_type=true_false"
+      class="px-3 py-1 text-sm rounded-full border {% if request.GET.quiz_type == 'true_false' %}bg-neutral-900 text-white border-neutral-900{% else %}border-neutral-300 text-neutral-600 hover:bg-white{% endif %}"
+      >✅ True/False</a
+    >
+  </div>
+
+  <!-- Concept List -->
+  <div class="space-y-6">
+    {% for concept in concepts %}
+    <div class="border border-neutral-200 rounded-xl p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <h2 class="text-xl font-bold">{{ concept.title }}</h2>
+        <span
+          class="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 uppercase"
+          >{{ concept.difficulty }}</span
+        >
+        {% for tag in concept.tags.all %}
+        <span class="text-xs text-neutral-400">#{{ tag }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        {% for code in concept.coding_variations.all %}
+        <a
+          href="/practice/{{ concept.slug }}/coding/{{ code.id }}/"
+          class="px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+        >
+          💻 {{ code.title }}
+        </a>
+        {% endfor %} {% for quiz in concept.general_quizzes.all %}
+        <a
+          href="/practice/{{ concept.slug }}/quiz/{{ quiz.id }}/"
+          class="px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+        >
+          ❓ {{ quiz.title }}
+          <span class="text-[10px] opacity-70">({{ quiz.get_quiz_type_display }})</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-neutral-500">No problems match your filters.</p>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,269 @@
+<div style="display:flex;justify-content:center;padding:1.5rem 0;font-family:var(--font-sans)">
+<h2 class="sr-only">A highly detailed retro handheld game console illustration with a playable pixel-art runner game, controlled by clickable buttons or the keyboard.</h2>
+
+<div style="width:320px;background:linear-gradient(155deg,#eae7da 0%,#d2cfc0 55%,#c3c0af 100%);border-radius:16px 16px 70px 16px;padding:22px 20px 30px;box-shadow:0 10px 30px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6),inset 0 -2px 4px rgba(0,0,0,0.15);position:relative">
+
+  <div style="position:absolute;top:10px;right:26px;width:34px;height:8px;border-radius:4px;background:linear-gradient(180deg,#f3f1e6,#c9c6b6);box-shadow:inset 0 1px 1px rgba(255,255,255,0.7),inset 0 -1px 1px rgba(0,0,0,0.15)"></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;padding:0 2px">
+    <span style="font-size:15px;font-style:italic;font-weight:500;letter-spacing:0.5px;color:#3a3a55;text-shadow:0 1px 0 rgba(255,255,255,0.5)">PocketPlay</span>
+    <span style="font-size:7px;color:#5a5a4d;text-align:right;line-height:1.3">DOT MATRIX<br/>WITH STEREO SOUND</span>
+  </div>
+
+  <div style="background:linear-gradient(160deg,#78806a,#5c6350);border-radius:10px 10px 30px 10px;padding:16px 14px 12px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.5),inset 0 -1px 0 rgba(255,255,255,0.08)">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <div id="powerLed" style="width:6px;height:6px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 4px 1px rgba(255,59,59,0.8)"></div>
+      <span style="font-size:6px;color:#d8d5c4;letter-spacing:1px">POWER</span>
+    </div>
+    <div style="background:#000;border-radius:2px;padding:6px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05)">
+      <canvas id="gbScreen" width="160" height="144" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges;background:#9bbc0f;border-radius:1px"></canvas>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:26px 6px 6px">
+    <div style="position:relative;width:76px;height:76px">
+      <div style="position:absolute;left:26px;top:0;width:24px;height:76px;background:linear-gradient(90deg,#2a2a28,#403f3b,#2a2a28);border-radius:4px;box-shadow:inset 0 1px 1px rgba(255,255,255,0.15)"></div>
+      <div style="position:absolute;left:0;top:26px;width:76px;height:24px;background:linear-gradient(180deg,#2a2a28,#403f3b,#2a2a28);border-radius:4px;box-shadow:inset 0 1px 1px rgba(255,255,255,0.15)"></div>
+      <button id="btnUp" aria-label="up" style="position:absolute;left:26px;top:0;width:24px;height:26px;border:none;background:transparent;cursor:pointer"></button>
+      <button id="btnDown" aria-label="down" style="position:absolute;left:26px;bottom:0;width:24px;height:26px;border:none;background:transparent;cursor:pointer"></button>
+      <button id="btnLeft" aria-label="left" style="position:absolute;left:0;top:26px;width:26px;height:24px;border:none;background:transparent;cursor:pointer"></button>
+      <button id="btnRight" aria-label="right" style="position:absolute;right:0;top:26px;width:26px;height:24px;border:none;background:transparent;cursor:pointer"></button>
+      <div style="position:absolute;left:30px;top:30px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a46,#1c1c1a);pointer-events:none"></div>
+    </div>
+
+    <div style="display:flex;gap:12px;transform:rotate(-22deg);margin-top:4px">
+      <button id="btnB" aria-label="B button" style="width:36px;height:36px;border-radius:50%;border:none;background:radial-gradient(circle at 35% 30%,#a8365a,#6e1c37 75%);color:#f0c0d0;font-size:12px;font-weight:500;box-shadow:0 3px 0 #4a1526,inset 0 1px 1px rgba(255,255,255,0.3);cursor:pointer">B</button>
+      <button id="btnA" aria-label="A button" style="width:36px;height:36px;border-radius:50%;border:none;background:radial-gradient(circle at 35% 30%,#a8365a,#6e1c37 75%);color:#f0c0d0;font-size:12px;font-weight:500;box-shadow:0 3px 0 #4a1526,inset 0 1px 1px rgba(255,255,255,0.3);margin-top:-16px;cursor:pointer">A</button>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:center;gap:16px;margin-top:18px;align-items:flex-start">
+    <div style="text-align:center">
+      <button id="btnSelect" style="width:38px;height:11px;border-radius:6px;border:none;background:linear-gradient(180deg,#8a8a82,#5f5f58);transform:rotate(-22deg);box-shadow:inset 0 1px 1px rgba(255,255,255,0.2);cursor:pointer"></button>
+      <div style="font-size:7px;color:#5a5a4d;margin-top:4px;letter-spacing:0.5px">SELECT</div>
+    </div>
+    <div style="text-align:center">
+      <button id="btnStart" style="width:38px;height:11px;border-radius:6px;border:none;background:linear-gradient(180deg,#8a8a82,#5f5f58);transform:rotate(-22deg);box-shadow:inset 0 1px 1px rgba(255,255,255,0.2);cursor:pointer"></button>
+      <div style="font-size:7px;color:#5a5a4d;margin-top:4px;letter-spacing:0.5px">START</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:16px;right:18px;width:44px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;transform:rotate(-22deg)">
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+    <div style="width:5px;height:5px;border-radius:50%;background:#9a9789;box-shadow:inset 0 1px 1px rgba(0,0,0,0.3)"></div>
+  </div>
+
+  <div style="text-align:center;margin-top:14px;font-size:9px;color:#6a6a5d">A jump · hold ↓ duck · START restart</div>
+</div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('gbScreen');
+  const ctx = cv.getContext('2d');
+  const W = 160, H = 144;
+  const pal = { dark:'#0f380f', mid2:'#306230', mid1:'#8bac0f', light:'#9bbc0f' };
+  const groundY = 120;
+
+  let audioCtx = null;
+  function beep(freq, dur, type){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type||'square';
+      o.frequency.value = freq;
+      g.gain.value = 0.05;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      o.stop(audioCtx.currentTime + dur);
+    }catch(e){}
+  }
+
+  let player, obstacles, coins, hills, clouds, frame, score, best, running, speed, duck, started;
+
+  function init(){
+    player = {x:20,y:groundY,vy:0,onGround:true,w:8,h:12,legFrame:0};
+    obstacles = [];
+    coins = [];
+    hills = [{x:0,h:10},{x:80,h:16},{x:150,h:8}];
+    clouds = [{x:20,y:14},{x:100,y:22},{x:150,y:10}];
+    frame = 0;
+    score = 0;
+    speed = 1.6;
+    duck = false;
+    running = true;
+    started = true;
+  }
+  best = 0;
+  running = false;
+  started = false;
+
+  const input = {jumpHeld:false};
+
+  function jump(){
+    if(!started){ init(); return; }
+    if(!running){ init(); return; }
+    if(player.onGround && !duck){
+      player.vy = -3.4;
+      player.onGround = false;
+      beep(520,0.08,'square');
+    }
+  }
+
+  function spawnStuff(){
+    const r = Math.random();
+    if(r < 0.55){
+      obstacles.push({x:W+4,w:6+Math.random()*6,h:10+Math.random()*10,type:'ground'});
+    } else if(r < 0.8){
+      obstacles.push({x:W+4,w:8,h:6,type:'fly',fy:groundY-20});
+    } else {
+      coins.push({x:W+4,y:groundY-16-Math.random()*14,r:3,taken:false});
+    }
+  }
+  let nextSpawn = 60;
+
+  function drawPixelChar(px, py, crouch, legState){
+    ctx.fillStyle = pal.dark;
+    const h = crouch ? 8 : 12;
+    const yTop = py - h;
+    ctx.fillRect(px, yTop, 8, crouch ? 8 : 8);
+    if(!crouch){
+      if(legState){ ctx.fillRect(px, yTop+8, 3, 4); ctx.fillRect(px+5, yTop+8, 3, 3); }
+      else { ctx.fillRect(px, yTop+8, 3, 3); ctx.fillRect(px+5, yTop+8, 3, 4); }
+    } else {
+      ctx.fillRect(px, yTop+8, 8, 3);
+    }
+  }
+
+  function loop(){
+    frame++;
+
+    ctx.fillStyle = pal.light;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.fillStyle = pal.mid1;
+    clouds.forEach(c => {
+      ctx.fillRect(c.x, c.y, 12, 3);
+      ctx.fillRect(c.x+3, c.y-2, 6, 2);
+    });
+
+    ctx.fillStyle = pal.mid1;
+    hills.forEach(h => {
+      ctx.fillRect(h.x, groundY - h.h, 40, h.h);
+    });
+
+    if(running){
+      clouds.forEach(c => { c.x -= 0.15; if(c.x < -14) c.x = W+2; });
+      hills.forEach(h => { h.x -= speed*0.3; if(h.x < -40) h.x = W+2; });
+
+      duck = input.jumpHeld === 'duck';
+
+      player.vy += 0.22;
+      player.y += player.vy;
+      if(player.y >= groundY){ player.y = groundY; player.vy = 0; player.onGround = true; }
+
+      nextSpawn--;
+      if(nextSpawn <= 0){ spawnStuff(); nextSpawn = 55 + Math.random()*35; }
+
+      speed = 1.6 + Math.min(score*0.006, 2.2);
+      obstacles.forEach(o => o.x -= speed);
+      obstacles = obstacles.filter(o => o.x > -16);
+      coins.forEach(c => c.x -= speed);
+      coins = coins.filter(c => c.x > -16 && !c.taken);
+
+      const pw = 8, ph = duck?8:12;
+      const px1 = player.x, px2 = player.x+pw;
+      const py2 = player.y, py1 = player.y-ph;
+
+      obstacles.forEach(o => {
+        let oy1, oy2;
+        if(o.type==='ground'){ oy2 = groundY; oy1 = groundY - o.h; }
+        else { oy1 = o.fy - o.h/2; oy2 = o.fy + o.h/2; }
+        if(px2 > o.x && px1 < o.x+o.w && py2 > oy1 && py1 < oy2){
+          running = false;
+          best = Math.max(best, Math.floor(score));
+          beep(120,0.3,'sawtooth');
+        }
+      });
+
+      coins.forEach(c => {
+        if(!c.taken && px2 > c.x-c.r && px1 < c.x+c.r && py2 > c.y-c.r && py1 < c.y+c.r){
+          c.taken = true;
+          score += 15;
+          beep(880,0.1,'square');
+        }
+      });
+
+      score += 0.12;
+      player.legFrame = Math.floor(frame/6)%2;
+    }
+
+    ctx.fillStyle = pal.dark;
+    ctx.fillRect(0, groundY, W, H-groundY);
+    for(let i=0;i<W;i+=8){ ctx.fillStyle = pal.mid2; ctx.fillRect(i, groundY, 4, 2); }
+
+    ctx.fillStyle = pal.dark;
+    obstacles.forEach(o => {
+      if(o.type==='ground') ctx.fillRect(o.x, groundY-o.h, o.w, o.h);
+      else ctx.fillRect(o.x, o.fy-o.h/2, o.w, o.h);
+    });
+
+    coins.forEach(c => {
+      if(!c.taken){
+        ctx.fillStyle = pal.dark;
+        ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.fill();
+      }
+    });
+
+    if(started) drawPixelChar(player.x, player.y, duck, player.legFrame);
+
+    ctx.fillStyle = pal.dark;
+    ctx.font = '8px monospace';
+    ctx.fillText((started?Math.floor(score):0).toString().padStart(5,'0'), 4, 10);
+    ctx.fillText('HI'+best.toString().padStart(5,'0'), W-58, 10);
+
+    if(!started){
+      ctx.font = '7px monospace';
+      ctx.fillText('PRESS A TO START', 30, 70);
+    } else if(!running){
+      ctx.font = '8px monospace';
+      ctx.fillText('GAME OVER', 52, 60);
+      if(Math.floor(frame/20)%2===0){
+        ctx.font = '6px monospace';
+        ctx.fillText('PRESS A OR START', 34, 74);
+      }
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('btnA').addEventListener('mousedown', jump);
+  document.getElementById('btnB').addEventListener('mousedown', jump);
+  document.getElementById('btnUp').addEventListener('mousedown', jump);
+  document.getElementById('btnStart').addEventListener('mousedown', () => { if(!started || !running) { init(); } });
+  document.getElementById('btnDown').addEventListener('mousedown', () => { input.jumpHeld = 'duck'; });
+  document.getElementById('btnDown').addEventListener('mouseup', () => { input.jumpHeld = false; });
+  document.getElementById('btnDown').addEventListener('mouseleave', () => { input.jumpHeld = false; });
+  document.getElementById('btnLeft').addEventListener('mousedown', () => {});
+  document.getElementById('btnRight').addEventListener('mousedown', () => {});
+  document.getElementById('btnSelect').addEventListener('mousedown', () => {});
+
+  window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space' || e.code === 'ArrowUp'){ jump(); }
+    if(e.code === 'ArrowDown'){ input.jumpHeld = 'duck'; }
+  });
+  window.addEventListener('keyup', (e) => {
+    if(e.code === 'ArrowDown'){ input.jumpHeld = false; }
+  });
+
+  loop();
+})();
+</script>

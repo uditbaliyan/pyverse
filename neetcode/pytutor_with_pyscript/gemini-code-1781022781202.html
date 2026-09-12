@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyScript Tutor Workspace</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        h2 { color: #00adb5; margin-bottom: 20px; text-align: center; }
+        
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h3 { color: #eeeeee; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 8px; }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            background-color: #111;
+            color: #a9ffb7;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background-color: #00adb5;
+            color: #eeeeee;
+            border: none;
+            padding: 10px 18px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #007f85; }
+        button.secondary { background-color: #393e46; }
+        button.secondary:hover { background-color: #222831; }
+
+        /* Visualization Layout Map */
+        .visualizer-container {
+            position: relative; /* Keeps SVG layers correctly aligned */
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .memory-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 2; /* Forces text boxes over the SVG layer background */
+        }
+
+        .frame-box, .heap-box {
+            background-color: #252525;
+            border-left: 4px solid #00adb5;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        .heap-box { border-left-color: #ff2e93; }
+
+        .var-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: #1e1e1e;
+            margin-top: 6px;
+            border-radius: 4px;
+            border: 1px solid #2d2d2d;
+        }
+
+        .pointer-node {
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #ff2e93;
+            font-weight: bold;
+        }
+
+        /* SVG Line Anchors */
+        #svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .list-element-container {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .list-cell {
+            background: #333;
+            border: 1px solid #555;
+            padding: 6px 12px;
+            border-radius: 3px;
+            text-align: center;
+            min-width: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>PyScript Interactive Architecture Visualizer</h2>
+    
+    <div class="workspace">
+        <div class="panel">
+            <h3>1. Target Engine Script</h3>
+            <textarea id="user-code">x = 10
+y = 20
+data_list = [x, y]
+x = 99
+matrix = [x, 50]</textarea>
+            
+            <div class="controls">
+                <button py-click="compile_and_trace">Build State Pipeline</button>
+            </div>
+
+            <h3 style="margin-top: 30px;">Execution Steps</h3>
+            <div class="controls">
+                <button class="secondary" py-click="step_backward">◀ Prev</button>
+                <button class="secondary" py-click="step_forward">Next ▶</button>
+                <span style="font-size: 14px; margin-left: 10px;">
+                    Step: <b id="step-counter" style="color:#00adb5">0</b> / <span id="step-total">0</span>
+                </span>
+            </div>
+            <p style="font-size: 13px; color: #aaa; margin-top: 10px;">
+                Line executing: <b id="line-highlight" style="color: #ff2e93">-</b>
+            </p>
+        </div>
+
+        <div class="panel">
+            <h3>2. Dynamic Execution Space</h3>
+            
+            <div class="visualizer-container" id="vis-container">
+                <svg id="svg-canvas">
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ff2e93" />
+                        </marker>
+                    </defs>
+                </svg>
+
+                <div class="memory-column">
+                    <h4 style="margin:0; color:#00adb5;">Stack (Global Scope)</h4>
+                    <div id="stack-frame-target" class="frame-box">
+                        <em style="color:#666;">Initialize a script compile cycle...</em>
+                    </div>
+                </div>
+
+                <div class="memory-column">
+                    <h4 style="margin:0; color:#ff2e93;">Heap Objects</h4>
+                    <div id="heap-target" style="display:flex; flex-direction:column; gap:12px;">
+                        <em style="color:#666;">No dynamic heap items...</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function drawPointerArrow(startId, endId) {
+            const svg = document.getElementById('svg-canvas');
+            const startEl = document.getElementById(startId);
+            const endEl = document.getElementById(endId);
+            const container = document.getElementById('vis-container');
+            
+            if (!startEl || !endEl) return;
+
+            const cRect = container.getBoundingClientRect();
+            const sRect = startEl.getBoundingClientRect();
+            const eRect = endEl.getBoundingClientRect();
+
+            // Find localized coordinates
+            const x1 = sRect.right - cRect.left;
+            const y1 = (sRect.top + sRect.height / 2) - cRect.top;
+            const x2 = eRect.left - cRect.left;
+            const y2 = (eRect.top + eRect.height / 2) - cRect.top;
+
+            // Generate SVG Line element
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2 - 4); // Account for offset to prevent arrowhead overlap
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', '#ff2e93');
+            line.setAttribute('stroke-width', '2');
+            line.setAttribute('marker-end', 'url(#arrow)');
+            line.classList.add('pointer-line');
+            
+            svg.appendChild(line);
+        }
+
+        function clearPointerArrows() {
+            document.querySelectorAll('.pointer-line').forEach(el => el.remove());
+        }
+    </script>
+
+    <script type="py">
+        import sys
+        import copy
+        from pyscript import document, window
+
+        trace_history = []
+        current_index = 0
+
+        class ExecutionStateCollector:
+            def __init__(self):
+                self.snapshots = []
+                self.heap_tracker = {}
+
+            def evaluate_and_map(self, item):
+                # Isolate target composite data structural types for the heap segment
+                if isinstance(item, (list, tuple, dict, set)):
+                    memory_id = f"mem_ref_{id(item)}"
+                    
+                    if isinstance(item, list):
+                        self.heap_tracker[memory_id] = {
+                            "type": "LIST", 
+                            "val": [self.evaluate_and_map(x)[1] for x in item]
+                        }
+                    elif isinstance(item, tuple):
+                        self.heap_tracker[memory_id] = {
+                            "type": "TUPLE", 
+                            "val": [self.evaluate_and_map(x)[1] for x in item]
+                        }
+                    return True, memory_id
+                return False, item
+
+            def trace_step_hook(self, frame, event, arg):
+                if event == 'line':
+                    filtered_locals = {}
+                    for key, val in frame.f_locals.items():
+                        if not key.startswith('__') and key != 'sys' and not callable(val):
+                            is_ref, processed_val = self.evaluate_and_map(val)
+                            filtered_locals[key] = {
+                                "is_pointer": is_ref,
+                                "data": processed_val
+                            }
+                    
+                    self.snapshots.append({
+                        "line": frame.f_lineno,
+                        "globals": dict(filtered_locals),
+                        "heap": dict(self.heap_tracker)
+                    })
+                return self.trace_step_hook
+
+        def compile_and_trace(event):
+            global trace_history, current_index
+            trace_history.clear()
+            current_index = 0
+            
+            user_script = document.getElementById("user-code").value
+            engine = ExecutionStateCollector()
+            
+            sys.settrace(engine.trace_step_hook)
+            try:
+                exec(user_script, {}, {})
+            except Exception as err:
+                document.getElementById("stack-frame-target").innerText = f"Runtime Syntax Error: {err}"
+                return
+            finally:
+                sys.settrace(None)
+                
+            trace_history = engine.snapshots
+            if trace_history:
+                document.getElementById("step-total").innerText = str(len(trace_history) - 1)
+                render_ui_view(0)
+
+        def render_ui_view(index):
+            global current_index
+            if not trace_history or index < 0 or index >= len(trace_history):
+                return
+                
+            current_index = index
+            snapshot = trace_history[index]
+            window.clearPointerArrows()
+
+            document.getElementById("step-counter").innerText = str(index)
+            document.getElementById("line-highlight").innerText = str(snapshot["line"])
+
+            # 1. Render out the Stack
+            stack_target = document.getElementById("stack-frame-target")
+            stack_target.innerHTML = ""
+            
+            if not snapshot["globals"]:
+                stack_target.innerHTML = "<em style='color:#666;'>No variables initialized yet</em>"
+            else:
+                for var_name, info in snapshot["globals"].items():
+                    row = document.createElement("div")
+                    row.className = "var-row"
+                    
+                    lbl = document.createElement("span")
+                    lbl.innerHTML = f"<b>{var_name}</b>"
+                    row.appendChild(lbl)
+                    
+                    val_box = document.createElement("span")
+                    if info["is_pointer"]:
+                        val_box.className = "pointer-node"
+                        val_box.id = f"node_{var_name}"
+                        val_box.innerText = "● Pointer"
+                    else:
+                        val_box.innerText = repr(info["data"])
+                        
+                    row.appendChild(val_box)
+                    stack_target.appendChild(row)
+
+            # 2. Render out Heap allocations
+            heap_target = document.getElementById("heap-target")
+            heap_target.innerHTML = ""
+            
+            if not snapshot["heap"]:
+                heap_target.innerHTML = "<em style='color:#666;'>Heap space empty</em>"
+            else:
+                for mem_id, metadata in snapshot["heap"].items():
+                    h_box = document.createElement("div")
+                    h_box.className = "heap-box"
+                    h_box.id = mem_id
+                    
+                    header = document.createElement("div")
+                    header.innerHTML = f"<span style='font-size:11px; color:#aaa;'>{metadata['type']} object</span>"
+                    h_box.appendChild(header)
+                    
+                    cell_container = document.createElement("div")
+                    cell_container.className = "list-element-container"
+                    
+                    for index_val, item_val in enumerate(metadata["val"]):
+                        cell = document.createElement("div")
+                        cell.className = "list-cell"
+                        cell.innerText = str(item_val)
+                        cell_container.appendChild(cell)
+                        
+                    h_box.appendChild(cell_container)
+                    heap_target.appendChild(h_box)
+
+            # 3. Synchronize vector pointers using Python to window script loops
+            for var_name, info in snapshot["globals"].items():
+                if info["is_pointer"]:
+                    target_heap_id = info["data"]
+                    window.drawPointerArrow(f"node_{var_name}", target_heap_id)
+
+        def step_forward(event):
+            if current_index < len(trace_history) - 1:
+                render_ui_view(current_index + 1)
+
+        def step_backward(event):
+            if current_index > 0:
+                render_ui_view(current_index - 1)
+    </script>
+</body>
+</html>

@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PyType — Python Typing Trainer</title>
+
+<!-- TailwindCSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Google Fonts: JetBrains Mono for code, Inter for UI -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  /* =============================================
+     DESIGN TOKENS & THEMING
+     Dark: VSCode/Warp-inspired deep slate
+     Light: Clean pearl with green accent
+  ============================================= */
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #21262d;
+    --border:     #30363d;
+    --text:       #c9d1d9;
+    --text-muted: #8b949e;
+    --accent:     #3fb950;   /* GitHub green */
+    --accent2:    #58a6ff;
+    --error:      #f85149;
+    --warning:    #d29922;
+    --correct:    #3fb950;
+    --cursor:     #79c0ff;
+    --font-code:  'JetBrains Mono', 'Fira Code', monospace;
+    --font-ui:    'Inter', system-ui, sans-serif;
+  }
+  [data-theme="light"] {
+    --bg:         #f6f8fa;
+    --bg2:        #ffffff;
+    --bg3:        #eaeef2;
+    --border:     #d0d7de;
+    --text:       #1f2328;
+    --text-muted: #656d76;
+    --accent:     #1a7f37;
+    --accent2:    #0969da;
+    --error:      #cf222e;
+    --warning:    #9a6700;
+    --correct:    #1a7f37;
+    --cursor:     #0969da;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    transition: background 0.2s, color 0.2s;
+    min-height: 100vh;
+  }
+
+  /* ── Code snippet display ── */
+  .code-display {
+    font-family: var(--font-code);
+    font-size: 1.05rem;
+    line-height: 1.9;
+    letter-spacing: 0.01em;
+    white-space: pre;
+    position: relative;
+    user-select: none;
+  }
+
+  .char-pending   { color: var(--text-muted); }
+  .char-correct   { color: var(--text); }
+  .char-error     { color: var(--error); background: rgba(248,81,73,0.15); border-radius:2px; }
+  .char-cursor    {
+    color: var(--bg);
+    background: var(--cursor);
+    border-radius: 2px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Python syntax colours */
+  .kw   { color: #ff7b72; }   /* keyword: red */
+  .str  { color: #a5d6ff; }   /* string: blue */
+  .num  { color: #79c0ff; }   /* number: light blue */
+  .fn   { color: #d2a8ff; }   /* function: purple */
+  .cls  { color: #ffa657; }   /* class: orange */
+  .cmt  { color: #8b949e; font-style: italic; } /* comment: grey */
+  .op   { color: #ff7b72; }   /* operator */
+  .deco { color: #ffa657; }   /* decorator */
+  .bi   { color: #79c0ff; }   /* built-in */
+
+  /* Metrics bar */
+  .metric-value {
+    font-family: var(--font-code);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .metric-label {
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Mode pills */
+  .mode-pill {
+    cursor: pointer;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .mode-pill:hover  { border-color: var(--accent); color: var(--accent); }
+  .mode-pill.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+  .timer-pill {
+    cursor: pointer;
+    padding: 0.25rem 0.7rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-family: var(--font-code);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .timer-pill:hover  { border-color: var(--accent2); color: var(--accent2); }
+  .timer-pill.active { background: var(--accent2); color: var(--bg); border-color: var(--accent2); }
+
+  .diff-pill {
+    cursor: pointer;
+    padding: 0.25rem 0.7rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .diff-pill:hover  { border-color: var(--warning); color: var(--warning); }
+  .diff-pill.active { background: var(--warning); color: var(--bg); border-color: var(--warning); }
+
+  /* Typing area */
+  #typing-area {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    position: relative;
+    cursor: text;
+    transition: border-color 0.2s;
+  }
+  #typing-area:focus-within, #typing-area.focused {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.15);
+  }
+
+  /* Hidden real input */
+  #hidden-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    top: 0; left: 0;
+    pointer-events: none;
+  }
+
+  /* Progress bar */
+  #progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.1s;
+    width: 0%;
+  }
+
+  /* Result overlay */
+  #result-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(13,17,23,0.95);
+    border-radius: 12px;
+    z-index: 10;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  [data-theme="light"] #result-overlay { background: rgba(246,248,250,0.95); }
+  #result-overlay.show { display: flex; }
+
+  /* Combo badge */
+  #combo-badge {
+    position: fixed;
+    top: 5rem;
+    right: 2rem;
+    font-family: var(--font-code);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    background: var(--accent);
+    color: var(--bg);
+    transform: translateY(-10px);
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #combo-badge.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Achievement toast */
+  #achievement-toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--bg2);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 0.9rem 1.4rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    z-index: 100;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 280px;
+  }
+  #achievement-toast.show { transform: translateX(0); }
+
+  /* Feedback bar */
+  #feedback {
+    font-family: var(--font-code);
+    font-size: 0.8rem;
+    min-height: 1.4rem;
+    transition: all 0.2s;
+  }
+
+  /* Dashboard / Charts */
+  .chart-bar {
+    background: var(--accent);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height 0.4s ease;
+  }
+
+  /* Memory mode countdown */
+  #mem-countdown {
+    font-family: var(--font-code);
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* Nav active indicator */
+  .nav-tab { cursor: pointer; padding: 0.4rem 0.8rem; font-size:0.8rem; color: var(--text-muted); border-radius:6px; transition:all 0.15s; }
+  .nav-tab:hover { color: var(--text); background: var(--bg3); }
+  .nav-tab.active { color: var(--accent); background: var(--bg3); font-weight:600; }
+
+  /* Heatmap */
+  .heatmap-key { font-family: var(--font-code); font-size:0.7rem; border-radius:4px; cursor:default; }
+
+  /* Misc utilities */
+  .glass {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  button { cursor: pointer; }
+
+  /* Animation for score pop */
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  .pop { animation: pop 0.25s ease; }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+
+  /* Memory mode code preview */
+  #mem-code-preview {
+    font-family: var(--font-code);
+    font-size: 1rem;
+    line-height: 1.8;
+    white-space: pre;
+    color: var(--text);
+    background: var(--bg3);
+    padding: 1.5rem;
+    border-radius: 8px;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════
+     ACHIEVEMENT TOAST
+════════════════════════════════════════════ -->
+<div id="achievement-toast">
+  <div style="color:var(--accent);font-size:1rem;margin-bottom:4px;">🏆 Achievement Unlocked!</div>
+  <div id="achievement-name" style="color:var(--text);font-weight:600;"></div>
+  <div id="achievement-desc" style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     COMBO BADGE
+════════════════════════════════════════════ -->
+<div id="combo-badge">🔥 x<span id="combo-num">0</span></div>
+
+<!-- ═══════════════════════════════════════════
+     TOP NAVIGATION
+════════════════════════════════════════════ -->
+<nav style="background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;">
+  <!-- Logo -->
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-family:var(--font-code);font-size:1.1rem;font-weight:700;color:var(--accent);">⌨ PyType</span>
+    <span style="color:var(--border);font-size:0.8rem;">|</span>
+    <!-- Nav tabs -->
+    <div style="display:flex;gap:4px;">
+      <button class="nav-tab active" id="tab-train" onclick="showTab('train')">Train</button>
+      <button class="nav-tab" id="tab-dash" onclick="showTab('dash')">Stats</button>
+      <button class="nav-tab" id="tab-ach" onclick="showTab('ach')">Badges</button>
+    </div>
+  </div>
+
+  <!-- Right side: timer + restart + theme -->
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div id="nav-timer" style="font-family:var(--font-code);font-size:1.3rem;font-weight:700;color:var(--accent2);min-width:50px;text-align:right;">—</div>
+    <button onclick="restartSession()" title="Restart (Tab)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:0.3rem 0.7rem;border-radius:6px;font-size:0.75rem;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">↺ Restart</button>
+    <button onclick="toggleTheme()" title="Toggle theme" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:0.3rem 0.7rem;border-radius:6px;font-size:0.75rem;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">◑ Theme</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     MAIN CONTAINER
+════════════════════════════════════════════ -->
+<div style="max-width:900px;margin:0 auto;padding:1.5rem 1.25rem;">
+
+<!-- ══════════ TRAINING TAB ══════════ -->
+<div id="view-train">
+
+  <!-- Live Stats Bar -->
+  <div class="glass fade-in" style="padding:1rem 1.5rem;margin-bottom:1rem;display:flex;justify-content:space-around;flex-wrap:wrap;gap:0.5rem;">
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-wpm">0</div>
+      <div class="metric-label">WPM</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-acc" style="color:var(--accent2);">100%</div>
+      <div class="metric-label">Accuracy</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-errors" style="color:var(--error);">0</div>
+      <div class="metric-label">Errors</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-streak" style="color:var(--warning);">0</div>
+      <div class="metric-label">Streak</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-best" style="color:var(--text-muted);">0</div>
+      <div class="metric-label">Best WPM</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-score" style="color:var(--accent);">0</div>
+      <div class="metric-label">Score</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="metric-value" id="stat-xp" style="color:var(--deco,#ffa657);">0</div>
+      <div class="metric-label">XP · Lv <span id="stat-level">1</span></div>
+    </div>
+  </div>
+
+  <!-- Mode Selector -->
+  <div class="glass fade-in" style="padding:0.9rem 1.2rem;margin-bottom:0.75rem;">
+    <div style="font-size:0.7rem;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.6rem;">Mode</div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+      <button class="mode-pill active" data-mode="classic"   onclick="setMode('classic')">Classic</button>
+      <button class="mode-pill"        data-mode="functions" onclick="setMode('functions')">Functions</button>
+      <button class="mode-pill"        data-mode="loops"     onclick="setMode('loops')">Loops</button>
+      <button class="mode-pill"        data-mode="oop"       onclick="setMode('oop')">OOP</button>
+      <button class="mode-pill"        data-mode="django"    onclick="setMode('django')">Django</button>
+      <button class="mode-pill"        data-mode="algos"     onclick="setMode('algos')">Algorithms</button>
+      <button class="mode-pill"        data-mode="oneliners" onclick="setMode('oneliners')">One-liners</button>
+      <button class="mode-pill"        data-mode="debug"     onclick="setMode('debug')">Debug</button>
+      <button class="mode-pill"        data-mode="memory"    onclick="setMode('memory')">Memory</button>
+      <button class="mode-pill"        data-mode="blind"     onclick="setMode('blind')">Blind</button>
+    </div>
+
+    <!-- Sub-options row -->
+    <div style="display:flex;gap:2rem;margin-top:0.75rem;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.08em;">TIMER</div>
+        <div style="display:flex;gap:4px;">
+          <button class="timer-pill" data-t="15"  onclick="setTimer(15)">15s</button>
+          <button class="timer-pill active" data-t="30" onclick="setTimer(30)">30s</button>
+          <button class="timer-pill" data-t="60"  onclick="setTimer(60)">60s</button>
+          <button class="timer-pill" data-t="120" onclick="setTimer(120)">120s</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.08em;">DIFFICULTY</div>
+        <div style="display:flex;gap:4px;">
+          <button class="diff-pill active" data-d="beginner"     onclick="setDiff('beginner')">Beginner</button>
+          <button class="diff-pill"        data-d="intermediate" onclick="setDiff('intermediate')">Intermediate</button>
+          <button class="diff-pill"        data-d="advanced"     onclick="setDiff('advanced')">Advanced</button>
+          <button class="diff-pill"        data-d="expert"       onclick="setDiff('expert')">Expert</button>
+          <button class="diff-pill"        data-d="master"       onclick="setDiff('master')">Master</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Challenge Banner -->
+  <div id="daily-banner" class="glass fade-in" style="padding:0.7rem 1.2rem;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;border-left:3px solid var(--accent);">
+    <div>
+      <div style="font-size:0.7rem;color:var(--accent);letter-spacing:0.1em;font-weight:600;text-transform:uppercase;">Daily Challenge</div>
+      <div id="daily-desc" style="font-size:0.85rem;color:var(--text);margin-top:2px;"></div>
+    </div>
+    <button onclick="startDailyChallenge()" style="font-size:0.75rem;padding:0.3rem 0.8rem;background:var(--accent);color:var(--bg);border:none;border-radius:6px;font-weight:600;">Go →</button>
+  </div>
+
+  <!-- Progress Bar -->
+  <div id="progress-bar" style="margin-bottom:0.5rem;">
+    <div id="progress-fill"></div>
+  </div>
+
+  <!-- Memory Mode Overlay (shown before typing) -->
+  <div id="memory-panel" style="display:none;" class="glass fade-in" style="padding:1.5rem;margin-bottom:0.75rem;text-align:center;">
+    <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Memorise this code — you have <strong id="mem-seconds">5</strong> seconds</div>
+    <div id="mem-code-preview"></div>
+    <div id="mem-countdown" style="margin-top:0.75rem;display:none;">5</div>
+  </div>
+
+  <!-- TYPING AREA -->
+  <div id="typing-area" class="fade-in" onclick="focusInput()" style="position:relative;overflow:hidden;">
+
+    <!-- Hidden real keyboard input -->
+    <input id="hidden-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+
+    <!-- Code display -->
+    <div class="code-display" id="code-display" aria-label="Code to type"></div>
+
+    <!-- Result overlay -->
+    <div id="result-overlay">
+      <div style="text-align:center;" class="fade-in">
+        <div style="font-size:2.5rem;font-weight:700;color:var(--accent);font-family:var(--font-code);" id="res-wpm">0 WPM</div>
+        <div style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;" id="res-sub"></div>
+        <div style="display:flex;gap:2rem;margin:1.2rem auto;justify-content:center;flex-wrap:wrap;">
+          <div style="text-align:center;"><div style="font-family:var(--font-code);font-size:1.4rem;color:var(--accent2);" id="res-acc">0%</div><div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Accuracy</div></div>
+          <div style="text-align:center;"><div style="font-family:var(--font-code);font-size:1.4rem;color:var(--error);" id="res-err">0</div><div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Errors</div></div>
+          <div style="text-align:center;"><div style="font-family:var(--font-code);font-size:1.4rem;color:var(--warning);" id="res-score">0</div><div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Score</div></div>
+          <div style="text-align:center;"><div style="font-family:var(--font-code);font-size:1.4rem;color:var(--accent);" id="res-xp">+0 XP</div><div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">XP Gained</div></div>
+        </div>
+        <div style="display:flex;gap:0.75rem;justify-content:center;">
+          <button onclick="restartSession()" style="padding:0.6rem 1.5rem;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-size:0.85rem;font-weight:700;">↺ Again</button>
+          <button onclick="nextSnippet()" style="padding:0.6rem 1.5rem;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:0.85rem;">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback bar -->
+  <div id="feedback" style="margin-top:0.5rem;padding:0.4rem 0;color:var(--text-muted);text-align:center;"></div>
+
+  <!-- Hint: Tab to restart -->
+  <div style="text-align:center;font-size:0.7rem;color:var(--border);margin-top:0.3rem;">
+    Press <kbd style="background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-family:var(--font-code);">Tab</kbd> to restart &nbsp;·&nbsp; Click the area to focus
+  </div>
+
+</div><!-- /view-train -->
+
+
+<!-- ══════════ STATS TAB ══════════ -->
+<div id="view-dash" style="display:none;">
+  <div class="glass fade-in" style="padding:1.5rem;margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
+      <h2 style="font-size:1.1rem;font-weight:700;">Performance Dashboard</h2>
+      <button onclick="exportStats()" style="font-size:0.75rem;padding:0.3rem 0.8rem;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;">⬇ Export JSON</button>
+    </div>
+
+    <!-- Lifetime stats -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1rem;margin-bottom:1.5rem;">
+      <div class="glass" style="padding:1rem;text-align:center;">
+        <div style="font-family:var(--font-code);font-size:1.8rem;font-weight:700;color:var(--accent);" id="ds-bestwpm">0</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Best WPM</div>
+      </div>
+      <div class="glass" style="padding:1rem;text-align:center;">
+        <div style="font-family:var(--font-code);font-size:1.8rem;font-weight:700;color:var(--accent2);" id="ds-avgacc">0%</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Avg Accuracy</div>
+      </div>
+      <div class="glass" style="padding:1rem;text-align:center;">
+        <div style="font-family:var(--font-code);font-size:1.8rem;font-weight:700;color:var(--warning);" id="ds-sessions">0</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Sessions</div>
+      </div>
+      <div class="glass" style="padding:1rem;text-align:center;">
+        <div style="font-family:var(--font-code);font-size:1.8rem;font-weight:700;color:var(--accent);" id="ds-totalxp">0</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Total XP</div>
+      </div>
+    </div>
+
+    <!-- WPM History Chart -->
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:0.7rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:0.6rem;">WPM History (last 20 sessions)</div>
+      <div id="wpm-chart" style="display:flex;align-items:flex-end;gap:4px;height:80px;border-bottom:1px solid var(--border);padding-bottom:0;"></div>
+    </div>
+
+    <!-- Accuracy History Chart -->
+    <div>
+      <div style="font-size:0.7rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:0.6rem;">Accuracy History</div>
+      <div id="acc-chart" style="display:flex;align-items:flex-end;gap:4px;height:60px;border-bottom:1px solid var(--border);"></div>
+    </div>
+  </div>
+
+  <!-- Recent Sessions -->
+  <div class="glass fade-in" style="padding:1.5rem;">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;color:var(--text-muted);">Recent Sessions</h3>
+    <div id="session-list" style="font-family:var(--font-code);font-size:0.8rem;display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+</div><!-- /view-dash -->
+
+
+<!-- ══════════ ACHIEVEMENTS TAB ══════════ -->
+<div id="view-ach" style="display:none;">
+  <div class="glass fade-in" style="padding:1.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <h2 style="font-size:1.1rem;font-weight:700;">Achievements</h2>
+      <div style="font-size:0.75rem;color:var(--text-muted);">
+        <span id="ach-unlocked">0</span> / <span id="ach-total">0</span> unlocked
+      </div>
+    </div>
+    <div id="ach-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;"></div>
+  </div>
+</div>
+
+</div><!-- /main container -->
+
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT GAME ENGINE
+════════════════════════════════════════════ -->
+<script>
+/* ============================================================
+   SNIPPET BANK — Large collection of Python code by category
+============================================================ */
+const SNIPPETS = {
+  classic: {
+    beginner: [
+      `x = 10\ny = 20\nprint(x + y)`,
+      `name = "Python"\nprint(f"Hello, {name}!")`,
+      `numbers = [1, 2, 3, 4, 5]\nprint(sum(numbers))`,
+      `greeting = "Hello"\nworld = "World"\nprint(greeting + ", " + world)`,
+      `age = int(input("Enter age: "))\nif age >= 18:\n    print("Adult")\nelse:\n    print("Minor")`,
+      `items = ["apple", "banana", "cherry"]\nfor item in items:\n    print(item)`,
+      `result = 100\nfor i in range(1, 5):\n    result -= i\nprint(result)`,
+      `pi = 3.14159\nradius = 5\narea = pi * radius ** 2\nprint(f"Area: {area:.2f}")`,
+      `fruits = ["mango", "kiwi", "grape"]\nfruits.append("orange")\nprint(fruits[-1])`,
+      `text = "hello world"\nprint(text.upper().replace(" ", "_"))`,
+    ],
+    intermediate: [
+      `def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b\n\nprint(list(fibonacci(10)))`,
+      `from collections import Counter\n\nwords = "the quick brown fox jumps over the lazy dog".split()\nfreq = Counter(words)\nprint(freq.most_common(3))`,
+      `squares = {x: x**2 for x in range(1, 11)}\nprint(squares)`,
+      `def memoize(fn):\n    cache = {}\n    def wrapper(*args):\n        if args not in cache:\n            cache[args] = fn(*args)\n        return cache[args]\n    return wrapper`,
+      `data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\nresult = sorted(set(data), reverse=True)[:3]\nprint(result)`,
+      `from functools import reduce\n\nnums = [1, 2, 3, 4, 5]\nproduct = reduce(lambda x, y: x * y, nums)\nprint(product)`,
+    ],
+    advanced: [
+      `from typing import Generator\n\ndef infinite_counter(start: int = 0) -> Generator[int, None, None]:\n    n = start\n    while True:\n        yield n\n        n += 1`,
+      `import contextlib\n\n@contextlib.contextmanager\ndef timer(label: str):\n    import time\n    t0 = time.perf_counter()\n    try:\n        yield\n    finally:\n        elapsed = time.perf_counter() - t0\n        print(f"{label}: {elapsed:.4f}s")`,
+      `from dataclasses import dataclass, field\nfrom typing import List\n\n@dataclass\nclass Graph:\n    nodes: List[str] = field(default_factory=list)\n    edges: dict = field(default_factory=dict)\n\n    def add_edge(self, u: str, v: str) -> None:\n        self.edges.setdefault(u, []).append(v)`,
+    ],
+    expert: [
+      `from typing import TypeVar, Callable, Any\nimport functools\n\nF = TypeVar("F", bound=Callable[..., Any])\n\ndef retry(times: int = 3):\n    def decorator(fn: F) -> F:\n        @functools.wraps(fn)\n        def wrapper(*args, **kwargs):\n            for attempt in range(times):\n                try:\n                    return fn(*args, **kwargs)\n                except Exception as e:\n                    if attempt == times - 1:\n                        raise\n        return wrapper\n    return decorator`,
+    ],
+    master: [
+      `import asyncio\nfrom typing import AsyncIterator\n\nasync def async_range(start: int, stop: int, step: int = 1) -> AsyncIterator[int]:\n    current = start\n    while current < stop:\n        yield current\n        await asyncio.sleep(0)\n        current += step\n\nasync def main() -> None:\n    async for i in async_range(0, 10):\n        print(i)\n\nasyncio.run(main())`,
+    ],
+  },
+
+  functions: {
+    beginner: [
+      `def greet(name):\n    return f"Hello, {name}!"`,
+      `def add(a, b):\n    return a + b`,
+      `def is_even(n):\n    return n % 2 == 0`,
+      `def square(x):\n    return x * x`,
+      `def max_of_three(a, b, c):\n    return max(a, b, c)`,
+    ],
+    intermediate: [
+      `def flatten(lst):\n    result = []\n    for item in lst:\n        if isinstance(item, list):\n            result.extend(flatten(item))\n        else:\n            result.append(item)\n    return result`,
+      `def binary_search(arr, target):\n    lo, hi = 0, len(arr) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1`,
+      `def calculate_stats(data: list) -> dict:\n    n = len(data)\n    mean = sum(data) / n\n    variance = sum((x - mean) ** 2 for x in data) / n\n    return {"mean": mean, "variance": variance, "n": n}`,
+    ],
+    advanced: [
+      `from typing import Optional, List\n\ndef merge_sorted(a: List[int], b: List[int]) -> List[int]:\n    result: List[int] = []\n    i = j = 0\n    while i < len(a) and j < len(b):\n        if a[i] <= b[j]:\n            result.append(a[i]); i += 1\n        else:\n            result.append(b[j]); j += 1\n    return result + a[i:] + b[j:]`,
+    ],
+    expert: [`def quicksort(arr: list) -> list:\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left  = [x for x in arr if x < pivot]\n    mid   = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + mid + quicksort(right)`],
+    master:  [`from typing import TypeVar, Callable, Iterable\nT = TypeVar("T")\nS = TypeVar("S")\n\ndef compose(*fns: Callable) -> Callable:\n    def composed(x):\n        for fn in reversed(fns):\n            x = fn(x)\n        return x\n    return composed`],
+  },
+
+  loops: {
+    beginner: [
+      `for i in range(10):\n    print(i)`,
+      `total = 0\nfor n in [1, 2, 3, 4, 5]:\n    total += n\nprint(total)`,
+      `i = 0\nwhile i < 5:\n    print(f"i = {i}")\n    i += 1`,
+      `for char in "Python":\n    print(char, end=" ")`,
+    ],
+    intermediate: [
+      `matrix = [[1,2,3],[4,5,6],[7,8,9]]\nfor row in matrix:\n    for val in row:\n        print(val, end=" ")\n    print()`,
+      `words = ["hi", "hello", "hey"]\nfor idx, word in enumerate(words, 1):\n    print(f"{idx}. {word}")`,
+      `names = ["Alice", "Bob"]\nscores = [92, 88]\nfor name, score in zip(names, scores):\n    print(f"{name}: {score}")`,
+      `import itertools\ncolors = ["red", "blue"]\nsizes  = ["S", "M", "L"]\nfor combo in itertools.product(colors, sizes):\n    print(combo)`,
+    ],
+    advanced: [
+      `from itertools import chain, islice\n\ndef chunked(iterable, n):\n    it = iter(iterable)\n    while chunk := list(islice(it, n)):\n        yield chunk\n\nfor batch in chunked(range(20), 5):\n    print(batch)`,
+    ],
+    expert:  [`from itertools import groupby\n\ndata = [("a", 1), ("a", 2), ("b", 3), ("b", 4), ("c", 5)]\nfor key, group in groupby(data, key=lambda x: x[0]):\n    print(key, list(group))`],
+    master:  [`import asyncio\n\nasync def producer(queue: asyncio.Queue) -> None:\n    for i in range(5):\n        await queue.put(i)\n        await asyncio.sleep(0.1)\n    await queue.put(None)\n\nasync def consumer(queue: asyncio.Queue) -> None:\n    while True:\n        item = await queue.get()\n        if item is None:\n            break\n        print(f"Consumed: {item}")`],
+  },
+
+  oop: {
+    beginner: [
+      `class Dog:\n    def __init__(self, name):\n        self.name = name\n\n    def bark(self):\n        return f"{self.name} says Woof!"`,
+      `class Circle:\n    pi = 3.14159\n\n    def __init__(self, radius):\n        self.radius = radius\n\n    def area(self):\n        return self.pi * self.radius ** 2`,
+    ],
+    intermediate: [
+      `class Stack:\n    def __init__(self):\n        self._data = []\n\n    def push(self, item):\n        self._data.append(item)\n\n    def pop(self):\n        if not self._data:\n            raise IndexError("pop from empty stack")\n        return self._data.pop()\n\n    def peek(self):\n        return self._data[-1] if self._data else None\n\n    def __len__(self):\n        return len(self._data)`,
+      `class Animal:\n    def __init__(self, name: str, sound: str):\n        self.name = name\n        self.sound = sound\n\n    def speak(self) -> str:\n        return f"{self.name} says {self.sound}"\n\nclass Cat(Animal):\n    def __init__(self, name: str):\n        super().__init__(name, "Meow")\n\n    def purr(self) -> str:\n        return f"{self.name} purrs..."`,
+    ],
+    advanced: [
+      `from dataclasses import dataclass, field\nfrom typing import ClassVar, List\n\n@dataclass\nclass Employee:\n    _count: ClassVar[int] = 0\n    name: str\n    salary: float\n    skills: List[str] = field(default_factory=list)\n    id: int = field(init=False)\n\n    def __post_init__(self):\n        Employee._count += 1\n        self.id = Employee._count\n\n    @classmethod\n    def headcount(cls) -> int:\n        return cls._count`,
+    ],
+    expert: [`from abc import ABC, abstractmethod\nfrom typing import Protocol\n\nclass Serializable(Protocol):\n    def to_dict(self) -> dict: ...\n\nclass BaseModel(ABC):\n    @abstractmethod\n    def validate(self) -> bool: ...\n\n    @abstractmethod\n    def to_dict(self) -> dict: ...`],
+    master: [`import weakref\nfrom typing import Any, Dict\n\nclass SingletonMeta(type):\n    _instances: Dict[type, Any] = {}\n\n    def __call__(cls, *args, **kwargs):\n        if cls not in cls._instances:\n            cls._instances[cls] = super().__call__(*args, **kwargs)\n        return cls._instances[cls]\n\nclass Config(metaclass=SingletonMeta):\n    def __init__(self):\n        self.settings: Dict[str, Any] = {}`],
+  },
+
+  django: {
+    beginner: [
+      `from django.db import models\n\nclass Article(models.Model):\n    title   = models.CharField(max_length=200)\n    content = models.TextField()\n    created = models.DateTimeField(auto_now_add=True)\n\n    def __str__(self):\n        return self.title`,
+    ],
+    intermediate: [
+      `from django.views.generic import ListView, DetailView\nfrom .models import Article\n\nclass ArticleListView(ListView):\n    model = Article\n    template_name = "articles/list.html"\n    context_object_name = "articles"\n    paginate_by = 10\n\n    def get_queryset(self):\n        return Article.objects.filter(\n            published=True\n        ).order_by("-created")`,
+      `from django.urls import path\nfrom . import views\n\napp_name = "blog"\n\nurlpatterns = [\n    path("", views.ArticleListView.as_view(), name="list"),\n    path("<int:pk>/", views.ArticleDetailView.as_view(), name="detail"),\n    path("create/", views.ArticleCreateView.as_view(), name="create"),\n]`,
+    ],
+    advanced: [
+      `from django.db import models\nfrom django.contrib.auth import get_user_model\n\nUser = get_user_model()\n\nclass Post(models.Model):\n    author     = models.ForeignKey(User, on_delete=models.CASCADE)\n    title      = models.CharField(max_length=255)\n    slug       = models.SlugField(unique=True)\n    body       = models.TextField()\n    tags       = models.ManyToManyField("Tag", blank=True)\n    published  = models.BooleanField(default=False)\n    created_at = models.DateTimeField(auto_now_add=True)\n\n    class Meta:\n        ordering = ["-created_at"]\n        indexes  = [models.Index(fields=["slug"])]`,
+    ],
+    expert: [`from django.db.models.signals import post_save\nfrom django.dispatch import receiver\nfrom django.core.mail import send_mail\nfrom .models import Order\n\n@receiver(post_save, sender=Order)\ndef notify_on_order(sender, instance, created, **kwargs):\n    if created:\n        send_mail(\n            subject=f"New order #{instance.id}",\n            message=f"Order placed by {instance.user.email}",\n            from_email="noreply@shop.com",\n            recipient_list=["admin@shop.com"],\n        )`],
+    master: [`from django.core.management.base import BaseCommand\nfrom django.utils import timezone\nfrom myapp.models import Subscription\n\nclass Command(BaseCommand):\n    help = "Expire old subscriptions"\n\n    def handle(self, *args, **options):\n        expired = Subscription.objects.filter(\n            ends_at__lt=timezone.now(),\n            active=True,\n        ).update(active=False)\n        self.stdout.write(\n            self.style.SUCCESS(f"Deactivated {expired} subscriptions")\n        )`],
+  },
+
+  algos: {
+    beginner: [
+      `def linear_search(arr, target):\n    for i, val in enumerate(arr):\n        if val == target:\n            return i\n    return -1`,
+      `def bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(n - i - 1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n    return arr`,
+    ],
+    intermediate: [
+      `def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left  = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    return merge(left, right)\n\ndef merge(l, r):\n    result, i, j = [], 0, 0\n    while i < len(l) and j < len(r):\n        if l[i] <= r[j]:\n            result.append(l[i]); i += 1\n        else:\n            result.append(r[j]); j += 1\n    return result + l[i:] + r[j:]`,
+      `def max_subarray(nums):\n    max_sum = cur_sum = nums[0]\n    for num in nums[1:]:\n        cur_sum = max(num, cur_sum + num)\n        max_sum = max(max_sum, cur_sum)\n    return max_sum`,
+    ],
+    advanced: [
+      `from collections import deque\n\ndef bfs(graph, start):\n    visited = set()\n    queue   = deque([start])\n    order   = []\n    while queue:\n        node = queue.popleft()\n        if node not in visited:\n            visited.add(node)\n            order.append(node)\n            queue.extend(graph.get(node, []))\n    return order`,
+      `def coin_change(coins, amount):\n    dp = [float("inf")] * (amount + 1)\n    dp[0] = 0\n    for coin in coins:\n        for i in range(coin, amount + 1):\n            dp[i] = min(dp[i], dp[i - coin] + 1)\n    return dp[amount] if dp[amount] != float("inf") else -1`,
+    ],
+    expert: [`class UnionFind:\n    def __init__(self, n):\n        self.parent = list(range(n))\n        self.rank   = [0] * n\n\n    def find(self, x):\n        while self.parent[x] != x:\n            self.parent[x] = self.parent[self.parent[x]]\n            x = self.parent[x]\n        return x\n\n    def union(self, x, y):\n        rx, ry = self.find(x), self.find(y)\n        if rx == ry:\n            return False\n        if self.rank[rx] < self.rank[ry]:\n            rx, ry = ry, rx\n        self.parent[ry] = rx\n        if self.rank[rx] == self.rank[ry]:\n            self.rank[rx] += 1\n        return True`],
+    master: [`def lcs(s1: str, s2: str) -> str:\n    m, n = len(s1), len(s2)\n    dp = [[""] * (n + 1) for _ in range(m + 1)]\n    for i in range(1, m + 1):\n        for j in range(1, n + 1):\n            if s1[i-1] == s2[j-1]:\n                dp[i][j] = dp[i-1][j-1] + s1[i-1]\n            else:\n                dp[i][j] = max(dp[i-1][j], dp[i][j-1], key=len)\n    return dp[m][n]`],
+  },
+
+  oneliners: {
+    beginner: [
+      `evens = [x for x in range(20) if x % 2 == 0]`,
+      `squared = [x**2 for x in range(10)]`,
+      `flat = [x for row in [[1,2],[3,4],[5,6]] for x in row]`,
+      `words = "hello world python".split()\nuppered = list(map(str.upper, words))`,
+    ],
+    intermediate: [
+      `pairs = [(1, 'a'), (3, 'c'), (2, 'b')]\nsorted_pairs = sorted(pairs, key=lambda x: x[0])`,
+      `text = "the quick brown fox"\nword_lengths = {w: len(w) for w in text.split()}`,
+      `from itertools import chain\nnested = [[1,2],[3,4],[5]]\nflat   = list(chain.from_iterable(nested))`,
+      `nums = range(1, 101)\nresult = list(filter(lambda n: n % 3 == 0 or n % 5 == 0, nums))`,
+    ],
+    advanced: [
+      `from functools import reduce\nimport operator\n\nfactorial = lambda n: reduce(operator.mul, range(1, n + 1), 1)`,
+      `transpose = lambda m: list(map(list, zip(*m)))`,
+      `primes = [n for n in range(2, 100)\n          if all(n % i != 0 for i in range(2, int(n**0.5)+1))]`,
+    ],
+    expert: [`from typing import Iterator\n\ndef sieve(limit: int) -> Iterator[int]:\n    composites: set[int] = set()\n    for n in range(2, limit + 1):\n        if n not in composites:\n            yield n\n            composites.update(range(n*n, limit+1, n))`],
+    master: [`tree = lambda: __import__("collections").defaultdict(tree)\nroot = tree()\nroot["a"]["b"]["c"] = 1\nprint(dict(root["a"]["b"]))`],
+  },
+
+  debug: {
+    beginner: [
+      `# Fix the syntax error below:\n# BROKEN: for i in range(10)\n#             print(i)\n\nfor i in range(10):\n    print(i)`,
+      `# Fix the indentation:\n# BROKEN:\n# def greet(name):\n# return f"Hello, {name}!"\n\ndef greet(name):\n    return f"Hello, {name}!"`,
+      `# Fix the error:\n# BROKEN: print("Result: " + 42)\n\nprint("Result: " + str(42))`,
+    ],
+    intermediate: [
+      `# Fix the bug (off-by-one):\n# BROKEN:\n# for i in range(1, 10):\n#     print(i)  # misses 10\n\nfor i in range(1, 11):\n    print(i)`,
+      `# Fix: list mutated during iteration\n# BROKEN:\n# nums = [1, 2, 3, 4, 5]\n# for n in nums:\n#     if n % 2 == 0:\n#         nums.remove(n)\n\nnums = [1, 2, 3, 4, 5]\nnums = [n for n in nums if n % 2 != 0]`,
+    ],
+    advanced: [
+      `# Fix: mutable default argument\n# BROKEN:\n# def append_item(item, lst=[]):\n#     lst.append(item)\n#     return lst\n\ndef append_item(item, lst=None):\n    if lst is None:\n        lst = []\n    lst.append(item)\n    return lst`,
+    ],
+    expert: [`# Fix: missing await\n# BROKEN:\n# async def fetch_data(url):\n#     data = requests.get(url).json()\n#     return data\n\nimport aiohttp\n\nasync def fetch_data(url: str) -> dict:\n    async with aiohttp.ClientSession() as session:\n        async with session.get(url) as resp:\n            return await resp.json()`],
+    master: [`# Fix: class variable shared across instances\n# BROKEN:\n# class Counter:\n#     count = 0\n#     def increment(self):\n#         self.count += 1\n\nclass Counter:\n    def __init__(self):\n        self.count = 0\n    def increment(self):\n        self.count += 1`],
+  },
+
+  memory: {
+    beginner:     [ `x = [1, 2, 3]\ny = x.copy()\ny.append(4)\nprint(x, y)` ],
+    intermediate: [ `from collections import OrderedDict\n\nd = OrderedDict()\nd["first"] = 1\nd["second"] = 2\nd.move_to_end("first")\nprint(list(d.keys()))` ],
+    advanced:     [ `import heapq\n\ndef top_k(nums, k):\n    heap = []\n    for n in nums:\n        heapq.heappush(heap, n)\n        if len(heap) > k:\n            heapq.heappop(heap)\n    return sorted(heap, reverse=True)` ],
+    expert:       [ `from contextlib import suppress\n\nwith suppress(FileNotFoundError, PermissionError):\n    with open("/tmp/data.json") as f:\n        data = f.read()` ],
+    master:       [ `from typing import NamedTuple\n\nclass Point(NamedTuple):\n    x: float\n    y: float\n    z: float = 0.0\n\n    def distance(self, other: "Point") -> float:\n        return ((self.x-other.x)**2 + (self.y-other.y)**2 + (self.z-other.z)**2)**0.5` ],
+  },
+
+  blind: {
+    beginner:     [ `count = 0\nfor _ in range(100):\n    count += 1\nprint(count)` ],
+    intermediate: [ `def flatten(lst):\n    return [x for sub in lst for x in (flatten(sub) if isinstance(sub, list) else [sub])]` ],
+    advanced:     [ `from functools import lru_cache\n\n@lru_cache(maxsize=None)\ndef fib(n: int) -> int:\n    if n < 2:\n        return n\n    return fib(n-1) + fib(n-2)` ],
+    expert:       [ `class LRUCache:\n    def __init__(self, capacity: int):\n        from collections import OrderedDict\n        self.cache = OrderedDict()\n        self.cap = capacity\n\n    def get(self, key: int) -> int:\n        if key not in self.cache:\n            return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key: int, value: int) -> None:\n        self.cache[key] = value\n        self.cache.move_to_end(key)\n        if len(self.cache) > self.cap:\n            self.cache.popitem(last=False)` ],
+    master:       [ `import asyncio\nfrom typing import AsyncGenerator\n\nasync def throttle(gen: AsyncGenerator, delay: float):\n    async for item in gen:\n        yield item\n        await asyncio.sleep(delay)` ],
+  },
+};
+
+/* Python keyword list for basic syntax colouring */
+const PY_KEYWORDS = new Set([
+  "False","None","True","and","as","assert","async","await",
+  "break","class","continue","def","del","elif","else","except",
+  "finally","for","from","global","if","import","in","is",
+  "lambda","nonlocal","not","or","pass","raise","return",
+  "try","while","with","yield"
+]);
+const PY_BUILTINS = new Set([
+  "print","range","len","type","int","float","str","list","dict",
+  "set","tuple","bool","enumerate","zip","map","filter","sorted",
+  "reversed","sum","min","max","abs","round","open","input",
+  "super","isinstance","issubclass","hasattr","getattr","setattr",
+  "property","staticmethod","classmethod","repr","hash","id",
+  "iter","next","callable","vars","dir","hex","bin","oct",
+]);
+
+/* ============================================================
+   ACHIEVEMENTS DEFINITION
+============================================================ */
+const ACHIEVEMENTS_DEF = [
+  { id:"first_key",    icon:"⌨",  name:"First Keystroke",     desc:"Type your first character" },
+  { id:"first_fn",     icon:"🔧", name:"First Function",      desc:"Complete a Functions snippet" },
+  { id:"loop_master",  icon:"🔄", name:"Loop Master",         desc:"Complete 5 loop snippets" },
+  { id:"oop_apprentice",icon:"🧬",name:"OOP Apprentice",      desc:"Complete an OOP snippet" },
+  { id:"django_ninja", icon:"🕸", name:"Django Ninja",        desc:"Complete a Django snippet" },
+  { id:"algo_hero",    icon:"⚡", name:"Algorithm Hero",      desc:"Complete an algorithm snippet" },
+  { id:"speed_50",     icon:"🚀", name:"Speed 50",            desc:"Reach 50 WPM" },
+  { id:"speed_80",     icon:"💨", name:"Speed 80",            desc:"Reach 80 WPM" },
+  { id:"speed_100",    icon:"🏎", name:"Speed 100",           desc:"Reach 100 WPM" },
+  { id:"accuracy_90",  icon:"🎯", name:"Sharpshooter",        desc:"Finish with ≥90% accuracy" },
+  { id:"accuracy_100", icon:"💎", name:"Perfect Round",       desc:"Finish with 100% accuracy" },
+  { id:"streak_20",    icon:"🔥", name:"On Fire",             desc:"Achieve a 20-char streak" },
+  { id:"streak_50",    icon:"🌋", name:"Unstoppable",         desc:"Achieve a 50-char streak" },
+  { id:"sessions_5",   icon:"📅", name:"Committed",           desc:"Complete 5 sessions" },
+  { id:"sessions_20",  icon:"🏅", name:"Dedicated",           desc:"Complete 20 sessions" },
+  { id:"level_5",      icon:"⭐", name:"Rising Star",         desc:"Reach Level 5" },
+  { id:"level_10",     icon:"🌟", name:"Python Wizard",       desc:"Reach Level 10" },
+  { id:"debug_done",   icon:"🐛", name:"Bug Squasher",        desc:"Complete a Debug snippet" },
+  { id:"memory_done",  icon:"🧠", name:"Memory Palace",       desc:"Complete a Memory snippet" },
+  { id:"blind_done",   icon:"🙈", name:"Blind Typist",        desc:"Complete a Blind snippet" },
+  { id:"xp_500",       icon:"💫", name:"XP 500",              desc:"Earn 500 total XP" },
+  { id:"xp_1000",      icon:"✨", name:"XP 1000",             desc:"Earn 1000 total XP" },
+];
+
+/* ============================================================
+   DAILY CHALLENGES
+============================================================ */
+const DAILY_CHALLENGES = [
+  { mode:"functions", diff:"intermediate", goal:"Complete 3 function snippets", count:3 },
+  { mode:"loops",     diff:"intermediate", goal:"Complete 5 loop snippets",     count:5 },
+  { mode:"oop",       diff:"beginner",     goal:"Complete 3 OOP snippets",      count:3 },
+  { mode:"django",    diff:"intermediate", goal:"Complete 2 Django snippets",   count:2 },
+  { mode:"algos",     diff:"intermediate", goal:"Complete 3 algorithm snippets",count:3 },
+  { mode:"oneliners", diff:"beginner",     goal:"Type 5 Python one-liners",     count:5 },
+];
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  mode: "classic",
+  diff: "beginner",
+  timerMax: 30,
+  timerLeft: 30,
+  timerInterval: null,
+  started: false,
+  finished: false,
+  snippet: "",
+  typed: "",
+  errors: 0,
+  totalTyped: 0,
+  streak: 0,
+  bestStreak: 0,
+  combo: 0,
+  comboTimeout: null,
+  startTime: null,
+  xp: 0,
+  level: 1,
+  sessions: [],
+  achievements: {},
+  loopCount: 0,
+  fnCount: 0,
+  dailyProgress: 0,
+  daily: null,
+  blindMode: false,
+  memoryMode: false,
+  memoryPhase: "preview",  // "preview" | "typing"
+  pendingMemorySnippet: "",
+};
+
+/* ============================================================
+   LOCAL STORAGE HELPERS
+============================================================ */
+function saveData() {
+  const persisted = {
+    xp: state.xp,
+    level: state.level,
+    sessions: state.sessions.slice(-50),
+    achievements: state.achievements,
+    bestWpm: getBestWpm(),
+    dailyProgress: state.dailyProgress,
+    daily: state.daily,
+    loopCount: state.loopCount,
+    fnCount: state.fnCount,
+  };
+  try { localStorage.setItem("pytype_v2", JSON.stringify(persisted)); } catch(e){}
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem("pytype_v2");
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    state.xp           = d.xp || 0;
+    state.level        = d.level || 1;
+    state.sessions     = d.sessions || [];
+    state.achievements = d.achievements || {};
+    state.loopCount    = d.loopCount || 0;
+    state.fnCount      = d.fnCount || 0;
+    // Reset daily if new day
+    const today = new Date().toDateString();
+    if (d.daily && d.daily.date === today) {
+      state.daily = d.daily;
+      state.dailyProgress = d.dailyProgress || 0;
+    }
+  } catch(e){}
+}
+
+function getBestWpm() {
+  if (!state.sessions.length) return 0;
+  return Math.max(...state.sessions.map(s => s.wpm || 0));
+}
+
+/* ============================================================
+   XP & LEVEL SYSTEM
+============================================================ */
+function xpForLevel(lvl) { return lvl * lvl * 50; }
+
+function addXp(amount) {
+  state.xp += amount;
+  while (state.xp >= xpForLevel(state.level + 1)) {
+    state.level++;
+    setFeedback(`🎉 Level Up! You are now Level ${state.level}!`, "var(--accent)");
+    if (state.level === 5)  unlockAchievement("level_5");
+    if (state.level === 10) unlockAchievement("level_10");
+  }
+  updateStatBar();
+}
+
+/* ============================================================
+   ACHIEVEMENT SYSTEM
+============================================================ */
+function unlockAchievement(id) {
+  if (state.achievements[id]) return;
+  state.achievements[id] = Date.now();
+  const def = ACHIEVEMENTS_DEF.find(a => a.id === id);
+  if (!def) return;
+  showAchievementToast(def);
+  saveData();
+}
+
+function showAchievementToast(def) {
+  const toast = document.getElementById("achievement-toast");
+  document.getElementById("achievement-name").textContent = `${def.icon} ${def.name}`;
+  document.getElementById("achievement-desc").textContent = def.desc;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3500);
+}
+
+/* ============================================================
+   SNIPPET SELECTION
+============================================================ */
+function getSnippet() {
+  const bank = SNIPPETS[state.mode];
+  if (!bank) return "print('Hello, Python!')";
+  // Fall back to beginner if diff not found
+  const pool = bank[state.diff] || bank["beginner"] || [];
+  if (!pool.length) return "print('No snippets yet!')";
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/* ============================================================
+   PYTHON SYNTAX TOKENISER (lightweight)
+============================================================ */
+function tokeniseSnippet(code) {
+  // Returns array of {char, type}
+  // We'll do basic tokenisation by line
+  const result = [];
+  // Simple state machine
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+
+    // Newline / space
+    if (ch === "\n" || ch === " " || ch === "\t") {
+      result.push({ char: ch, type: "plain" });
+      i++; continue;
+    }
+
+    // Comment
+    if (ch === "#") {
+      while (i < code.length && code[i] !== "\n") {
+        result.push({ char: code[i], type: "cmt" }); i++;
+      }
+      continue;
+    }
+
+    // String (single / double / triple)
+    if (ch === '"' || ch === "'") {
+      let delim = ch;
+      let triple = code.substr(i, 3) === delim.repeat(3);
+      let end = triple ? delim.repeat(3) : delim;
+      let j = i + (triple ? 3 : 1);
+      while (j < code.length) {
+        if (code[j] === "\\") { j += 2; continue; }
+        if (code.substr(j, end.length) === end) { j += end.length; break; }
+        j++;
+      }
+      for (let k = i; k < j; k++) result.push({ char: code[k], type: "str" });
+      i = j; continue;
+    }
+
+    // Number
+    if (/[0-9]/.test(ch) || (ch === "-" && /[0-9]/.test(code[i+1] || ""))) {
+      let j = i;
+      while (j < code.length && /[\d._xXbBoO]/.test(code[j])) j++;
+      for (let k = i; k < j; k++) result.push({ char: code[k], type: "num" });
+      i = j; continue;
+    }
+
+    // Decorator
+    if (ch === "@") {
+      let j = i;
+      while (j < code.length && /[\w.]/.test(code[j])) j++;
+      for (let k = i; k < j; k++) result.push({ char: code[k], type: "deco" });
+      i = j; continue;
+    }
+
+    // Identifier (could be keyword / builtin / function)
+    if (/[A-Za-z_]/.test(ch)) {
+      let j = i;
+      while (j < code.length && /[\w]/.test(code[j])) j++;
+      const word = code.slice(i, j);
+      let type = "plain";
+      if (PY_KEYWORDS.has(word)) type = "kw";
+      else if (PY_BUILTINS.has(word)) type = "bi";
+      else if (/^[A-Z]/.test(word)) type = "cls";
+      else if (code[j] === "(") type = "fn";
+      for (let k = i; k < j; k++) result.push({ char: code[k], type });
+      i = j; continue;
+    }
+
+    // Operator / punctuation
+    result.push({ char: ch, type: "op" });
+    i++;
+  }
+  return result;
+}
+
+/* ============================================================
+   RENDER CODE DISPLAY
+============================================================ */
+function renderDisplay() {
+  const snippet = state.snippet;
+  const typed   = state.typed;
+  const tokens  = state.tokens;
+  const display = document.getElementById("code-display");
+  const blind   = state.blindMode && state.started;
+
+  let html = "";
+  for (let i = 0; i < tokens.length; i++) {
+    const { char, type } = tokens[i];
+    const escapedChar = char === "\n" ? "\n" : char.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+    if (i < typed.length) {
+      if (blind) {
+        // In blind mode: show nothing for typed chars, just advance cursor
+        if (i === typed.length - 1 && typed.length < snippet.length) {
+          html += `<span class="char-cursor">&#160;</span>`;
+        } else {
+          html += `<span style="opacity:0">${escapedChar}</span>`;
+        }
+      } else if (typed[i] === snippet[i]) {
+        html += `<span class="char-correct ${type}">${escapedChar}</span>`;
+      } else {
+        const wrongChar = typed[i] === "\n" ? "↵" : typed[i].replace(/&/g,"&amp;").replace(/</g,"&lt;");
+        html += `<span class="char-error">${escapedChar}</span>`;
+      }
+    } else if (i === typed.length) {
+      // Cursor
+      html += `<span class="char-cursor">${escapedChar === "\n" ? "↵\n" : escapedChar}</span>`;
+    } else {
+      html += `<span class="char-pending ${type}">${escapedChar}</span>`;
+    }
+  }
+  display.innerHTML = html;
+}
+
+/* ============================================================
+   STATS
+============================================================ */
+function calcWpm() {
+  if (!state.startTime || !state.started) return 0;
+  const elapsed = (Date.now() - state.startTime) / 1000 / 60;
+  if (elapsed <= 0) return 0;
+  const correctChars = state.typed.split("").filter((c,i) => c === state.snippet[i]).length;
+  return Math.round((correctChars / 5) / elapsed);
+}
+
+function calcAcc() {
+  if (!state.totalTyped) return 100;
+  const correct = state.typed.split("").filter((c,i) => c === state.snippet[i]).length;
+  return Math.round((correct / Math.max(state.totalTyped, 1)) * 100);
+}
+
+function updateStatBar() {
+  const wpm = calcWpm();
+  const acc = calcAcc();
+  const best = getBestWpm();
+  const score = Math.max(0, Math.round(wpm * (acc / 100) - state.errors * 2));
+  document.getElementById("stat-wpm").textContent     = wpm;
+  document.getElementById("stat-acc").textContent     = acc + "%";
+  document.getElementById("stat-errors").textContent  = state.errors;
+  document.getElementById("stat-streak").textContent  = state.streak;
+  document.getElementById("stat-best").textContent    = best;
+  document.getElementById("stat-score").textContent   = score;
+  document.getElementById("stat-xp").textContent      = state.xp;
+  document.getElementById("stat-level").textContent   = state.level;
+  return { wpm, acc, score };
+}
+
+/* ============================================================
+   TIMER
+============================================================ */
+function startTimer() {
+  if (state.timerInterval) return;
+  state.timerLeft = state.timerMax;
+  state.timerInterval = setInterval(() => {
+    state.timerLeft--;
+    document.getElementById("nav-timer").textContent = state.timerLeft + "s";
+    if (state.timerLeft <= 0) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+      finishSession();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+}
+
+/* ============================================================
+   FEEDBACK MESSAGES
+============================================================ */
+const FEEDBACKS = {
+  correct:  ["Nice!", "Keep going!", "Excellent!", "Smooth!", "On fire 🔥", "Perfect syntax!"],
+  error:    ["Oops!", "Wrong key", "Almost!", "Try again", "Watch out!"],
+  keyword:  ["Keyword typed!", "Python keyword — nice!", "Reserved word — good!"],
+  fn:       ["Function name typed!", "Def-initely correct!"],
+  cls:      ["Class name — elegant!", "OOP in the making!"],
+};
+
+function setFeedback(msg, color = "var(--text-muted)") {
+  const el = document.getElementById("feedback");
+  el.style.color = color;
+  el.textContent = msg;
+}
+
+function smartFeedback(charIdx, correct) {
+  if (!correct) {
+    const msgs = FEEDBACKS.error;
+    setFeedback(msgs[Math.floor(Math.random() * msgs.length)], "var(--error)");
+    return;
+  }
+  const tok = state.tokens[charIdx];
+  if (tok) {
+    if (tok.type === "kw" && charIdx > 0 && state.tokens[charIdx-1]?.type !== "kw") {
+      setFeedback(FEEDBACKS.keyword[Math.floor(Math.random() * FEEDBACKS.keyword.length)], "var(--accent2)");
+    } else if (tok.type === "fn") {
+      setFeedback(FEEDBACKS.fn[Math.floor(Math.random() * FEEDBACKS.fn.length)], "var(--accent)");
+    } else if (tok.type === "cls") {
+      setFeedback(FEEDBACKS.cls[Math.floor(Math.random() * FEEDBACKS.cls.length)], "var(--warning)");
+    }
+  }
+}
+
+/* ============================================================
+   COMBO SYSTEM
+============================================================ */
+function updateCombo(correct) {
+  if (correct) {
+    state.combo++;
+    if (state.combo >= 10 && state.combo % 10 === 0) {
+      showCombo();
+    }
+  } else {
+    state.combo = 0;
+    hideCombo();
+  }
+}
+
+function showCombo() {
+  const badge = document.getElementById("combo-badge");
+  document.getElementById("combo-num").textContent = state.combo;
+  badge.classList.add("show");
+  if (state.comboTimeout) clearTimeout(state.comboTimeout);
+  state.comboTimeout = setTimeout(hideCombo, 2000);
+}
+
+function hideCombo() {
+  document.getElementById("combo-badge").classList.remove("show");
+}
+
+/* ============================================================
+   INPUT HANDLER
+============================================================ */
+function handleInput(e) {
+  if (state.finished) return;
+
+  // Memory mode: need to be in typing phase
+  if (state.memoryMode && state.memoryPhase !== "typing") return;
+
+  const snippet = state.snippet;
+  const newVal  = e.target.value;
+  const prev    = state.typed;
+
+  // Reset input each character (controlled input)
+  e.target.value = "";
+
+  // Handle backspace
+  if (newVal.length < prev.length || (newVal === "" && e.inputType === "deleteContentBackward")) {
+    if (state.typed.length > 0) {
+      state.typed = state.typed.slice(0, -1);
+      state.streak = Math.max(0, state.streak - 1);
+    }
+    renderDisplay();
+    return;
+  }
+
+  // Characters typed since last render
+  const addedChars = newVal;
+  for (const ch of addedChars) {
+    if (state.typed.length >= snippet.length) break;
+
+    if (!state.started) {
+      state.started  = true;
+      state.startTime = Date.now();
+      startTimer();
+      unlockAchievement("first_key");
+    }
+
+    const expected = snippet[state.typed.length];
+    const correct  = ch === expected;
+
+    state.totalTyped++;
+
+    if (correct) {
+      state.typed += ch;
+      state.streak++;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+      updateCombo(true);
+      smartFeedback(state.typed.length - 1, true);
+
+      // Streak achievements
+      if (state.streak >= 20) unlockAchievement("streak_20");
+      if (state.streak >= 50) unlockAchievement("streak_50");
+    } else {
+      state.typed += ch;  // track wrong char for display
+      state.errors++;
+      state.streak = 0;
+      updateCombo(false);
+      smartFeedback(state.typed.length - 1, false);
+    }
+  }
+
+  // Progress
+  const pct = (state.typed.length / snippet.length) * 100;
+  document.getElementById("progress-fill").style.width = pct + "%";
+
+  updateStatBar();
+  renderDisplay();
+
+  // Completed
+  if (state.typed.length >= snippet.length) {
+    stopTimer();
+    finishSession();
+  }
+}
+
+/* ============================================================
+   FINISH SESSION
+============================================================ */
+function finishSession() {
+  if (state.finished) return;
+  state.finished = true;
+  stopTimer();
+  hideCombo();
+
+  const { wpm, acc, score } = updateStatBar();
+
+  // XP
+  const diffXp = { beginner:10, intermediate:20, advanced:35, expert:50, master:75 };
+  const earnedXp = Math.round(score * 0.5 + (diffXp[state.diff] || 10));
+  addXp(earnedXp);
+
+  // Mode counters
+  if (state.mode === "loops")     { state.loopCount++; if(state.loopCount >= 5) unlockAchievement("loop_master"); }
+  if (state.mode === "functions") { state.fnCount++;   unlockAchievement("first_fn"); }
+  if (state.mode === "oop")       unlockAchievement("oop_apprentice");
+  if (state.mode === "django")    unlockAchievement("django_ninja");
+  if (state.mode === "algos")     unlockAchievement("algo_hero");
+  if (state.mode === "debug")     unlockAchievement("debug_done");
+  if (state.mode === "memory")    unlockAchievement("memory_done");
+  if (state.mode === "blind")     unlockAchievement("blind_done");
+
+  // Speed / accuracy
+  if (wpm >= 50)  unlockAchievement("speed_50");
+  if (wpm >= 80)  unlockAchievement("speed_80");
+  if (wpm >= 100) unlockAchievement("speed_100");
+  if (acc >= 90)  unlockAchievement("accuracy_90");
+  if (acc >= 100 && state.typed.length >= state.snippet.length) unlockAchievement("accuracy_100");
+
+  // XP milestones
+  if (state.xp >= 500)  unlockAchievement("xp_500");
+  if (state.xp >= 1000) unlockAchievement("xp_1000");
+
+  // Session log
+  const session = {
+    wpm, acc, score, errors: state.errors,
+    mode: state.mode, diff: state.diff,
+    ts: Date.now(), xp: earnedXp,
+  };
+  state.sessions.push(session);
+  if (state.sessions.length >= 5) unlockAchievement("sessions_5");
+  if (state.sessions.length >= 20) unlockAchievement("sessions_20");
+
+  // Daily challenge
+  if (state.daily && state.mode === state.daily.mode) {
+    state.dailyProgress++;
+    saveDailyProgress();
+  }
+
+  saveData();
+
+  // Show result overlay
+  document.getElementById("res-wpm").textContent   = wpm + " WPM";
+  document.getElementById("res-acc").textContent   = acc + "%";
+  document.getElementById("res-err").textContent   = state.errors;
+  document.getElementById("res-score").textContent = score;
+  document.getElementById("res-xp").textContent    = `+${earnedXp} XP`;
+  const grade = acc >= 98 ? "💎 Flawless" : acc >= 90 ? "✨ Excellent" : acc >= 75 ? "👍 Good" : "📈 Keep practising";
+  document.getElementById("res-sub").textContent   = `${grade}  ·  Streak: ${state.bestStreak}`;
+
+  const overlay = document.getElementById("result-overlay");
+  overlay.classList.add("show");
+}
+
+/* ============================================================
+   RESTART / NEXT SNIPPET
+============================================================ */
+function restartSession() {
+  stopTimer();
+  state.started    = false;
+  state.finished   = false;
+  state.typed      = "";
+  state.errors     = 0;
+  state.totalTyped = 0;
+  state.streak     = 0;
+  state.bestStreak = 0;
+  state.combo      = 0;
+  state.startTime  = null;
+  state.timerLeft  = state.timerMax;
+  hideCombo();
+  document.getElementById("result-overlay").classList.remove("show");
+  document.getElementById("progress-fill").style.width = "0%";
+  document.getElementById("nav-timer").textContent = state.timerMax + "s";
+  setFeedback("");
+  loadNewSnippet();
+  updateStatBar();
+  focusInput();
+}
+
+function nextSnippet() {
+  restartSession();
+}
+
+function loadNewSnippet() {
+  if (state.memoryMode) {
+    state.memoryPhase = "preview";
+    state.pendingMemorySnippet = getSnippet();
+    document.getElementById("mem-code-preview").textContent = state.pendingMemorySnippet;
+    document.getElementById("memory-panel").style.display = "block";
+    document.getElementById("code-display").innerHTML = "";
+    startMemoryCountdown();
+    return;
+  }
+  state.snippet = getSnippet();
+  state.tokens  = tokeniseSnippet(state.snippet);
+  document.getElementById("memory-panel").style.display = "none";
+  renderDisplay();
+}
+
+/* ============================================================
+   MEMORY MODE
+============================================================ */
+function startMemoryCountdown() {
+  let t = 5;
+  const cdEl = document.getElementById("mem-countdown");
+  const cdPrev = document.getElementById("mem-code-preview");
+  cdEl.style.display = "none";
+  cdPrev.style.display = "block";
+  const iv = setInterval(() => {
+    t--;
+    if (t <= 0) {
+      clearInterval(iv);
+      cdPrev.style.display = "none";
+      cdEl.style.display   = "block";
+      let c = 3;
+      cdEl.textContent = c;
+      const iv2 = setInterval(() => {
+        c--;
+        cdEl.textContent = c;
+        if (c <= 0) {
+          clearInterval(iv2);
+          document.getElementById("memory-panel").style.display = "none";
+          state.snippet = state.pendingMemorySnippet;
+          state.tokens  = tokeniseSnippet(state.snippet);
+          state.memoryPhase = "typing";
+          renderDisplay();
+          focusInput();
+        }
+      }, 1000);
+    }
+  }, 1000);
+}
+
+/* ============================================================
+   FOCUS
+============================================================ */
+function focusInput() {
+  document.getElementById("hidden-input").focus();
+  document.getElementById("typing-area").classList.add("focused");
+}
+
+/* ============================================================
+   MODE / TIMER / DIFF SETTERS
+============================================================ */
+function setMode(mode) {
+  state.mode = mode;
+  state.memoryMode = mode === "memory";
+  state.blindMode  = mode === "blind";
+  document.querySelectorAll(".mode-pill").forEach(b => {
+    b.classList.toggle("active", b.dataset.mode === mode);
+  });
+  restartSession();
+}
+
+function setTimer(t) {
+  state.timerMax = t;
+  document.querySelectorAll(".timer-pill").forEach(b => {
+    b.classList.toggle("active", parseInt(b.dataset.t) === t);
+  });
+  restartSession();
+}
+
+function setDiff(d) {
+  state.diff = d;
+  document.querySelectorAll(".diff-pill").forEach(b => {
+    b.classList.toggle("active", b.dataset.d === d);
+  });
+  restartSession();
+}
+
+/* ============================================================
+   KEYBOARD SHORTCUTS
+============================================================ */
+document.addEventListener("keydown", e => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    restartSession();
+  }
+  if (e.key === "Escape") {
+    document.getElementById("hidden-input").blur();
+    document.getElementById("typing-area").classList.remove("focused");
+  }
+});
+
+/* ============================================================
+   THEME
+============================================================ */
+function toggleTheme() {
+  const curr = document.documentElement.getAttribute("data-theme");
+  const next = curr === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("pytype_theme", next); } catch(e){}
+}
+
+function loadTheme() {
+  try {
+    const saved = localStorage.getItem("pytype_theme");
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+  } catch(e){}
+}
+
+/* ============================================================
+   TAB NAVIGATION
+============================================================ */
+function showTab(tab) {
+  ["train","dash","ach"].forEach(t => {
+    document.getElementById("view-" + t).style.display = t === tab ? "block" : "none";
+    document.getElementById("tab-"  + t).classList.toggle("active", t === tab);
+  });
+  if (tab === "dash") renderDashboard();
+  if (tab === "ach")  renderAchievements();
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+function renderDashboard() {
+  const sessions = state.sessions;
+  const best     = getBestWpm();
+  const avgAcc   = sessions.length
+    ? Math.round(sessions.reduce((s,r) => s + r.acc, 0) / sessions.length)
+    : 0;
+  const totalXp  = state.xp;
+
+  document.getElementById("ds-bestwpm").textContent  = best;
+  document.getElementById("ds-avgacc").textContent   = avgAcc + "%";
+  document.getElementById("ds-sessions").textContent = sessions.length;
+  document.getElementById("ds-totalxp").textContent  = totalXp;
+
+  // WPM Chart
+  const wpmEl = document.getElementById("wpm-chart");
+  const last20 = sessions.slice(-20);
+  const maxWpm = Math.max(...last20.map(s => s.wpm), 1);
+  wpmEl.innerHTML = last20.map(s => {
+    const h = Math.max(4, Math.round((s.wpm / maxWpm) * 76));
+    return `<div title="${s.wpm} WPM" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:80px;">
+      <div class="chart-bar" style="width:100%;height:${h}px;background:var(--accent);"></div>
+      <div style="font-size:0.55rem;color:var(--text-muted);margin-top:2px;">${s.wpm}</div>
+    </div>`;
+  }).join("");
+
+  // Accuracy Chart
+  const accEl = document.getElementById("acc-chart");
+  accEl.innerHTML = last20.map(s => {
+    const h = Math.max(2, Math.round((s.acc / 100) * 56));
+    return `<div title="${s.acc}%" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:60px;">
+      <div class="chart-bar" style="width:100%;height:${h}px;background:var(--accent2);"></div>
+      <div style="font-size:0.55rem;color:var(--text-muted);margin-top:2px;">${s.acc}%</div>
+    </div>`;
+  }).join("");
+
+  // Session List
+  const listEl = document.getElementById("session-list");
+  const recent = [...sessions].reverse().slice(0, 10);
+  listEl.innerHTML = recent.length
+    ? recent.map(s => {
+        const date = new Date(s.ts).toLocaleTimeString();
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0.6rem;border-radius:6px;background:var(--bg3);">
+          <span style="color:var(--text-muted);font-size:0.7rem;">${date}</span>
+          <span style="color:var(--accent)">${s.wpm} WPM</span>
+          <span style="color:var(--accent2)">${s.acc}%</span>
+          <span style="color:var(--error)">${s.errors} err</span>
+          <span style="color:var(--text-muted);font-size:0.7rem;">${s.mode}·${s.diff}</span>
+          <span style="color:var(--warning)">+${s.xp} XP</span>
+        </div>`;
+      }).join("")
+    : `<div style="color:var(--text-muted);text-align:center;padding:1rem;">No sessions yet — start typing!</div>`;
+}
+
+/* ============================================================
+   EXPORT
+============================================================ */
+function exportStats() {
+  const data = {
+    exported: new Date().toISOString(),
+    xp: state.xp, level: state.level,
+    sessions: state.sessions,
+    achievements: state.achievements,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pytype_stats.json";
+  a.click();
+}
+
+/* ============================================================
+   ACHIEVEMENTS RENDER
+============================================================ */
+function renderAchievements() {
+  const grid = document.getElementById("ach-grid");
+  const unlocked = Object.keys(state.achievements).length;
+  document.getElementById("ach-unlocked").textContent = unlocked;
+  document.getElementById("ach-total").textContent    = ACHIEVEMENTS_DEF.length;
+
+  grid.innerHTML = ACHIEVEMENTS_DEF.map(a => {
+    const done = !!state.achievements[a.id];
+    return `<div class="glass" style="padding:0.9rem;display:flex;align-items:center;gap:0.75rem;opacity:${done?1:0.4};transition:opacity 0.3s;">
+      <div style="font-size:1.6rem;flex-shrink:0;">${a.icon}</div>
+      <div>
+        <div style="font-weight:600;font-size:0.85rem;color:${done?"var(--accent)":"var(--text)"};">${a.name}</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);">${a.desc}</div>
+        ${done?`<div style="font-size:0.65rem;color:var(--accent);margin-top:2px;">✓ Unlocked</div>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ============================================================
+   DAILY CHALLENGE
+============================================================ */
+function initDailyChallenge() {
+  const today = new Date().toDateString();
+  if (!state.daily || state.daily.date !== today) {
+    const idx = new Date().getDate() % DAILY_CHALLENGES.length;
+    state.daily = { ...DAILY_CHALLENGES[idx], date: today };
+    state.dailyProgress = 0;
+    saveData();
+  }
+  const d = state.daily;
+  document.getElementById("daily-desc").textContent =
+    `${d.goal} (${state.dailyProgress}/${d.count} done)`;
+}
+
+function startDailyChallenge() {
+  if (!state.daily) return;
+  setMode(state.daily.mode);
+  setDiff(state.daily.diff);
+}
+
+function saveDailyProgress() {
+  document.getElementById("daily-desc").textContent =
+    `${state.daily.goal} (${state.dailyProgress}/${state.daily.count} done)`;
+  saveData();
+}
+
+/* ============================================================
+   WIRE UP INPUT
+============================================================ */
+document.getElementById("hidden-input").addEventListener("input", handleInput);
+document.getElementById("hidden-input").addEventListener("blur", () => {
+  document.getElementById("typing-area").classList.remove("focused");
+});
+document.getElementById("hidden-input").addEventListener("focus", () => {
+  document.getElementById("typing-area").classList.add("focused");
+});
+
+// Prevent paste
+document.getElementById("hidden-input").addEventListener("paste", e => e.preventDefault());
+
+/* ============================================================
+   INIT
+============================================================ */
+function init() {
+  loadTheme();
+  loadData();
+  initDailyChallenge();
+  loadNewSnippet();
+  updateStatBar();
+  document.getElementById("nav-timer").textContent = state.timerMax + "s";
+  focusInput();
+}
+
+init();
+</script>
+
+</body>
+</html>

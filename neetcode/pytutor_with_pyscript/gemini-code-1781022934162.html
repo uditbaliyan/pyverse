@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PyScript + PyTutor Backend</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background-color: #1e1e1e; color: #fff; }
+        pre { background: #2d2d2d; padding: 15px; border-radius: 5px; overflow-x: auto; color: #a9ffb7;}
+        h3 { color: #00ffff; }
+    </style>
+</head>
+<body>
+
+    <h2>Running `pytutor` via Micropip in the Browser</h2>
+    <p>Status: <span id="status">Loading environment and installing packages...</span></p>
+
+    <h3>1. Target Code Being Analyzed:</h3>
+    <pre id="code-preview">
+x = 5
+y = 10
+numbers = [x, y]
+x = 20
+    </pre>
+
+    <h3>2. Generated PyTutor Trace JSON (First Step Snapshot):</h3>
+    <pre id="output-trace">Waiting for execution...</pre>
+
+    <py-config>
+        packages = ["micropip"]
+    </py-config>
+
+    <script type="py">
+        import json
+        import micropip
+        from pyscript import document
+
+        async def main():
+            # 1. Install pytutor via micropip
+            document.getElementById("status").innerText = "Installing 'pytutor' from PyPI..."
+            await micropip.install("pytutor")
+            document.getElementById("status").innerText = "Ready! Generating trace..."
+
+            # Import it after installation completes
+            from pytutor import generate_trace
+
+            # 2. Define the code we want to visualize
+            user_code = "x = 5\ny = 10\nnumbers = [x, y]\nx = 20"
+
+            # 3. Generate the execution trace logs
+            raw_trace = generate_trace.run_logger(user_code, "", {})
+            
+            # Parse the JSON string result
+            trace_dict = json.loads(raw_trace)
+
+            # 4. Display the data structure for the 3rd step of execution (where the list is created)
+            step_snapshot = trace_dict["trace"][2] 
+            
+            document.getElementById("output-trace").innerText = json.dumps(step_snapshot, indent=4)
+            document.getElementById("status").innerText = "Trace successfully generated entirely in your browser!"
+
+        # Execute the async loop
+        import asyncio
+        asyncio.ensure_future(main())
+    </script>
+</body>
+</html>

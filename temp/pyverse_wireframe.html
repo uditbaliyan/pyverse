@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PyVerse — Sitemap Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#141a22; --panel2:#1a2230; --line:#26303d;
+    --amber:#e8a33d; --blue:#5b7fe0; --text:#e6e8eb; --sub:#8b96a5;
+  }
+  body{background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .card{background:var(--panel); border:1px solid var(--line);}
+  .card:hover{border-color:var(--amber);}
+  .btn{transition:all .15s ease;}
+  .btn:hover{transform:translateY(-1px);}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;} }
+</style>
+</head>
+<body x-data="proto()" class="min-h-screen">
+
+  <!-- top nav -->
+  <header class="border-b sticky top-0 z-20" style="border-color:var(--line); background:rgba(13,17,23,.92); backdrop-filter:blur(6px);">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
+      <button @click="go('home')" class="mono font-semibold text-lg tracking-tight flex items-center gap-2">
+        <span style="color:var(--amber)">&gt;_</span>PyVerse
+      </button>
+      <nav class="hidden md:flex gap-1 mono text-sm">
+        <template x-for="item in nav" :key="item.id">
+          <button @click="go(item.id)"
+            class="btn px-3 py-1.5 rounded"
+            :style="section===item.id ? 'background:var(--panel2); color:var(--amber)' : 'color:var(--sub)'">
+            <span x-text="item.label"></span>
+          </button>
+        </template>
+      </nav>
+      <div class="mono text-xs px-2 py-1 rounded" style="color:var(--sub); border:1px solid var(--line)">
+        clicks from Home: <span class="font-semibold" :style="depth>2?'color:#ef6d6d':'color:var(--amber)'" x-text="depth"></span>
+      </div>
+    </div>
+    <!-- breadcrumb: where am I / where can I go -->
+    <div class="max-w-6xl mx-auto px-6 pb-3 mono text-xs flex items-center gap-2" style="color:var(--sub)">
+      <template x-for="(crumb, i) in trail" :key="i">
+        <span class="flex items-center gap-2">
+          <button @click="jumpTo(i)" class="hover:underline" :style="i===trail.length-1?'color:var(--text)':''" x-text="crumb.label"></button>
+          <span x-show="i < trail.length-1" style="color:var(--line)">/</span>
+        </span>
+      </template>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- HOME -->
+    <template x-if="section==='home'">
+      <div>
+        <div class="mono text-xs mb-3" style="color:var(--amber)">$ site --map</div>
+        <h1 class="text-3xl md:text-4xl font-semibold mb-2 mono">Where am I. Where can I go.</h1>
+        <p class="max-w-xl mb-10" style="color:var(--sub)">Six doors in, everything two clicks deep. This is the sitemap, clickable.</p>
+
+        <div class="grid md:grid-cols-3 gap-4">
+          <template x-for="item in nav.filter(n=>n.id!=='home')" :key="item.id">
+            <button @click="go(item.id)" class="btn card text-left rounded-lg p-5">
+              <div class="mono text-xs mb-2" style="color:var(--amber)" x-text="item.tag"></div>
+              <div class="font-semibold mb-1" x-text="item.label"></div>
+              <div class="text-sm" style="color:var(--sub)" x-text="item.blurb"></div>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- TUTORIALS -->
+    <template x-if="section==='tutorials'">
+      <div>
+        <h2 class="text-2xl font-semibold mb-1 mono">Tutorials</h2>
+        <p class="mb-6" style="color:var(--sub)">Syntax guides & examples, grouped by topic — not by original page name.</p>
+        <div class="grid md:grid-cols-2 gap-3">
+          <template x-for="t in tutorials" :key="t">
+            <div class="card rounded-lg p-4 flex items-center justify-between">
+              <span x-text="t"></span>
+              <span class="mono text-xs" style="color:var(--sub)">example →</span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- PRACTICE (list) -->
+    <template x-if="section==='practice'">
+      <div>
+        <h2 class="text-2xl font-semibold mb-1 mono">Practice</h2>
+        <p class="mb-6" style="color:var(--sub)">Exercises, problems, and playgrounds — one home instead of five.</p>
+        <div class="grid gap-3">
+          <template x-for="ex in exercises" :key="ex.id">
+            <button @click="openExercise(ex)" class="btn card rounded-lg p-4 flex items-center justify-between text-left">
+              <div>
+                <div class="font-medium" x-text="ex.title"></div>
+                <div class="text-xs mt-0.5" style="color:var(--sub)" x-text="ex.level"></div>
+              </div>
+              <span class="mono text-xs" style="color:var(--amber)">open →</span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- PRACTICE > exercise detail w/ mock editor -->
+    <template x-if="section==='exercise'">
+      <div>
+        <h2 class="text-2xl font-semibold mb-1 mono" x-text="activeExercise.title"></h2>
+        <p class="mb-6" style="color:var(--sub)" x-text="activeExercise.level"></p>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="card rounded-lg p-4">
+            <div class="mono text-xs mb-2" style="color:var(--sub)">prompt.md</div>
+            <p class="text-sm leading-relaxed" x-text="activeExercise.prompt"></p>
+          </div>
+          <div class="card rounded-lg p-0 overflow-hidden">
+            <div class="mono text-xs px-4 py-2 flex items-center gap-2" style="border-bottom:1px solid var(--line); color:var(--sub)">
+              <span class="w-2 h-2 rounded-full inline-block" style="background:#e8a33d"></span>
+              <span class="w-2 h-2 rounded-full inline-block" style="background:#5b7fe0"></span>
+              editor.py
+            </div>
+            <pre class="mono text-sm p-4" style="color:var(--text)">def solve():
+    <span style="color:var(--sub)"># write here</span>
+    pass
+</pre>
+            <div class="px-4 pb-4">
+              <button class="btn mono text-xs px-3 py-1.5 rounded" style="background:var(--amber); color:#1a1204">Run ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- QUIZZES -->
+    <template x-if="section==='quizzes'">
+      <div>
+        <h2 class="text-2xl font-semibold mb-1 mono">Quizzes & Challenges</h2>
+        <p class="mb-6" style="color:var(--sub)">Black Box, Parsons, Trace Tables, Schema Matcher, Code Archaeology, Code Memory — one shelf.</p>
+        <div class="grid md:grid-cols-3 gap-3">
+          <template x-for="q in quizGames" :key="q">
+            <div class="card rounded-lg p-4 text-center">
+              <div class="mono text-xs mb-1" style="color:var(--amber)">game</div>
+              <div x-text="q"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- TOOLS -->
+    <template x-if="section==='tools'">
+      <div>
+        <h2 class="text-2xl font-semibold mb-1 mono">Tools</h2>
+        <p class="mb-6" style="color:var(--sub)">Compiler, PyMonkey, PyVisualizer, LeetWasm, Grader — the playgrounds.</p>
+        <div class="grid md:grid-cols-2 gap-3">
+          <template x-for="tool in tools" :key="tool.name">
+            <div class="card rounded-lg p-4">
+              <div class="font-medium mb-1" x-text="tool.name"></div>
+              <div class="text-sm" style="color:var(--sub)" x-text="tool.desc"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- BLOG list -->
+    <template x-if="section==='blog'">
+      <div>
+        <h2 class="text-2xl font-semibold mb-1 mono">Blog</h2>
+        <p class="mb-6" style="color:var(--sub)">Editorial content, tagged into the same taxonomy as everything else.</p>
+        <div class="grid gap-3">
+          <template x-for="post in posts" :key="post.id">
+            <button @click="openPost(post)" class="btn card rounded-lg p-4 text-left flex items-center justify-between">
+              <div>
+                <div class="font-medium" x-text="post.title"></div>
+                <div class="mono text-xs mt-1" style="color:var(--sub)">
+                  <template x-for="tag in post.tags" :key="tag">
+                    <span class="mr-2">#<span x-text="tag"></span></span>
+                  </template>
+                </div>
+              </div>
+              <span class="mono text-xs" style="color:var(--amber)">read →</span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- BLOG article -->
+    <template x-if="section==='post'">
+      <div class="max-w-2xl">
+        <h2 class="text-2xl font-semibold mb-2 mono" x-text="activePost.title"></h2>
+        <div class="mono text-xs mb-6" style="color:var(--sub)">
+          <template x-for="tag in activePost.tags" :key="tag">
+            <span class="mr-2">#<span x-text="tag"></span></span>
+          </template>
+        </div>
+        <div class="card rounded-lg p-6 text-sm leading-relaxed" style="color:var(--text)" x-text="activePost.body"></div>
+      </div>
+    </template>
+
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-6 py-8 mono text-xs" style="color:var(--sub); border-top:1px solid var(--line)">
+    sitemap: Home / Tutorials / Practice / Quizzes & Challenges / Tools / Blog — every page ≤2 clicks deep
+  </footer>
+
+<script>
+function proto(){
+  return {
+    section: 'home',
+    depth: 0,
+    activeExercise: {},
+    activePost: {},
+    nav: [
+      {id:'home', label:'Home', tag:'00', blurb:''},
+      {id:'tutorials', label:'Tutorials', tag:'01', blurb:'Syntax guides & examples'},
+      {id:'practice', label:'Practice', tag:'02', blurb:'Exercises, problems, editor'},
+      {id:'quizzes', label:'Quizzes & Challenges', tag:'03', blurb:'Black Box, Parsons, Trace Tables...'},
+      {id:'tools', label:'Tools', tag:'04', blurb:'Compiler, PyVisualizer, LeetWasm'},
+      {id:'blog', label:'Blog', tag:'05', blurb:'Articles, tips, case studies'},
+    ],
+    tutorials: ['Variables & Types','Control Flow','Functions','Data Structures','Comprehensions','Decorators','Generators','Error Handling'],
+    exercises: [
+      {id:1, title:'Reverse a string', level:'Beginner', prompt:'Write a function that returns the reverse of a given string, without using slicing.'},
+      {id:2, title:'Two Sum', level:'Intermediate', prompt:'Given a list of integers and a target, return indices of the two numbers that add up to target.'},
+      {id:3, title:'LRU Cache', level:'Advanced', prompt:'Implement an LRU cache with O(1) get and put using a dict and doubly linked list.'},
+    ],
+    quizGames: ['Black Box','Code Archaeology','Code Memory','Parsons Puzzle','Schema Matcher','Trace Table'],
+    tools: [
+      {name:'Online Compiler', desc:'Run Python in the browser via Pyodide, no server cost.'},
+      {name:'PyMonkey', desc:'Typing tutor for Python syntax speed and muscle memory.'},
+      {name:'PyVisualizer', desc:'Step through execution and watch memory/state change.'},
+      {name:'LeetWasm', desc:'Browser coding lab, MicroPython + Pyodide dual runtime.'},
+    ],
+    posts: [
+      {id:1, title:'Why recursion clicks once you draw it', tags:['recursion','beginner'], body:'A short walkthrough of visualizing call stacks before writing another recursive function.'},
+      {id:2, title:'Static site, zero server cost: how PyVerse ships', tags:['architecture','wagtail'], body:'Notes on going fully static with django-distill while keeping Python execution client-side.'},
+    ],
+    trail: [{id:'home', label:'Home'}],
+    go(id){
+      this.section = id;
+      this.trail = [{id:'home', label:'Home'}];
+      if(id !== 'home'){
+        const item = this.nav.find(n=>n.id===id);
+        this.trail.push({id, label:item.label});
+      }
+      this.depth = this.trail.length - 1;
+    },
+    openExercise(ex){
+      this.activeExercise = ex;
+      this.section = 'exercise';
+      this.trail = [{id:'home',label:'Home'},{id:'practice',label:'Practice'},{id:'exercise',label:ex.title}];
+      this.depth = 2;
+    },
+    openPost(post){
+      this.activePost = post;
+      this.section = 'post';
+      this.trail = [{id:'home',label:'Home'},{id:'blog',label:'Blog'},{id:'post',label:post.title}];
+      this.depth = 2;
+    },
+    jumpTo(i){
+      const target = this.trail[i];
+      if(target.id==='practice') this.go('practice');
+      else if(target.id==='blog') this.go('blog');
+      else if(target.id==='home') this.go('home');
+    }
+  }
+}
+</script>
+</body>
+</html>

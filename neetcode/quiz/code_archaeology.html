@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Archaeology: The Legacy Code Hunt</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --amber:   #d97706;
+      --amber-l: #fef3c7;
+      --amber-b: #f59e0b;
+      --green:   #059669;
+      --green-l: #d1fae5;
+      --rose:    #e11d48;
+      --rose-l:  #ffe4e6;
+      --terminal:#0d1117;
+      --term-2:  #161b22;
+      --term-3:  #21262d;
+      --gutter:  #30363d;
+      --ln-col:  #484f58;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+    }
+
+    /* ── Terminal ── */
+    .terminal-window {
+      background: var(--terminal);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #30363d;
+    }
+
+    .terminal-bar {
+      background: var(--term-2);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #28c940; }
+
+    .artifact-name {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #484f58;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Code lines ── */
+    .code-scroll {
+      overflow-y: auto;
+      max-height: calc(100vh - 220px);
+    }
+
+    .code-line {
+      display: flex;
+      align-items: stretch;
+      cursor: pointer;
+      transition: background 0.12s;
+      border-left: 3px solid transparent;
+      position: relative;
+    }
+
+    .code-line:hover {
+      background: rgba(255,255,255,0.04);
+      border-left-color: rgba(255,255,255,0.08);
+    }
+
+    .line-num {
+      min-width: 48px;
+      padding: 3px 14px 3px 0;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ln-col);
+      background: var(--term-2);
+      border-right: 1px solid var(--gutter);
+      user-select: none;
+      flex-shrink: 0;
+      line-height: 1.7;
+    }
+
+    .line-code {
+      padding: 3px 0 3px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      color: #c9d1d9;
+      line-height: 1.7;
+      white-space: pre;
+      flex: 1;
+    }
+
+    /* line states */
+    .code-line.hit {
+      background: rgba(5, 150, 105, 0.12) !important;
+      border-left-color: var(--green) !important;
+    }
+
+    .code-line.hit .line-num { color: var(--green); }
+    .code-line.hit .line-code { color: #6ee7b7; }
+
+    .code-line.miss {
+      animation: miss-flash 0.6s ease;
+    }
+
+    @keyframes miss-flash {
+      0%   { background: rgba(225, 29, 72, 0.22); }
+      100% { background: transparent; }
+    }
+
+    /* Evidence tag */
+    .evidence-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--amber);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 4px;
+      margin-left: 10px;
+      vertical-align: middle;
+      letter-spacing: 0.04em;
+      animation: tag-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+    }
+
+    @keyframes tag-pop {
+      from { transform: scale(0) rotate(-6deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+    }
+
+    /* ── Manifest sidebar ── */
+    .clue-card {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #fff;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: default;
+    }
+
+    .clue-card.active {
+      border-color: var(--amber-b);
+      background: var(--amber-l);
+    }
+
+    .clue-card.found {
+      border-color: #a7f3d0;
+      background: var(--green-l);
+      opacity: 0.75;
+    }
+
+    .clue-number {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      background: var(--amber);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .clue-card.found .clue-number {
+      background: var(--green);
+    }
+
+    .clue-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.4;
+    }
+
+    .clue-card.found .clue-title {
+      text-decoration: line-through;
+      color: #64748b;
+    }
+
+    .clue-tag {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: var(--amber);
+      background: rgba(217, 119, 6, 0.1);
+    }
+
+    .clue-card.found .clue-tag {
+      color: var(--green);
+      background: rgba(5, 150, 105, 0.1);
+    }
+
+    /* ── Tooltip / Explanation panel ── */
+    #explanation-panel {
+      border-radius: 10px;
+      border: 1.5px solid #a7f3d0;
+      background: #f0fdf4;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #065f46;
+      line-height: 1.65;
+      display: none;
+      animation: slide-in 0.25s ease;
+    }
+
+    @keyframes slide-in {
+      from { transform: translateY(6px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
+    }
+
+    #explanation-panel strong { color: #047857; }
+
+    /* ── Score strip ── */
+    .stat-pill {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #475569;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .stat-pill span:first-child {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1;
+    }
+
+    /* ── Penalty flash ── */
+    #penalty-flash {
+      position: fixed;
+      top: 20px; right: 24px;
+      background: var(--rose);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 999;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Summary screen ── */
+    #summary-screen {
+      display: none;
+      animation: slide-in 0.35s ease;
+    }
+
+    .summary-grade {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    /* ── Progress bar ── */
+    #progress-fill {
+      height: 4px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--amber-b), var(--green));
+      transition: width 0.4s ease;
+    }
+
+    /* Syntax colours */
+    .kw  { color: #ff7b72; }  /* keywords */
+    .fn  { color: #d2a8ff; }  /* function names */
+    .cn  { color: #ffa657; }  /* class / type names */
+    .st  { color: #a5d6ff; }  /* strings */
+    .cm  { color: #8b949e; font-style: italic; }  /* comments */
+    .nm  { color: #79c0ff; }  /* numbers */
+    .op  { color: #c9d1d9; }  /* operators */
+    .df  { color: #c9d1d9; }  /* default */
+
+    py-terminal { display: none !important; }
+
+    /* Loading */
+    #py-loading {
+      position: fixed; inset: 0;
+      background: #f8fafc;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999; gap: 14px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader {
+      width: 32px; height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: var(--amber-b);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="py-loading">
+  <div class="loader"></div>
+  <p style="font-size:13px;color:#94a3b8;font-family:'Inter',sans-serif;">Booting PyScript runtime…</p>
+</div>
+
+<!-- Penalty toast -->
+<div id="penalty-flash">−5 pts · wrong line</div>
+
+<!-- ═══════════════════════════════ SHELL ═══════════════════════════════ -->
+<div class="min-h-screen py-8 px-4" id="app-shell" style="display:none;">
+
+  <div class="max-w-6xl mx-auto">
+
+    <!-- ── Top bar ── -->
+    <div class="flex items-start justify-between mb-5">
+      <div>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight">🪨 Code Archaeology</h1>
+        <p class="text-xs text-slate-400 mt-0.5 font-medium uppercase tracking-widest">The Legacy Code Hunt</p>
+      </div>
+      <!-- Score pills -->
+      <div class="flex gap-3 items-center">
+        <div class="stat-pill">
+          <span id="score-val">0</span>
+          <span>score</span>
+        </div>
+        <div class="stat-pill">
+          <span id="miss-val">0</span>
+          <span>misses</span>
+        </div>
+        <div class="stat-pill">
+          <span id="artifact-val">1</span>
+          <span>artifact</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main workspace card ── -->
+    <div id="workspace" class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+
+      <!-- Progress strip -->
+      <div class="bg-slate-50 border-b border-gray-100 px-5 py-2.5 flex items-center gap-3">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Hunt Progress</span>
+        <div class="flex-1 bg-slate-100 rounded-full" style="height:4px;">
+          <div id="progress-fill" style="width:0%;"></div>
+        </div>
+        <span id="progress-label" class="text-xs font-mono text-slate-400">0 / 0 found</span>
+      </div>
+
+      <div class="flex" style="min-height: 560px;">
+
+        <!-- ── LEFT: Manifest sidebar ── -->
+        <div class="flex flex-col border-r border-gray-100" style="width:280px; flex-shrink:0;">
+
+          <!-- Sidebar header -->
+          <div class="px-5 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-2 mb-1">
+              <span style="font-size:15px;">📋</span>
+              <span class="text-xs font-bold text-slate-600 uppercase tracking-widest">Archaeology Manifest</span>
+            </div>
+            <p id="artifact-label" class="text-xs text-slate-400 mt-1 font-mono">Loading artifact…</p>
+          </div>
+
+          <!-- Clue list -->
+          <div class="flex flex-col gap-2.5 p-4 flex-1 overflow-y-auto" id="clue-list"></div>
+
+          <!-- Explanation panel -->
+          <div class="p-4 border-t border-gray-100">
+            <div id="explanation-panel"></div>
+            <p id="explanation-hint" class="text-xs text-slate-300 italic" style="font-size:11px;">
+              Click a code line to investigate it.
+            </p>
+          </div>
+        </div>
+
+        <!-- ── RIGHT: Code excavation site ── -->
+        <div class="flex-1 p-5">
+          <div class="terminal-window">
+            <div class="terminal-bar">
+              <span class="dot dot-r"></span>
+              <span class="dot dot-y"></span>
+              <span class="dot dot-g"></span>
+              <span id="file-label" class="artifact-name">loading…</span>
+            </div>
+            <div class="code-scroll" id="code-panel"></div>
+          </div>
+        </div>
+
+      </div><!-- /flex -->
+    </div><!-- /card -->
+
+    <!-- ── Summary screen ── -->
+    <div id="summary-screen" class="bg-white rounded-2xl border border-gray-200 shadow-sm mt-4 p-10 text-center">
+      <div class="text-4xl mb-3">🏆</div>
+      <h2 class="text-2xl font-bold text-slate-800 mb-1">Artifact Excavated</h2>
+      <p class="text-sm text-slate-400 mb-8">All legacy smells identified and catalogued.</p>
+
+      <div class="flex justify-center gap-6 mb-8">
+        <div class="stat-pill" style="padding:16px 28px;">
+          <span id="sum-score" class="summary-grade text-amber-600"></span>
+          <span>final score</span>
+        </div>
+        <div class="stat-pill" style="padding:16px 28px;">
+          <span id="sum-time" class="summary-grade text-slate-700"></span>
+          <span>seconds</span>
+        </div>
+        <div class="stat-pill" style="padding:16px 28px;">
+          <span id="sum-acc" class="summary-grade text-emerald-600"></span>
+          <span>accuracy</span>
+        </div>
+      </div>
+
+      <div id="sum-finds" class="text-left max-w-md mx-auto mb-8 space-y-2"></div>
+
+      <button id="next-artifact-btn"
+        class="px-8 py-3 rounded-xl text-sm font-semibold text-white transition hover:opacity-85"
+        style="background: linear-gradient(135deg, #d97706, #b45309);">
+        Excavate Next Artifact →
+      </button>
+    </div>
+
+  </div><!-- /max-w -->
+</div><!-- /shell -->
+
+<!-- ══════════════════════════ PYSCRIPT ══════════════════════════════════ -->
+<script type="py">
+import asyncio, time
+from pyscript import document
+import js
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PUZZLE DATA  — 3 legacy code artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+# Each line is either a string (code text) or a tuple:
+#   (code_text, clue_index, severity)
+# clue_index links to the targets list; None = normal line.
+# severity: "critical" | "high" | "medium"
+
+ARTIFACTS = [
+
+# ══════════════════ ARTIFACT 1 ══════════════════
+{
+  "name": "UserService · v0.3 (2014)",
+  "filename": "user_service.py",
+  "description": "A Flask user-auth service pulled from a 2014 internal monorepo. Three seniors quit after reading this.",
+  "targets": [
+    {
+      "title": "Global scope leak",
+      "tag": "SCOPE",
+      "severity": "high",
+      "explanation": "<strong>Global mutable state</strong> — <code>active_sessions = {}</code> lives at module level, shared across all requests. In threaded WSGI servers this causes race conditions and session bleed between users. Move it into a class or use a proper session backend."
+    },
+    {
+      "title": "Hardcoded credential",
+      "tag": "SECURITY",
+      "severity": "critical",
+      "explanation": "<strong>Hardcoded secret</strong> — embedding <code>SECRET_KEY = \"hunter2\"</code> directly in source means any git clone is a credential leak. Use environment variables (<code>os.environ.get</code>) or a secrets manager."
+    },
+    {
+      "title": "Bare except clause",
+      "tag": "ERROR HANDLING",
+      "severity": "medium",
+      "explanation": "<strong>Bare <code>except:</code></strong> swallows every exception including <code>KeyboardInterrupt</code> and <code>SystemExit</code>. This makes debugging impossible and hides real errors silently. Always catch specific exception types."
+    },
+    {
+      "title": "SQL string interpolation",
+      "tag": "INJECTION",
+      "severity": "critical",
+      "explanation": "<strong>SQL injection vector</strong> — building a query with <code>% username</code> or f-string formatting is textbook injection. Always use parameterised queries: <code>cursor.execute(query, (username,))</code>."
+    },
+  ],
+  "lines": [
+    # line,                                               (clue_idx, sev)
+    ('kw','import'),(' flask, sqlite3, hashlib', 'df'),
+    None,
+    ('cm','# Global session store — "it works on my machine"'),
+    ('df','active_sessions'), (' = ', 'op'), ('kw','{}'),                       # clue 0
+    None,
+    ('cn','SECRET_KEY'), (' = ', 'op'), ('st','"hunter2"'),                     # clue 1
+    ('cn','DB_PATH'),    (' = ', 'op'), ('st','"./users.db"'),
+    None,
+    ('df','app'), (' = flask.', 'op'), ('fn','Flask'), ('(__name__)', 'df'),
+    None,
+    ('kw','def'), (' ', 'df'), ('fn','login'), ('(username, password):', 'df'),
+    ('    conn', 'df'), (' = sqlite3.', 'op'), ('fn','connect'), ('(DB_PATH)', 'df'),
+    ('    cur', 'df'),  (' = conn.', 'op'), ('fn','cursor'), ('()', 'df'),
+    ('    ', 'df'), ('cm','# Build query — "SQL injection? what\'s that?"'),
+    ('    query', 'df'), (' = ', 'op'), ('st','"SELECT * FROM users WHERE name=\'%s\'"'), (' % username', 'op'),  # clue 3
+    ('    cur.', 'df'), ('fn','execute'), ('(query)', 'df'),
+    ('    row', 'df'), (' = cur.', 'op'), ('fn','fetchone'), ('()', 'df'),
+    ('    ', 'kw'), ('try', 'kw'), (':', 'df'),
+    ('        ', 'kw'), ('if'), (' row ', 'kw'), ('and'), (' ', 'df'), ('fn','check_pw'), ('(password, row[2]):', 'df'),
+    ('            active_sessions[username]', 'df'), (' = ', 'op'), ('st','"authenticated"'),
+    ('            ', 'kw'), ('return'), (' ', 'df'), ('st','"ok"'),
+    ('    ', 'kw'), ('except', 'kw'), (':', 'df'),                               # clue 2
+    ('        ', 'kw'), ('pass'),
+    ('    ', 'kw'), ('return'), (' ', 'df'), ('st','"fail"'),
+    None,
+    ('kw','def'), (' ', 'df'), ('fn','check_pw'), ('(pw, hashed):', 'df'),
+    ('    ', 'kw'), ('return'), (' hashlib.', 'df'), ('fn','md5'), ('(pw.', 'op'), ('fn','encode'), ('()).', 'op'), ('fn','hexdigest'), ('() == hashed', 'df'),
+    ('    ', 'cm'), ('# Using MD5 for passwords. Classic.'),
+  ],
+  # Which line index (0-based) is the target for each clue?
+  # We mark these after building the line list — see render logic below.
+  # Instead we embed target_line_key per clue for lookup:
+  "clue_line_keys": [3, 5, 20, 13],   # 0-based line indices of the raw lines list
+},
+
+
+# ══════════════════ ARTIFACT 2 ══════════════════
+{
+  "name": "DataProcessor · v1.1 (2017)",
+  "filename": "data_processor.py",
+  "description": "ETL script from a fintech startup's data team. Survived 3 company pivots and nobody dares touch it.",
+  "targets": [
+    {
+      "title": "Mutable default argument",
+      "tag": "BUG",
+      "severity": "critical",
+      "explanation": "<strong>Mutable default argument</strong> — <code>def process(data, results=[])</code> shares the <em>same list object</em> across all calls. Results from call #1 leak into call #2. Use <code>results=None</code> then <code>if results is None: results = []</code> inside the function."
+    },
+    {
+      "title": "Magic number without context",
+      "tag": "READABILITY",
+      "severity": "medium",
+      "explanation": "<strong>Magic number</strong> — <code>if value > 99999</code> appears with no explanation. Is this a business rule? A legacy field cap? A bug? Extract it as a named constant: <code>MAX_TRANSACTION_AMOUNT = 99999</code>."
+    },
+    {
+      "title": "Silently swallowed exception",
+      "tag": "ERROR HANDLING",
+      "severity": "high",
+      "explanation": "<strong>Silent exception</strong> — <code>except Exception: continue</code> means any parsing error (corrupt data, schema change, type mismatch) is silently skipped. In financial data this could mean dropped transactions go unnoticed for months."
+    },
+    {
+      "title": "Unused import left in",
+      "tag": "HYGIENE",
+      "severity": "medium",
+      "explanation": "<strong>Dead import</strong> — <code>import xml.etree.ElementTree as ET</code> is never used. Dead imports signal that code was changed without cleanup, increase load time, and confuse readers about the module's actual dependencies."
+    },
+  ],
+  "clue_line_keys": [3, 13, 17, 0],
+  "lines": [
+    ('kw','import'), (' xml.etree.ElementTree ', 'df'), ('kw','as'), (' ET', 'df'),   # clue 3
+    ('kw','import'), (' csv, logging', 'df'),
+    None,
+    ('cm','# "results=[] is fine, I checked" — former senior dev'),
+    ('kw','def'), (' ', 'df'), ('fn','process'), ('(data, results=[]):', 'df'),        # clue 0
+    ('    ', 'kw'), ('for'), (' row ', 'kw'), ('in'), (' data:', 'df'),
+    ('        ', 'kw'), ('try'), (':', 'df'),
+    ('            record', 'df'), (' = ', 'op'), ('kw','{}'),
+    ('            record[', 'df'), ('st','"id"'), (']   = row[0]', 'df'),
+    ('            record[', 'df'), ('st','"name"'), ('] = row[1].', 'op'), ('fn','strip'), ('()', 'df'),
+    ('            record[', 'df'), ('st','"val"'), ('] = ', 'op'), ('fn','float'), ('(row[2])', 'df'),
+    None,
+    ('            ', 'cm'), ('# Is 99999 a limit? A typo? Nobody knows.'),
+    ('            ', 'kw'), ('if'), (' record[', 'df'), ('st','"val"'), ('] > ', 'df'), ('nm','99999'), (':', 'df'),  # clue 1
+    ('                logging.', 'df'), ('fn','warning'), ('(', 'df'), ('st','"Value out of range"'), (')', 'df'),
+    ('                ', 'kw'), ('continue'),
+    None,
+    ('        ', 'kw'), ('except'), (' ', 'df'), ('cn','Exception'), (':', 'df'),      # clue 2
+    ('            ', 'kw'), ('continue'),       # silent swallow
+    None,
+    ('        results.', 'df'), ('fn','append'), ('(record)', 'df'),
+    None,
+    ('    ', 'kw'), ('return'), (' results', 'df'),
+    None,
+    ('kw','def'), (' ', 'df'), ('fn','run'), ('():', 'df'),
+    ('    ', 'kw'), ('with'), (' ', 'df'), ('fn','open'), ('(', 'df'), ('st','"data.csv"'), (') ', 'kw'), ('as'), (' f:', 'df'),
+    ('        rows', 'df'), (' = csv.', 'op'), ('fn','reader'), ('(f)', 'df'),
+    ('        ', 'kw'), ('return'), (' ', 'df'), ('fn','process'), ('(rows)', 'df'),
+  ],
+},
+
+
+# ══════════════════ ARTIFACT 3 ══════════════════
+{
+  "name": "ConfigLoader · v2.0 (2019)",
+  "filename": "config_loader.py",
+  "description": "Configuration bootstrapper for a Django app. Written on a Friday afternoon before a long weekend.",
+  "targets": [
+    {
+      "title": "Star import polluting namespace",
+      "tag": "HYGIENE",
+      "severity": "high",
+      "explanation": "<strong>Wildcard import</strong> — <code>from os.path import *</code> silently injects all exported names into the local namespace. This makes it impossible to know where names come from, breaks static analysis, and risks shadowing built-ins."
+    },
+    {
+      "title": "Hardcoded file path (Windows-style)",
+      "tag": "PORTABILITY",
+      "severity": "high",
+      "explanation": "<strong>Hardcoded OS path</strong> — <code>\"C:\\\\Users\\\\dev\\\\config.ini\"</code> works on exactly one developer's machine. Use <code>pathlib.Path.home()</code> or environment variables so the path resolves correctly in CI and production."
+    },
+    {
+      "title": "Shadowing a built-in name",
+      "tag": "BUG",
+      "severity": "critical",
+      "explanation": "<strong>Built-in shadowed</strong> — assigning <code>list = []</code> inside a function permanently masks Python's built-in <code>list</code> type for the rest of that scope. Calling <code>list()</code> afterwards will raise <code>TypeError</code>. Use descriptive names like <code>keys_list</code>."
+    },
+    {
+      "title": "print() used for error reporting",
+      "tag": "OBSERVABILITY",
+      "severity": "medium",
+      "explanation": "<strong>Print-based error reporting</strong> — <code>print(\"Error:\", e)</code> is invisible in production log aggregators (Datadog, CloudWatch, etc.) and can't be filtered by severity. Replace with <code>logging.exception()</code> or <code>logger.error()</code>."
+    },
+  ],
+  "clue_line_keys": [1, 6, 14, 19],
+  "lines": [
+    ('kw','import'), (' configparser, logging', 'df'),
+    ('kw','from'), (' os.path ', 'df'), ('kw','import'), (' *', 'df'),               # clue 0 — star import
+    None,
+    ('cm','# Config path — works on Dev\'s laptop, nowhere else'),
+    ('cn','CONFIG_DIR'), (' = ', 'op'), ('st', r'"C:\Users\dev\projects\app"'),       # clue 1 — hardcoded path
+    ('cn','DEFAULT_CFG'),(' = join(CONFIG_DIR, ', 'df'), ('st', r'"config.ini"'), (')', 'df'),
+    None,
+    ('kw','def'), (' ', 'df'), ('fn','load_config'), ('(path=None):', 'df'),
+    ('    cfg', 'df'), (' = configparser.', 'op'), ('cn','ConfigParser'), ('()', 'df'),
+    ('    path', 'df'), (' = path ', 'kw'), ('or'), (' DEFAULT_CFG', 'df'),
+    None,
+    ('    ', 'kw'), ('try'), (':', 'df'),
+    ('        cfg.', 'df'), ('fn','read'), ('(path)', 'df'),
+    None,
+    ('        ', 'cm'), ('# "list" seemed like a fine variable name at 4pm Friday'),
+    ('        list', 'df'), (' = cfg.', 'op'), ('fn','sections'), ('()', 'df'),       # clue 2 — shadows built-in
+    ('        ', 'kw'), ('return'), (' ', 'kw'), ('dict'), ('((k, cfg[k]) ', 'kw'), ('for'), (' k ', 'kw'), ('in'), (' list)', 'df'),
+    None,
+    ('    ', 'kw'), ('except'), (' ', 'cn'), ('Exception'), (' ', 'kw'), ('as'), (' e:', 'df'),
+    ('        ', 'kw'), ('print'), ('(', 'df'), ('st','"Error:"'), (', e)', 'df'),     # clue 3 — print for error
+    ('        ', 'kw'), ('return'), (' ', 'kw'), ('{}'),
+    None,
+    ('kw','def'), (' ', 'df'), ('fn','main'), ('():', 'df'),
+    ('    config', 'df'), (' = ', 'op'), ('fn','load_config'), ('()', 'df'),
+    ('    ', 'kw'), ('if'), (' ', 'kw'), ('not'), (' config:', 'df'),
+    ('        logging.', 'df'), ('fn','error'), ('(', 'df'), ('st','"Config load failed"'), (')', 'df'),
+  ],
+},
+
+]  # end ARTIFACTS
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  STATE
+# ─────────────────────────────────────────────────────────────────────────────
+state = {
+    "artifact_idx": 0,
+    "found": set(),           # set of found clue indices
+    "misses": 0,
+    "score": 0,
+    "total_artifacts": 0,
+    "start_time": None,
+    # line_idx -> clue_idx mapping for current artifact
+    "line_clue_map": {},
+    # rendered line elements: line_idx -> (real_line_number)
+    "line_count": 0,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  DOM helpers
+# ─────────────────────────────────────────────────────────────────────────────
+def el(id_): return document.getElementById(id_)
+def set_text(id_, t): el(id_).textContent = t
+def set_html(id_, h): el(id_).innerHTML = h
+
+SEVERITY_COLOR = {
+    "critical": "#e11d48",
+    "high":     "#d97706",
+    "medium":   "#7c3aed",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RENDER ARTIFACT
+# ─────────────────────────────────────────────────────────────────────────────
+def render_artifact(idx):
+    artifact = ARTIFACTS[idx]
+    state["found"] = set()
+    state["line_clue_map"] = {}
+    state["start_time"] = time.time()
+
+    # Header labels
+    el("artifact-label").textContent = artifact["description"]
+    el("file-label").textContent = artifact["filename"]
+    el("artifact-val").textContent = str(idx + 1)
+
+    # Build clue_line_keys into a lookup: line_idx -> clue_idx
+    clue_line_keys = artifact["clue_line_keys"]
+    clue_map_raw = {}
+    for ci, li in enumerate(clue_line_keys):
+        clue_map_raw[li] = ci
+
+    # Render clues manifest
+    clue_list = el("clue-list")
+    clue_list.innerHTML = ""
+    for ci, target in enumerate(artifact["targets"]):
+        sev_col = SEVERITY_COLOR.get(target["severity"], "#64748b")
+        card = document.createElement("div")
+        card.className = "clue-card" + (" active" if ci == 0 else "")
+        card.id = f"clue-{ci}"
+        card.innerHTML = f"""
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div class="clue-number" id="clue-num-{ci}">{ci+1}</div>
+            <span class="clue-tag">{target['tag']}</span>
+            <span style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:{sev_col};flex-shrink:0;"></span>
+          </div>
+          <div class="clue-title">{target['title']}</div>
+        """
+        clue_list.appendChild(card)
+
+    # Render code lines
+    code_panel = el("code-panel")
+    code_panel.innerHTML = ""
+
+    lines_data = artifact["lines"]
+    real_line = 0
+    raw_line_idx = 0
+
+    for raw_idx, token_group in enumerate(lines_data):
+        if token_group is None:
+            # blank spacer line
+            row = document.createElement("div")
+            row.className = "code-line"
+            row.style.height = "10px"
+            row.dataset.lineIdx = str(raw_line_idx)
+            code_panel.appendChild(row)
+            raw_line_idx += 1
+            continue
+
+        real_line += 1
+        row = document.createElement("div")
+        row.className = "code-line"
+        row.dataset.rawIdx = str(raw_idx)
+        row.dataset.realLine = str(real_line)
+
+        # Is this a target line?
+        if raw_idx in clue_map_raw:
+            ci = clue_map_raw[raw_idx]
+            state["line_clue_map"][raw_idx] = ci
+            row.dataset.clueIdx = str(ci)
+
+        # Line number cell
+        ln_div = document.createElement("div")
+        ln_div.className = "line-num"
+        ln_div.textContent = str(real_line)
+        row.appendChild(ln_div)
+
+        # Code cell — build from token list
+        code_div = document.createElement("div")
+        code_div.className = "line-code"
+
+        # token_group is a flat list of (cls, text) pairs
+        # Build HTML safely
+        html_parts = []
+        i = 0
+        tg = token_group
+        while i < len(tg):
+            cls, txt = tg[i], tg[i+1]
+            # escape HTML entities manually
+            safe = txt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            # convert leading spaces to &nbsp; for indentation
+            stripped = safe.lstrip(" ")
+            spaces = len(safe) - len(stripped)
+            nbsp_prefix = "&nbsp;" * spaces
+            html_parts.append(f'<span class="{cls}">{nbsp_prefix}{stripped}</span>')
+            i += 2
+
+        code_div.innerHTML = "".join(html_parts)
+        row.appendChild(code_div)
+
+        # Click handler via js bridge
+        row.onclick = js.pyLineClick
+
+        code_panel.appendChild(row)
+        raw_line_idx += 1
+
+    state["line_count"] = real_line
+    update_progress()
+    update_score_display()
+    update_active_clue()
+
+    el("explanation-hint").style.display = "block"
+    el("explanation-panel").style.display = "none"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  LINE CLICK HANDLER
+# ─────────────────────────────────────────────────────────────────────────────
+def line_click(event):
+    # Walk up to find the .code-line div
+    target = event.target
+    while target and not target.classList.contains("code-line"):
+        target = target.parentElement
+    if not target:
+        return
+
+    raw_idx_str = target.dataset.rawIdx
+    clue_idx_str = target.dataset.clueIdx
+
+    if raw_idx_str is None:
+        return  # blank spacer
+
+    raw_idx = int(raw_idx_str)
+    artifact = ARTIFACTS[state["artifact_idx"]]
+
+    if clue_idx_str is not None:
+        ci = int(clue_idx_str)
+
+        if ci in state["found"]:
+            # Already found — do nothing
+            return
+
+        # ✅ CORRECT HIT
+        state["found"].add(ci)
+        state["score"] += max(10, 50 - state["misses"] * 5)
+        target.classList.add("hit")
+
+        # Add evidence tag
+        code_div = target.querySelector(".line-code")
+        tag = document.createElement("span")
+        tag.className = "evidence-tag"
+        tag.textContent = f"[#{ci+1}] FOUND"
+        code_div.appendChild(tag)
+
+        # Update clue card
+        card = el(f"clue-{ci}")
+        card.className = "clue-card found"
+
+        # Show explanation
+        tgt = artifact["targets"][ci]
+        panel = el("explanation-panel")
+        panel.innerHTML = f"""
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <span style="font-size:14px;">🔍</span>
+            <strong style="font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:#047857;">{tgt['tag']} — {tgt['title']}</strong>
+          </div>
+          <div style="font-size:12.5px;line-height:1.65;">{tgt['explanation']}</div>
+        """
+        panel.style.display = "block"
+        el("explanation-hint").style.display = "none"
+
+        update_progress()
+        update_score_display()
+        update_active_clue()
+
+        # Check completion
+        if len(state["found"]) == len(artifact["targets"]):
+            asyncio.ensure_future(show_summary())
+
+    else:
+        # ❌ WRONG LINE
+        state["misses"] += 1
+        state["score"] = max(0, state["score"] - 5)
+        target.classList.add("miss")
+        target.addEventListener("animationend",
+            js.pyRemoveMissClass.bind(target))
+        show_penalty_toast()
+        update_score_display()
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+def update_active_clue():
+    artifact = ARTIFACTS[state["artifact_idx"]]
+    for ci in range(len(artifact["targets"])):
+        card = el(f"clue-{ci}")
+        if ci not in state["found"]:
+            # First unfound = active
+            if "found" not in card.className:
+                card.className = "clue-card active"
+            return
+        # else leave as found
+
+def update_progress():
+    artifact = ARTIFACTS[state["artifact_idx"]]
+    found = len(state["found"])
+    total = len(artifact["targets"])
+    pct = int(100 * found / total) if total else 0
+    el("progress-fill").style.width = f"{pct}%"
+    el("progress-label").textContent = f"{found} / {total} found"
+
+def update_score_display():
+    el("score-val").textContent = str(state["score"])
+    el("miss-val").textContent  = str(state["misses"])
+
+def show_penalty_toast():
+    toast = el("penalty-flash")
+    toast.style.opacity = "1"
+    asyncio.ensure_future(_hide_toast())
+
+async def _hide_toast():
+    await asyncio.sleep(1.2)
+    el("penalty-flash").style.opacity = "0"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  SUMMARY SCREEN
+# ─────────────────────────────────────────────────────────────────────────────
+async def show_summary():
+    await asyncio.sleep(0.6)
+
+    elapsed = round(time.time() - state["start_time"])
+    artifact = ARTIFACTS[state["artifact_idx"]]
+    total_clicks = len(state["found"]) + state["misses"]
+    acc = round(100 * len(state["found"]) / total_clicks) if total_clicks else 100
+
+    el("sum-score").textContent = str(state["score"])
+    el("sum-time").textContent  = str(elapsed)
+    el("sum-acc").textContent   = f"{acc}%"
+
+    finds_html = ""
+    for ci, tgt in enumerate(artifact["targets"]):
+        sev_col = SEVERITY_COLOR.get(tgt["severity"], "#64748b")
+        finds_html += f"""
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                      background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:{sev_col};flex-shrink:0;"></span>
+            <span style="font-size:12px;font-weight:600;color:#1e293b;">{tgt['title']}</span>
+            <span style="margin-left:auto;font-size:10px;font-weight:700;color:{sev_col};
+                         text-transform:uppercase;letter-spacing:0.06em;">{tgt['tag']}</span>
+          </div>
+        """
+    el("sum-finds").innerHTML = finds_html
+
+    el("workspace").style.display = "none"
+    el("summary-screen").style.display = "block"
+
+def next_artifact(event=None):
+    state["artifact_idx"] = (state["artifact_idx"] + 1) % len(ARTIFACTS)
+    state["misses"] = 0
+    state["score"]  = 0
+    state["total_artifacts"] += 1
+
+    el("summary-screen").style.display = "none"
+    el("workspace").style.display = "block"
+
+    render_artifact(state["artifact_idx"])
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  JS BRIDGES
+# ─────────────────────────────────────────────────────────────────────────────
+js.pyLineClick = line_click
+js.pyRemoveMissClass = js.Function("function() { this.classList.remove('miss'); }")
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  BOOT
+# ─────────────────────────────────────────────────────────────────────────────
+async def boot():
+    loading = el("py-loading")
+    loading.style.opacity = "0"
+    await asyncio.sleep(0.4)
+    loading.style.display = "none"
+    el("app-shell").style.display = "block"
+
+    el("next-artifact-btn").onclick = next_artifact
+    render_artifact(0)
+
+asyncio.ensure_future(boot())
+</script>
+
+</body>
+</html>

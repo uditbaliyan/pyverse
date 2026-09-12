@@ -1,0 +1,8 @@
+{% load wagtailcore_tags %}
+<div class="pe-card">
+  <div class="pe-card-head">
+    <p class="pe-card-title">{{ quiz.title }}</p>
+    <span class="pe-badge pe-badge--quiz">{{ quiz.get_quiz_type_display }}</span>
+  </div>
+  <div class="pe-card-meta">{% if quiz.topic %}{{ quiz.topic.title }}{% endif %}</div>
+</div>

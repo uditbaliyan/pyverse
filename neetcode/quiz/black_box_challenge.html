@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Black Box Quiz Pro</title>
+
+<!-- CodeMirror for syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+
+<!-- PyScript -->
+<link rel="stylesheet" href="https://pyscript.net/releases/2025.3.1/core.css">
+<script type="module" src="https://pyscript.net/releases/2025.3.1/core.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0f1e;
+    --surface:   #111827;
+    --card:      #1a2235;
+    --border:    #2a3a55;
+    --text:      #e2e8f0;
+    --muted:     #8899aa;
+    --cyan:      #00d9ff;
+    --cyan-dim:  rgba(0,217,255,0.12);
+    --green:     #10b981;
+    --green-dim: rgba(16,185,129,0.15);
+    --amber:     #f59e0b;
+    --amber-dim: rgba(245,158,11,0.15);
+    --red:       #f87171;
+    --red-dim:   rgba(248,113,113,0.15);
+    --purple:    #a78bfa;
+    --radius:    12px;
+    --font-mono: 'Fira Code', monospace;
+    --font-ui:   'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Layout ── */
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+  }
+  .logo-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 12px var(--cyan));
+  }
+  .header-text h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--cyan);
+    font-family: var(--font-mono);
+  }
+  .header-text p { color: var(--muted); font-size: 0.875rem; margin-top: 2px; }
+
+  /* ── Question selector ── */
+  .q-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .q-tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.18s;
+  }
+  .q-tab:hover { border-color: var(--cyan); color: var(--text); }
+  .q-tab.active { border-color: var(--cyan); background: var(--cyan-dim); color: var(--cyan); }
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .badge-easy   { background: var(--green-dim); color: var(--green); }
+  .badge-medium { background: var(--amber-dim); color: var(--amber); }
+  .badge-hard   { background: var(--red-dim);   color: var(--red); }
+
+  /* ── Main grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── Section label ── */
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* ── Input ── */
+  .input-row { display: flex; gap: 10px; align-items: stretch; }
+  .probe-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .probe-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-dim); }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.16s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--cyan);
+    color: #0a0f1e;
+  }
+  .btn-primary:hover { background: #33e3ff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,217,255,0.35); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+  .btn-success {
+    background: var(--green);
+    color: #0a0f1e;
+  }
+  .btn-success:hover { background: #34d399; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(16,185,129,0.35); }
+
+  /* ── Chip examples ── */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+
+  /* ── Output display ── */
+  .output-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    min-height: 48px;
+    position: relative;
+  }
+  .output-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .output-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .output-val { color: var(--cyan); font-weight: 500; }
+
+  /* ── Probe log ── */
+  .probe-log { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+  .probe-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 10px;
+    background: var(--surface);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    animation: slide-in 0.2s ease;
+  }
+  @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .probe-arrow { color: var(--muted); font-size: 0.7rem; }
+  .probe-in  { color: var(--text); }
+  .probe-out { color: var(--cyan); }
+
+  /* ── Signal dot ── */
+  .signal-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .signal-dot.active { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 0.6s ease; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(0,217,255,0.7); } 50% { box-shadow: 0 0 0 6px rgba(0,217,255,0); } }
+
+  /* ── Hints ── */
+  .hints { display: flex; flex-direction: column; gap: 6px; }
+  .hint-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .hint-item:hover { border-color: var(--amber); color: var(--text); }
+  .hint-item.revealed { color: var(--text); border-color: var(--amber); }
+  .hint-num {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    background: var(--amber-dim);
+    color: var(--amber);
+    padding: 1px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .hint-text.hidden { filter: blur(4px); user-select: none; pointer-events: none; }
+
+  /* ── CodeMirror overrides ── */
+  .CodeMirror {
+    font-family: var(--font-mono) !important;
+    font-size: 0.9rem !important;
+    border-radius: 8px !important;
+    border: 1.5px solid var(--border) !important;
+    height: auto !important;
+    min-height: 220px !important;
+    background: #282a36 !important;
+    transition: border-color 0.18s !important;
+  }
+  .CodeMirror:hover { border-color: #3d4f6e !important; }
+  .CodeMirror-focused { border-color: var(--cyan) !important; box-shadow: 0 0 0 3px var(--cyan-dim) !important; }
+  .CodeMirror-scroll { min-height: 220px; }
+
+  /* ── Run result ── */
+  .run-result {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    min-height: 80px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .run-result.success { border-color: var(--green); background: var(--green-dim); }
+  .run-result.fail    { border-color: var(--red);   background: var(--red-dim); }
+
+  /* ── Correct banner ── */
+  .correct-banner {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--green-dim);
+    border: 1.5px solid var(--green);
+    border-radius: 10px;
+    font-weight: 600;
+    color: var(--green);
+    animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .correct-banner.show { display: flex; }
+  @keyframes pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+  .correct-icon { font-size: 1.4rem; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); }
+
+  /* ── PyScript loading override ── */
+  #pyscript-loading { display: none; }
+
+  /* ── Footer ── */
+  .footer { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 28px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <span class="logo-icon">🕵️</span>
+    <div class="header-text">
+      <h1>black_box_quiz.py</h1>
+      <p>Probe the secret function, collect clues, then implement it in Python.</p>
+    </div>
+  </header>
+
+  <!-- Question Tabs -->
+  <div class="q-tabs">
+    <button class="q-tab active" onclick="selectQuestion(0)">
+      Q1: The Flipper <span class="badge badge-easy">Easy</span>
+    </button>
+    <button class="q-tab" onclick="selectQuestion(1)">
+      Q2: The Counter <span class="badge badge-medium">Medium</span>
+    </button>
+    <button class="q-tab" onclick="selectQuestion(2)">
+      Q3: The Encoder <span class="badge badge-hard">Hard</span>
+    </button>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid">
+
+    <!-- LEFT: Input Explorer -->
+    <div class="card">
+      <div class="card-title">Input Explorer</div>
+
+      <div>
+        <label>Probe Input</label>
+        <div class="input-row">
+          <input class="probe-input" id="probeInput" placeholder="Type something and probe…" autocomplete="off">
+          <button class="btn btn-primary" py-click="probe" id="probeBtn">
+            <span id="probeDot" class="signal-dot"></span> Probe
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label>Quick Examples</label>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <hr>
+
+      <div>
+        <label>Probe Log</label>
+        <div class="probe-log" id="probeLog">
+          <div style="color:var(--muted);font-size:0.82rem;padding:6px 0;">No probes yet — try an input above.</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div>
+        <label>Progressive Hints <span style="font-size:0.7rem;color:var(--muted);text-transform:none;font-weight:400;">(click to reveal)</span></label>
+        <div class="hints" id="hints"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Python Editor -->
+    <div class="card">
+      <div class="card-title">Python Editor</div>
+
+      <div>
+        <label>Implement the function</label>
+        <textarea id="editor">def secret_function(input_value):
+    # Your implementation here
+    pass</textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" py-click="run_code" id="runBtn">▶ Run & Test</button>
+        <button class="btn btn-ghost" onclick="resetEditor()">↺ Reset</button>
+      </div>
+
+      <div id="correctBanner" class="correct-banner">
+        <span class="correct-icon">🎉</span>
+        <span>Correct! All test cases passed.</span>
+      </div>
+
+      <div>
+        <label>Test Results</label>
+        <div class="run-result" id="runResult">Run your code to see results…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">Black Box Quiz Pro · Built with PyScript + CodeMirror</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     QUESTIONS DATA (JS)
+════════════════════════════════════════════════════════ -->
+<script>
+const QUESTIONS = [
+  {
+    id: 0,
+    name: "The Flipper",
+    difficulty: "easy",
+    examples: ["apple", "hello", "racecar", "Python", "12345"],
+    hints: [
+      "Observe the order of characters in the output.",
+      "Compare the first and last characters of input vs output.",
+      "Think about Python slicing with a step of -1."
+    ],
+    secret: s => s.split('').reverse().join(''),
+    starterCode: `def secret_function(input_value):
+    # Hint: what happens to the characters?
+    pass`,
+    tests: ["apple", "hello", "racecar", "Python", "12345"]
+  },
+  {
+    id: 1,
+    name: "The Counter",
+    difficulty: "medium",
+    examples: ["hello", "aabbbcc", "Python", "mississippi", "banana"],
+    hints: [
+      "The output is always a number.",
+      "Try inputs with repeated characters vs all unique characters.",
+      "Think about which character appears most frequently."
+    ],
+    secret: s => { const f={}; for(let c of s) f[c]=(f[c]||0)+1; return Math.max(...Object.values(f)).toString(); },
+    starterCode: `def secret_function(input_value):
+    # Hint: it's a single integer output
+    pass`,
+    tests: ["hello", "aabbbcc", "Python", "mississippi", "banana"]
+  },
+  {
+    id: 2,
+    name: "The Encoder",
+    difficulty: "hard",
+    examples: ["abc", "hello", "xyz", "python", "az"],
+    hints: [
+      "Each character is transformed independently.",
+      "Look at the ASCII or alphabetical position of each character.",
+      "Characters seem to shift by a fixed amount — think Caesar cipher."
+    ],
+    secret: s => s.split('').map(c => {
+      if (c >= 'a' && c <= 'z') return String.fromCharCode(((c.charCodeAt(0)-97+13)%26)+97);
+      if (c >= 'A' && c <= 'Z') return String.fromCharCode(((c.charCodeAt(0)-65+13)%26)+65);
+      return c;
+    }).join(''),
+    starterCode: `def secret_function(input_value):
+    # Hint: each letter is encoded somehow
+    pass`,
+    tests: ["abc", "hello", "xyz", "Python", "Hello World"]
+  }
+];
+
+let currentQ = 0;
+let editorInstance = null;
+
+function selectQuestion(idx) {
+  currentQ = idx;
+
+  // Update tabs
+  document.querySelectorAll('.q-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+
+  const q = QUESTIONS[idx];
+
+  // Chips
+  const chips = document.getElementById('chips');
+  chips.innerHTML = q.examples.map(e =>
+    `<span class="chip" onclick="setProbeInput('${e}')">${e}</span>`
+  ).join('');
+
+  // Hints
+  const hintsEl = document.getElementById('hints');
+  hintsEl.innerHTML = q.hints.map((h, i) =>
+    `<div class="hint-item" onclick="revealHint(this)">
+       <span class="hint-num">H${i+1}</span>
+       <span class="hint-text hidden">${h}</span>
+     </div>`
+  ).join('');
+
+  // Reset probe log
+  document.getElementById('probeLog').innerHTML =
+    `<div style="color:var(--muted);font-size:0.82rem;padding:6px 0;">No probes yet — try an input above.</div>`;
+
+  // Editor
+  if (editorInstance) {
+    editorInstance.setValue(q.starterCode);
+  }
+
+  // Reset result
+  const rr = document.getElementById('runResult');
+  rr.textContent = 'Run your code to see results…';
+  rr.className = 'run-result';
+  document.getElementById('correctBanner').classList.remove('show');
+}
+
+function setProbeInput(val) {
+  document.getElementById('probeInput').value = val;
+}
+
+function revealHint(el) {
+  el.classList.add('revealed');
+  el.querySelector('.hint-text').classList.remove('hidden');
+}
+
+function resetEditor() {
+  if (editorInstance) editorInstance.setValue(QUESTIONS[currentQ].starterCode);
+  const rr = document.getElementById('runResult');
+  rr.textContent = 'Run your code to see results…';
+  rr.className = 'run-result';
+  document.getElementById('correctBanner').classList.remove('show');
+}
+
+// Expose for PyScript
+window.getCurrentQuestion = () => currentQ;
+window.getQuestionTests = (idx) => QUESTIONS[idx].tests;
+window.getSecretOutput = (idx, input) => QUESTIONS[idx].secret(input);
+window.setRunResult = (text, state) => {
+  const el = document.getElementById('runResult');
+  el.textContent = text;
+  el.className = 'run-result ' + (state || '');
+  if (state === 'success') {
+    document.getElementById('correctBanner').classList.add('show');
+  } else {
+    document.getElementById('correctBanner').classList.remove('show');
+  }
+};
+window.addProbeLog = (inp, out) => {
+  const log = document.getElementById('probeLog');
+  // Remove placeholder
+  const placeholder = log.querySelector('div[style]');
+  if (placeholder) placeholder.remove();
+
+  const entry = document.createElement('div');
+  entry.className = 'probe-entry';
+  entry.innerHTML = `
+    <span class="signal-dot active"></span>
+    <span class="probe-in">${inp}</span>
+    <span class="probe-arrow">→</span>
+    <span class="probe-out">${out}</span>
+  `;
+  log.prepend(entry);
+  // Keep max 12 entries
+  while (log.children.length > 12) log.removeChild(log.lastChild);
+
+  // Pulse dot
+  const dot = document.getElementById('probeDot');
+  dot.classList.add('active');
+  setTimeout(() => dot.classList.remove('active'), 700);
+};
+window.getEditorValue = () => editorInstance ? editorInstance.getValue() : document.getElementById('editor').value;
+
+// Init CodeMirror after page load
+window.addEventListener('load', () => {
+  const textarea = document.getElementById('editor');
+  editorInstance = CodeMirror.fromTextArea(textarea, {
+    mode: 'python',
+    theme: 'dracula',
+    lineNumbers: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    indentUnit: 4,
+    tabSize: 4,
+    indentWithTabs: false,
+    lineWrapping: false,
+    extraKeys: { Tab: cm => cm.execCommand('indentMore') }
+  });
+  editorInstance.setSize(null, 'auto');
+
+  // Load initial question chips & hints
+  selectQuestion(0);
+});
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     PYSCRIPT LOGIC
+════════════════════════════════════════════════════════ -->
+<py-script>
+from pyscript import document
+import js
+
+# ── Secret functions (mirror JS) ──────────────────────────
+def _secret_0(s): return s[::-1]
+
+def _secret_1(s):
+    from collections import Counter
+    if not s: return "0"
+    return str(max(Counter(s).values()))
+
+def _secret_2(s):
+    result = []
+    for c in s:
+        if 'a' <= c <= 'z':
+            result.append(chr((ord(c) - ord('a') + 13) % 26 + ord('a')))
+        elif 'A' <= c <= 'Z':
+            result.append(chr((ord(c) - ord('A') + 13) % 26 + ord('A')))
+        else:
+            result.append(c)
+    return ''.join(result)
+
+SECRET_FUNCS = [_secret_0, _secret_1, _secret_2]
+
+TEST_CASES = [
+    ["apple", "hello", "racecar", "Python", "12345"],
+    ["hello", "aabbbcc", "Python", "mississippi", "banana"],
+    ["abc", "hello", "xyz", "Python", "Hello World"],
+]
+
+# ── Probe ─────────────────────────────────────────────────
+def probe(event=None):
+    value = document.getElementById("probeInput").value
+    if not value:
+        return
+    q_idx = int(js.getCurrentQuestion())
+    out = SECRET_FUNCS[q_idx](value)
+    js.addProbeLog(value, str(out))
+
+# ── Run & Test ────────────────────────────────────────────
+def run_code(event=None):
+    code = js.getEditorValue()
+    namespace = {}
+    try:
+        exec(code, namespace)
+        if "secret_function" not in namespace:
+            raise Exception("secret_function() not found in your code")
+
+        fn = namespace["secret_function"]
+        q_idx = int(js.getCurrentQuestion())
+        tests = TEST_CASES[q_idx]
+        secret = SECRET_FUNCS[q_idx]
+
+        lines = []
+        all_pass = True
+
+        for t in tests:
+            expected = secret(t)
+            try:
+                got = fn(t)
+            except Exception as e:
+                got = f"ERROR: {e}"
+
+            ok = str(got) == str(expected)
+            if not ok:
+                all_pass = False
+            icon = "✓" if ok else "✗"
+            lines.append(f'{icon}  input: {repr(t)}\n   expected: {repr(str(expected))}\n   got:      {repr(str(got))}')
+
+        summary = "\n─────────────────────────\n".join(lines)
+        result_text = f"{'ALL TESTS PASSED 🎉' if all_pass else 'SOME TESTS FAILED'}\n\n{summary}"
+        js.setRunResult(result_text, "success" if all_pass else "fail")
+
+    except Exception as e:
+        js.setRunResult(f"Error: {e}", "fail")
+</py-script>
+
+</body>
+</html>

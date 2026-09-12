@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyVerse — Spaced Repetition</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: '#0C0C0E',
+            card: '#111113',
+            inner: '#18181B',
+            border1: '#242428',
+            border2: '#2E2E34',
+            border3: '#3A3A42',
+            text1: '#F0EDE8',
+            text2: '#7A7A85',
+            accent: '#F0B429',
+            accentDim: '#7A5A10',
+            info: '#1C8EF9',
+            success: '#3DD68C',
+            danger: '#FF4D4D',
+          },
+          fontFamily: {
+            syne: ['Syne', 'sans-serif'],
+            dm: ['DM Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          keyframes: {
+            fadein: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            pulse_glow: { '0%,100%': { boxShadow: '0 0 0px transparent' }, '50%': { boxShadow: '0 0 18px rgba(240,180,41,0.35)' } },
+            flip_in: { '0%': { opacity: '0', transform: 'rotateX(-12deg) scale(0.97)' }, '100%': { opacity: '1', transform: 'rotateX(0deg) scale(1)' } },
+            btn_pop: { '0%,100%': { transform: 'scale(1)' }, '50%': { transform: 'scale(0.95)' } },
+          },
+          animation: {
+            fadein: 'fadein 0.35s ease forwards',
+            pulse_glow: 'pulse_glow 2s ease infinite',
+            flip_in: 'flip_in 0.4s ease forwards',
+            btn_pop: 'btn_pop 0.15s ease',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- PyScript MicroPython -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #0C0C0E; min-height: 100vh; }
+    body { font-family: 'DM Sans', sans-serif; color: #F0EDE8; }
+
+    .card-transition { transition: opacity 0.3s ease, transform 0.3s ease; }
+
+    .feedback-btn { position: relative; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }
+    .feedback-btn:active { transform: scale(0.96); }
+    .feedback-btn::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s; }
+
+    .btn-forgot:hover { border-color: #FF4D4D !important; box-shadow: 0 0 14px rgba(255,77,77,0.25); }
+    .btn-hard:hover { border-color: #F0B429 !important; box-shadow: 0 0 14px rgba(240,180,41,0.25); }
+    .btn-nailed:hover { border-color: #3DD68C !important; box-shadow: 0 0 14px rgba(61,214,140,0.25); }
+
+    .reveal-btn { transition: background 0.2s, transform 0.15s, box-shadow 0.2s; }
+    .reveal-btn:hover { background: #e6a820 !important; box-shadow: 0 0 20px rgba(240,180,41,0.4); transform: translateY(-1px); }
+    .reveal-btn:active { transform: scale(0.97); }
+
+    .progress-track { height: 3px; background: #242428; border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #F0B429, #3DD68C); border-radius: 99px; transition: width 0.5s ease; }
+
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+
+    .code-block { background: #18181B; border: 1px solid #2E2E34; border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; color: #F0EDE8; overflow-x: auto; white-space: pre; }
+    .code-block .kw { color: #1C8EF9; }
+    .code-block .fn { color: #F0B429; }
+    .code-block .st { color: #3DD68C; }
+    .code-block .cm { color: #7A7A85; font-style: italic; }
+    .code-block .num { color: #FF4D4D; }
+
+    .badge { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 11px; border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; }
+
+    .streak-flame { animation: pulse_glow 2s ease infinite; }
+
+    .empty-state { display: none; }
+
+    @keyframes card-exit { 0% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(-12px) scale(0.97); } }
+    .card-exit { animation: card-exit 0.28s ease forwards; }
+
+    py-script { display: none !important; }
+
+    /* Skeleton loading */
+    .skeleton { background: linear-gradient(90deg, #18181B 25%, #242428 50%, #18181B 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    #pyscript-loader { position: fixed; inset: 0; background: #0C0C0E; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; transition: opacity 0.4s; }
+    #pyscript-loader.hidden { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body class="bg-canvas">
+
+<!-- Loading overlay -->
+<div id="pyscript-loader">
+  <div style="width:36px;height:36px;border:3px solid #242428;border-top-color:#F0B429;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <span class="font-mono text-text2 text-sm">Initialising PyVerse engine…</span>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- App Shell -->
+<div id="app" class="max-w-2xl mx-auto px-4 mt-8 pb-16" style="opacity:0;transition:opacity 0.4s;">
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+  <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <span class="font-syne text-xs font-bold tracking-widest text-text2 uppercase">PyVerse</span>
+      <h1 class="font-syne font-extrabold text-2xl text-text1 leading-tight mt-0.5">Spaced Repetition</h1>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- Memorized badge -->
+      <div class="badge bg-[#18181B] border border-border1 text-success">
+        <span>✦</span><span id="stat-memorized">0</span><span class="text-text2 font-dm font-400 text-[10px]">memorized</span>
+      </div>
+      <!-- Due badge -->
+      <div class="badge bg-[#18181B] border border-border1 text-accent">
+        <span>◈</span><span id="stat-due">0</span><span class="text-text2 font-dm font-400 text-[10px]">due today</span>
+      </div>
+      <!-- Streak badge -->
+      <div class="badge bg-[#18181B] border border-border1 text-text1 streak-flame">
+        <span>🔥</span><span id="stat-streak">1</span><span class="text-text2 font-dm font-400 text-[10px]">day streak</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-track mb-6">
+    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+  </div>
+
+  <!-- ── FLASHCARD ──────────────────────────────────────────────────────── -->
+  <div id="card-container" class="bg-card border border-border1 rounded-xl overflow-hidden card-transition" style="min-height:320px;">
+
+    <!-- Card meta row -->
+    <div class="flex items-center justify-between px-5 py-3 border-b border-border1">
+      <span id="card-topic" class="font-mono text-xs text-text2 font-medium tracking-wide">LOADING…</span>
+      <span id="card-counter" class="font-mono text-xs text-text2">0 / 0</span>
+    </div>
+
+    <!-- Question area -->
+    <div class="px-5 pt-6 pb-4">
+      <p class="font-dm text-xs font-medium text-text2 uppercase tracking-widest mb-3">Question</p>
+      <div id="question-text" class="font-dm text-text1 text-lg font-400 leading-relaxed"></div>
+      <div id="question-code" class="mt-4 hidden"></div>
+    </div>
+
+    <!-- Divider -->
+    <div id="answer-divider" class="hidden mx-5 my-1 border-t border-border2"></div>
+
+    <!-- Answer area -->
+    <div id="answer-section" class="hidden px-5 pb-5 pt-4 animate-flip_in">
+      <p class="font-dm text-xs font-medium text-success uppercase tracking-widest mb-3">Answer</p>
+      <div id="answer-text" class="font-dm text-text1 text-base font-400 leading-relaxed"></div>
+      <div id="answer-code" class="mt-4 hidden"></div>
+    </div>
+
+    <!-- Action area -->
+    <div class="px-5 pb-6">
+      <!-- Reveal button -->
+      <button id="reveal-btn" onclick="reveal_answer()" class="reveal-btn w-full mt-2 py-3.5 rounded-xl bg-accent font-syne font-bold text-base text-black tracking-wide">
+        Reveal Answer
+      </button>
+
+      <!-- Feedback buttons (hidden until revealed) -->
+      <div id="feedback-buttons" class="hidden mt-3 grid grid-cols-3 gap-3">
+        <button onclick="rate_card('forgot')" class="feedback-btn btn-forgot flex flex-col items-center gap-1.5 py-4 rounded-xl bg-inner border border-border2 font-syne font-bold text-sm text-danger">
+          <span class="text-xl">🔴</span>
+          <span>Forgot It</span>
+          <span class="font-mono text-[10px] text-text2 font-normal">reset → 1d</span>
+        </button>
+        <button onclick="rate_card('hard')" class="feedback-btn btn-hard flex flex-col items-center gap-1.5 py-4 rounded-xl bg-inner border border-border2 font-syne font-bold text-sm text-accent">
+          <span class="text-xl">🟡</span>
+          <span>Hard</span>
+          <span class="font-mono text-[10px] text-text2 font-normal">×1.5 interval</span>
+        </button>
+        <button onclick="rate_card('nailed')" class="feedback-btn btn-nailed flex flex-col items-center gap-1.5 py-4 rounded-xl bg-inner border border-border2 font-syne font-bold text-sm text-success">
+          <span class="text-xl">🟢</span>
+          <span>Nailed It!</span>
+          <span class="font-mono text-[10px] text-text2 font-normal">×2.5 interval</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EMPTY STATE ────────────────────────────────────────────────────── -->
+  <div id="empty-state" class="hidden bg-card border border-border1 rounded-xl p-10 text-center" style="min-height:320px;display:none;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="text-5xl mb-4">🎉</div>
+    <h2 class="font-syne font-extrabold text-text1 text-xl mb-2">All caught up!</h2>
+    <p class="font-dm text-text2 text-sm">No cards due right now. Come back tomorrow to keep your streak.</p>
+    <button onclick="reset_session()" class="mt-6 px-6 py-2.5 rounded-xl bg-accent font-syne font-bold text-black text-sm reveal-btn">Review All Again</button>
+  </div>
+
+  <!-- ── INTERVAL INFO ──────────────────────────────────────────────────── -->
+  <div id="interval-info" class="mt-4 flex items-center justify-between px-1">
+    <span class="font-mono text-xs text-text2">Next review: <span id="next-interval" class="text-accent">—</span></span>
+    <span class="font-mono text-xs text-text2">Interval: <span id="current-interval" class="text-text1">—</span></span>
+  </div>
+
+</div>
+
+<!-- ── PYSCRIPT MICROPYTHON ENGINE ───────────────────────────────────────── -->
+<script type="mpy">
+import json
+from pyscript import document, display
+from js import setTimeout, clearTimeout
+
+# ─── Flashcard Data ───────────────────────────────────────────────────────────
+CARDS = [
+    {
+        "id": 1,
+        "topic": "VARIABLE SCOPE",
+        "question": "What is the difference between local and global scope in Python?",
+        "answer": "A variable defined inside a function is local to that function and cannot be accessed outside it. A global variable is defined at the module level and is accessible everywhere. Use the `global` keyword inside a function to modify a global variable.",
+        "is_code": True,
+        "code_q": None,
+        "code_a": '<span class="kw">x</span> = <span class="num">10</span>  <span class="cm"># global</span>\n\n<span class="kw">def</span> <span class="fn">modify</span>():\n    <span class="kw">global</span> x\n    x = <span class="num">99</span>\n\n<span class="fn">modify</span>()\n<span class="kw">print</span>(x)  <span class="cm"># → 99</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 2,
+        "topic": "DICT COMPREHENSION",
+        "question": "Write a dictionary comprehension that maps integers 1–5 to their squares.",
+        "answer": "Dictionary comprehensions follow the syntax `{key: value for item in iterable}`. They are concise and produce a dict in a single expression without needing an explicit loop.",
+        "is_code": True,
+        "code_q": '<span class="cm"># Fill in the blank</span>\nsquares = { ??? }',
+        "code_a": 'squares = {<span class="kw">n</span>: <span class="kw">n</span>**<span class="num">2</span> <span class="kw">for</span> <span class="kw">n</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="num">6</span>)}\n<span class="cm"># → {1: 1, 2: 4, 3: 9, 4: 16, 5: 25}</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 3,
+        "topic": "LAMBDA FUNCTIONS",
+        "question": "What is a lambda function and when should you prefer it over a regular `def`?",
+        "answer": "A lambda is an anonymous, single-expression function. Prefer it for short, throwaway callables — e.g. as a `key=` argument to `sorted()`. For anything needing a docstring, multiple statements, or reuse, use a named `def` instead.",
+        "is_code": True,
+        "code_q": None,
+        "code_a": 'names = [<span class="st">"alice"</span>, <span class="st">"Bob"</span>, <span class="st">"charlie"</span>]\n<span class="fn">sorted</span>(names, key=<span class="kw">lambda</span> s: s.<span class="fn">lower</span>())\n<span class="cm"># → [\'alice\', \'Bob\', \'charlie\']</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 4,
+        "topic": "MUTABLE VS IMMUTABLE",
+        "question": "Which built-in Python types are mutable, and which are immutable? Why does it matter?",
+        "answer": "Immutable: `int`, `float`, `str`, `tuple`, `frozenset`. Mutable: `list`, `dict`, `set`. It matters because mutable objects can be changed in-place, causing subtle bugs when shared across scopes or passed to functions.",
+        "is_code": True,
+        "code_q": None,
+        "code_a": '<span class="cm"># Mutable — changed in-place</span>\na = [<span class="num">1</span>, <span class="num">2</span>]\nb = a\nb.<span class="fn">append</span>(<span class="num">3</span>)\n<span class="kw">print</span>(a)  <span class="cm"># → [1, 2, 3] ⚠</span>\n\n<span class="cm"># Immutable — new object created</span>\ns = <span class="st">"hello"</span>\ns += <span class="st">" world"</span>  <span class="cm"># new str object</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 5,
+        "topic": "DECORATORS",
+        "question": "Explain Python decorators with a simple example.",
+        "answer": "A decorator is a function that wraps another function to add behaviour before or after it runs, using the `@name` syntax sugar. They rely on Python's first-class functions: functions can be passed as arguments and returned from other functions.",
+        "is_code": True,
+        "code_q": None,
+        "code_a": '<span class="kw">def</span> <span class="fn">log</span>(func):\n    <span class="kw">def</span> <span class="fn">wrapper</span>(*args):\n        <span class="kw">print</span>(<span class="st">f"Calling {func.__name__}"</span>)\n        <span class="kw">return</span> <span class="fn">func</span>(*args)\n    <span class="kw">return</span> wrapper\n\n<span class="kw">@</span><span class="fn">log</span>\n<span class="kw">def</span> <span class="fn">add</span>(a, b): <span class="kw">return</span> a + b\n\n<span class="fn">add</span>(<span class="num">2</span>, <span class="num">3</span>)  <span class="cm"># logs then returns 5</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 6,
+        "topic": "LIST vs TUPLE",
+        "question": "When should you choose a tuple over a list in Python?",
+        "answer": "Use a tuple when the data should not change (coordinates, RGB values, DB rows). Tuples are slightly faster to iterate, can be used as dict keys (since they're hashable), and signal intent — telling readers 'this collection is fixed'.",
+        "is_code": False,
+        "code_q": None,
+        "code_a": None,
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 7,
+        "topic": "GENERATORS",
+        "question": "What is the difference between a generator and a list comprehension?",
+        "answer": "A list comprehension `[...]` evaluates eagerly and stores all values in memory. A generator expression `(...)` is lazy — it yields values one at a time and is far more memory-efficient for large datasets.",
+        "is_code": True,
+        "code_q": '<span class="cm"># Which is more memory-efficient?</span>\nA = [x**<span class="num">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1_000_000</span>)]\nB = (x**<span class="num">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1_000_000</span>))',
+        "code_a": '<span class="cm"># B is a generator — uses ~56 bytes</span>\n<span class="cm"># A is a list  — uses ~8 MB</span>\n<span class="kw">import</span> sys\n<span class="kw">print</span>(sys.<span class="fn">getsizeof</span>(B))  <span class="cm"># → 104</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+    {
+        "id": 8,
+        "topic": "*ARGS / **KWARGS",
+        "question": "What do `*args` and `**kwargs` do in a function signature?",
+        "answer": "`*args` collects any number of positional arguments into a tuple. `**kwargs` collects keyword arguments into a dict. Together they let you write flexible functions that accept arbitrary inputs — essential for decorators and wrappers.",
+        "is_code": True,
+        "code_q": None,
+        "code_a": '<span class="kw">def</span> <span class="fn">show</span>(*args, **kwargs):\n    <span class="kw">print</span>(args)    <span class="cm"># tuple</span>\n    <span class="kw">print</span>(kwargs)  <span class="cm"># dict</span>\n\n<span class="fn">show</span>(<span class="num">1</span>, <span class="num">2</span>, name=<span class="st">"py"</span>)\n<span class="cm"># → (1, 2)</span>\n<span class="cm"># → {\'name\': \'py\'}</span>',
+        "interval_days": 1,
+        "ease": 2.5,
+    },
+]
+
+# ─── Session State ─────────────────────────────────────────────────────────────
+state = {
+    "cards": [dict(c) for c in CARDS],
+    "queue": list(range(len(CARDS))),  # indices of due cards
+    "current_idx": 0,
+    "revealed": False,
+    "streak": 1,
+    "session_total": len(CARDS),
+    "session_done": 0,
+}
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+def get_due_count():
+    return len(state["queue"]) - state["current_idx"]
+
+def get_memorized_count():
+    return sum(1 for c in state["cards"] if c["interval_days"] > 14)
+
+def update_stats():
+    memorized = get_memorized_count()
+    due = max(0, get_due_count())
+    document.getElementById("stat-memorized").textContent = str(memorized)
+    document.getElementById("stat-due").textContent = str(due)
+    document.getElementById("stat-streak").textContent = str(state["streak"])
+
+def update_progress():
+    total = state["session_total"]
+    done = state["session_done"]
+    pct = int((done / total) * 100) if total > 0 else 0
+    document.getElementById("progress-fill").style.width = f"{pct}%"
+
+def render_card():
+    queue = state["queue"]
+    idx = state["current_idx"]
+
+    if idx >= len(queue):
+        show_empty_state()
+        return
+
+    card_i = queue[idx]
+    card = state["cards"][card_i]
+
+    total_in_queue = len(queue)
+    pos = idx + 1
+
+    # Meta row
+    document.getElementById("card-topic").textContent = card["topic"]
+    document.getElementById("card-counter").textContent = f"{pos} / {total_in_queue}"
+
+    # Question
+    document.getElementById("question-text").textContent = card["question"]
+
+    # Code question
+    q_code_el = document.getElementById("question-code")
+    if card.get("code_q"):
+        q_code_el.innerHTML = f'<div class="code-block">{card["code_q"]}</div>'
+        q_code_el.classList.remove("hidden")
+    else:
+        q_code_el.classList.add("hidden")
+        q_code_el.innerHTML = ""
+
+    # Answer (hidden)
+    document.getElementById("answer-text").textContent = card["answer"]
+
+    a_code_el = document.getElementById("answer-code")
+    if card.get("code_a"):
+        a_code_el.innerHTML = f'<div class="code-block">{card["code_a"]}</div>'
+        a_code_el.classList.remove("hidden")
+    else:
+        a_code_el.classList.add("hidden")
+        a_code_el.innerHTML = ""
+
+    # Reset UI
+    hide_answer()
+
+    # Interval info
+    document.getElementById("next-interval").textContent = f"{card['interval_days']}d"
+    document.getElementById("current-interval").textContent = f"{card['interval_days']} day{'s' if card['interval_days'] != 1 else ''}"
+
+    update_stats()
+    update_progress()
+
+def hide_answer():
+    document.getElementById("answer-section").classList.add("hidden")
+    document.getElementById("answer-divider").classList.add("hidden")
+    document.getElementById("reveal-btn").classList.remove("hidden")
+    document.getElementById("feedback-buttons").classList.add("hidden")
+    state["revealed"] = False
+
+def show_answer():
+    document.getElementById("answer-section").classList.remove("hidden")
+    document.getElementById("answer-divider").classList.remove("hidden")
+    document.getElementById("reveal-btn").classList.add("hidden")
+    document.getElementById("feedback-buttons").classList.remove("hidden")
+    state["revealed"] = True
+
+def show_empty_state():
+    document.getElementById("card-container").style.display = "none"
+    document.getElementById("interval-info").style.display = "none"
+    empty = document.getElementById("empty-state")
+    empty.style.display = "flex"
+    update_stats()
+    update_progress()
+
+def hide_empty_state():
+    document.getElementById("card-container").style.display = ""
+    document.getElementById("interval-info").style.display = ""
+    empty = document.getElementById("empty-state")
+    empty.style.display = "none"
+
+# ─── SRS Scheduling ──────────────────────────────────────────────────────────
+def schedule_card(card, rating):
+    interval = card["interval_days"]
+    ease = card.get("ease", 2.5)
+
+    if rating == "forgot":
+        card["interval_days"] = 1
+        card["ease"] = max(1.3, ease - 0.2)
+        # Re-queue this card near the end for this session
+        queue = state["queue"]
+        cur = state["current_idx"]
+        card_i = queue[cur]
+        queue.append(card_i)
+
+    elif rating == "hard":
+        new_interval = max(2, int(interval * 1.5))
+        card["interval_days"] = new_interval
+        card["ease"] = max(1.3, ease - 0.15)
+
+    elif rating == "nailed":
+        new_interval = max(4, int(interval * ease))
+        card["interval_days"] = new_interval
+        card["ease"] = min(4.0, ease + 0.1)
+
+    return card
+
+# ─── JS-Exposed Functions ─────────────────────────────────────────────────────
+def reveal_answer():
+    if not state["revealed"]:
+        show_answer()
+
+def rate_card(rating):
+    if not state["revealed"]:
+        return
+
+    queue = state["queue"]
+    idx = state["current_idx"]
+    if idx >= len(queue):
+        return
+
+    card_i = queue[idx]
+    card = state["cards"][card_i]
+    schedule_card(card, rating)
+
+    # Advance queue
+    state["current_idx"] += 1
+    state["session_done"] = min(state["session_done"] + 1, state["session_total"])
+
+    # Animate card exit, then render next
+    container = document.getElementById("card-container")
+    container.classList.add("card-exit")
+
+    def next_card(e=None):
+        container.classList.remove("card-exit")
+        render_card()
+
+    # Use JS setTimeout via pyodide bridge
+    setTimeout(next_card, 280)
+
+def reset_session():
+    hide_empty_state()
+    # Reset all intervals for demo purposes
+    for card in state["cards"]:
+        card["interval_days"] = 1
+        card["ease"] = 2.5
+    state["queue"] = list(range(len(state["cards"])))
+    state["current_idx"] = 0
+    state["session_done"] = 0
+    state["session_total"] = len(state["cards"])
+    render_card()
+
+# ─── Expose to window ─────────────────────────────────────────────────────────
+import js
+js.globalThis.reveal_answer = reveal_answer
+js.globalThis.rate_card = rate_card
+js.globalThis.reset_session = reset_session
+
+# ─── Boot ─────────────────────────────────────────────────────────────────────
+def boot(e=None):
+    loader = document.getElementById("pyscript-loader")
+    loader.classList.add("hidden")
+    app = document.getElementById("app")
+    app.style.opacity = "1"
+    render_card()
+
+setTimeout(boot, 800)
+</script>
+
+</body>
+</html>

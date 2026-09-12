@@ -1,0 +1,888 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PyVis — Python Code Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0e; --surface:#111318; --surface2:#181c24; --surface3:#1e232e;
+  --border:#252b38; --border2:#2e3545;
+  --txt:#dde3ef; --txt2:#7e8ba3; --txt3:#3d4557;
+  --amber:#f0a500; --amber-dim:rgba(240,165,0,.15); --amber-glow:rgba(240,165,0,.25);
+  --green:#2dd4a0; --red:#f06060; --blue:#60a5fa; --purple:#a78bfa;
+  --mono:'JetBrains Mono',monospace; --ui:'Space Grotesk',sans-serif;
+  --r:8px; --r-sm:5px;
+}
+body{background:var(--bg);color:var(--txt);font-family:var(--ui);min-height:100vh;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);}
+
+#root{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh;max-width:1400px;margin:0 auto;padding:16px;gap:12px;}
+
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.logo{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-.03em;}
+.logo span{color:var(--amber);}
+.badge{font-family:var(--mono);font-size:10px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);padding:2px 8px;border-radius:99px;letter-spacing:.1em;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.main{display:grid;grid-template-columns:400px 1fr;gap:12px;min-height:0;}
+@media(max-width:860px){.main{grid-template-columns:1fr;}}
+
+.left{display:flex;flex-direction:column;gap:10px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.panel-title{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--txt2);}
+.panel-body{padding:12px;}
+
+/* Editor */
+#editor-wrap{position:relative;}
+#code-editor{
+  width:100%;height:200px;resize:vertical;
+  background:var(--bg);border:none;outline:none;
+  font-family:var(--mono);font-size:12.5px;line-height:1.75;
+  color:var(--txt);padding:10px 10px 10px 42px;
+  tab-size:4;caret-color:var(--amber);
+}
+.line-nums{position:absolute;left:0;top:0;width:34px;height:100%;display:flex;flex-direction:column;padding:10px 0;pointer-events:none;overflow:hidden;}
+.lnum{font-family:var(--mono);font-size:11px;color:var(--txt3);line-height:1.75;text-align:right;padding-right:7px;}
+
+/* Run row */
+.run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+#btn-run{
+  display:flex;align-items:center;gap:8px;padding:9px 20px;
+  background:var(--amber);color:#0a0b0e;border:none;border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s;letter-spacing:.04em;box-shadow:0 0 20px var(--amber-glow);
+}
+#btn-run:hover{filter:brightness(1.1);transform:translateY(-1px);}
+#btn-run:disabled{opacity:.4;cursor:default;transform:none;}
+#status{font-family:var(--mono);font-size:11px;color:var(--txt2);}
+#status.ok{color:var(--green);}
+#status.err{color:var(--red);}
+
+/* Trace panel */
+.tl{display:flex;gap:8px;padding:1px 8px;border-left:2px solid transparent;transition:all .18s;}
+.tl.active{background:var(--amber-dim);border-left-color:var(--amber);}
+.tl.executed{background:rgba(45,212,160,.05);border-left-color:rgba(45,212,160,.4);}
+.tl-ln{color:var(--txt3);font-size:10px;min-width:20px;text-align:right;flex-shrink:0;padding-top:2px;}
+.tl.active .tl-ln{color:var(--amber);}
+.tl-src{color:var(--txt);white-space:pre;font-family:var(--mono);font-size:12px;line-height:1.75;}
+
+/* Step box */
+.step-box{font-family:var(--mono);font-size:12px;line-height:1.6;padding:10px 12px;border-radius:var(--r-sm);background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--amber);color:var(--txt);min-height:42px;transition:border-left-color .2s;}
+.step-box.err{border-left-color:var(--red);color:var(--red);}
+.step-box.ret{border-left-color:var(--green);}
+
+/* Controls */
+.controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.cbtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--txt);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.cbtn:hover{background:var(--amber);border-color:var(--amber);color:#0a0b0e;}
+.cbtn:disabled{opacity:.3;cursor:default;}
+.cbtn:disabled:hover{background:var(--surface2);border-color:var(--border2);color:var(--txt);}
+.cbtn.play{width:38px;height:38px;background:var(--amber);border-color:var(--amber);color:#0a0b0e;font-size:14px;box-shadow:0 0 12px var(--amber-glow);}
+.step-ct{font-family:var(--mono);font-size:11px;color:var(--txt2);}
+.step-ct b{color:var(--txt);}
+.speed-wrap{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.speed-lbl{font-size:10px;color:var(--txt3);font-family:var(--mono);}
+input[type=range]{-webkit-appearance:none;width:68px;height:3px;border-radius:99px;background:var(--border2);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--amber);cursor:pointer;}
+.prog{height:2px;background:var(--border);border-radius:99px;overflow:hidden;margin:0 8px 2px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:99px;transition:width .2s;}
+
+/* Canvas (right) */
+.right{display:flex;flex-direction:column;min-height:0;}
+#canvas-wrap{
+  flex:1;position:relative;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;min-height:500px;cursor:grab;
+}
+#canvas-wrap:active{cursor:grabbing;}
+#mem-canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+.canvas-hint{position:absolute;bottom:10px;right:12px;font-family:var(--mono);font-size:10px;color:var(--txt3);pointer-events:none;}
+.zoom-btns{position:absolute;top:10px;right:12px;display:flex;flex-direction:column;gap:4px;}
+.zbtn{width:26px;height:26px;background:var(--surface2);border:1px solid var(--border2);color:var(--txt2);border-radius:var(--r-sm);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.zbtn:hover{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+
+/* Legend */
+.legend{position:absolute;bottom:10px;left:12px;display:flex;gap:10px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--txt3);}
+.leg-dot{width:8px;height:8px;border-radius:50%;}
+
+footer{font-family:var(--mono);font-size:10px;color:var(--txt3);display:flex;gap:20px;flex-wrap:wrap;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+
+/* Loading */
+#py-loading{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loading-text{font-family:var(--mono);font-size:13px;color:var(--amber);}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="py-loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Loading Python runtime…</div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--txt3)">Pyodide initialising — one moment</div>
+</div>
+
+<div id="root">
+  <header>
+    <div class="logo">py<span>vis</span></div>
+    <div class="badge">LIVE TRACER</div>
+    <div style="font-size:11px;color:var(--txt2);font-family:var(--mono);">Step through Python — see every pointer & heap object live</div>
+    <div class="header-right">
+      <span style="font-size:11px;color:var(--txt3);font-family:var(--mono);">← → keys · Space to play</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- LEFT: editor + controls -->
+    <div class="left">
+
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-title">✦ Editor</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--txt3)" id="line-count"></span>
+        </div>
+        <div style="padding:0;position:relative;" id="editor-wrap">
+          <div class="line-nums" id="line-nums"></div>
+          <textarea id="code-editor" spellcheck="false">def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []
+
+result = two_sum([2, 7, 11, 15], 9)
+print(result)</textarea>
+        </div>
+      </div>
+
+      <div class="run-row">
+        <button id="btn-run" disabled><span>▶</span> Trace</button>
+        <span id="status">Loading Python…</span>
+      </div>
+
+      <div class="panel" style="flex:1;">
+        <div class="panel-hd">
+          <span class="panel-title">⟶ Execution</span>
+          <div class="controls">
+            <button class="cbtn" id="btn-first" disabled title="First">⏮</button>
+            <button class="cbtn" id="btn-back"  disabled title="Prev">◀</button>
+            <button class="cbtn play" id="btn-play" disabled>▶</button>
+            <button class="cbtn" id="btn-next"  disabled title="Next">▶</button>
+            <button class="cbtn" id="btn-last"  disabled title="Last">⏭</button>
+            <span class="step-ct"><b id="step-cur">—</b>/<b id="step-tot">—</b></span>
+            <div class="speed-wrap">
+              <span class="speed-lbl">SPD</span>
+              <input type="range" min="1" max="9" value="4" id="speed-slider" oninput="updateSpeed(this.value)"/>
+            </div>
+          </div>
+        </div>
+        <div class="prog"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;padding:6px 0;" id="trace-code"></div>
+      </div>
+
+      <div class="step-box" id="step-box">Press <b>Trace</b> to start.</div>
+
+    </div>
+
+    <!-- RIGHT: memory diagram -->
+    <div class="right">
+      <div id="canvas-wrap">
+        <canvas id="mem-canvas"></canvas>
+        <div class="zoom-btns">
+          <button class="zbtn" onclick="zoomAt(1.15)">+</button>
+          <button class="zbtn" onclick="zoomAt(0.87)">−</button>
+          <button class="zbtn" onclick="resetView()">⌂</button>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div>int/float</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#2dd4a0"></div>str</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#60a5fa"></div>list/dict</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f0a500"></div>bool/None</div>
+        </div>
+        <div class="canvas-hint">drag · scroll to zoom</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>pyvis v2.0 — Pyodide + AST tracer</span>
+    <span id="footer-info"></span>
+  </footer>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   PYTHON TRACER  (AST-injection, works in Pyodide)
+══════════════════════════════════════════════════════ */
+const TRACER_PY = `
+import ast, json, sys, io, builtins
+
+def _ser(v, depth=0, _seen=None):
+    if _seen is None: _seen = set()
+    # Primitives — still sent as typed objects with an oid so JS can draw pointer arrows
+    if isinstance(v, bool):
+        return {"kind":"bool","val":str(v),"oid":id(v)}
+    if isinstance(v, int):
+        return {"kind":"int","val":v,"oid":id(v)}
+    if isinstance(v, float):
+        return {"kind":"float","val":round(v,6),"oid":id(v)}
+    if v is None:
+        return {"kind":"none","val":"None","oid":id(v)}
+    if isinstance(v, str):
+        d = v if len(v)<=28 else v[:25]+"\\u2026"
+        return {"kind":"str","val":d,"oid":id(v)}
+    if depth > 3:
+        return {"kind":"ellipsis","val":"\\u2026","oid":id(v)}
+    oid = id(v)
+    if oid in _seen:
+        return {"kind":"circular","val":"...","oid":oid}
+    _seen2 = _seen | {oid}
+    if isinstance(v, list):
+        items = [_ser(x,depth+1,_seen2) for x in v[:30]]
+        return {"kind":"list","items":items,"oid":oid}
+    if isinstance(v, tuple):
+        items = [_ser(x,depth+1,_seen2) for x in v[:30]]
+        return {"kind":"tuple","items":items,"oid":oid}
+    if isinstance(v, dict):
+        entries=[{"k":_ser(k,depth+1,_seen2),"v":_ser(val,depth+1,_seen2)} for k,val in list(v.items())[:20]]
+        return {"kind":"dict","entries":entries,"oid":oid}
+    if isinstance(v, set):
+        items=[_ser(x,depth+1,_seen2) for x in list(v)[:20]]
+        return {"kind":"set","items":items,"oid":oid}
+    try:
+        attrs={k:_ser(vv,depth+1,_seen2) for k,vv in vars(v).items() if not k.startswith('_')}
+        return {"kind":"object","type":type(v).__name__,"attrs":attrs,"oid":oid}
+    except:
+        return {"kind":"str","val":repr(v)[:40],"oid":id(v)}
+
+def _snap(ns):
+    out = {}
+    for k,v in ns.items():
+        if k.startswith('_') or callable(v) or isinstance(v,type): continue
+        try: out[k] = _ser(v)
+        except: pass
+    return out
+
+class _Injecter(ast.NodeTransformer):
+    def __init__(self):
+        self._fn = ["<module>"]
+    def _probe(self, node):
+        c = ast.Expr(value=ast.Call(
+            func=ast.Attribute(value=ast.Name(id='__pv__',ctx=ast.Load()),attr='rec',ctx=ast.Load()),
+            args=[ast.Constant(value=node.lineno), ast.Constant(value=self._fn[-1])],
+            keywords=[]))
+        ast.fix_missing_locations(c)
+        return c
+    def _wrap(self, body):
+        out=[]
+        for s in body: out.append(self._probe(s)); out.append(s)
+        return out
+    def visit_FunctionDef(self, node):
+        self._fn.append(node.name); self.generic_visit(node); self._fn.pop(); return node
+    visit_AsyncFunctionDef = visit_FunctionDef
+    def visit_Module(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_If(self, node):
+        self.generic_visit(node)
+        node.body=self._wrap(node.body)
+        if node.orelse: node.orelse=self._wrap(node.orelse)
+        return node
+    def visit_For(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_While(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_Try(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+
+def run_trace(source_code):
+    frames=[]
+    MAX=600
+    class _R:
+        def rec(self, lineno, fn):
+            if len(frames)>=MAX: return
+            import sys as _s
+            caller=_s._getframe(1)
+            ns=dict(caller.f_locals)
+            ns.pop('__pv__',None)
+            frames.append({"line":lineno,"func":fn,"locals":_snap(ns),"note":f"line {lineno} in {fn}"})
+    rec=_R()
+    try:
+        tree=ast.parse(source_code)
+    except SyntaxError as e:
+        return json.dumps({"frames":[],"stdout":"","error":f"SyntaxError: {e}","source":source_code})
+    _Injecter().visit(tree)
+    ast.fix_missing_locations(tree)
+    try: code_obj=compile(tree,"<pyvis>","exec")
+    except Exception as e:
+        return json.dumps({"frames":[],"stdout":"","error":str(e),"source":source_code})
+    buf=io.StringIO(); old=sys.stdout; sys.stdout=buf
+    err=None
+    g={"__builtins__":builtins,"__name__":"__main__","__pv__":rec}
+    try: exec(code_obj,g)
+    except Exception as e: err=f"{type(e).__name__}: {e}"
+    finally: sys.stdout=old
+    return json.dumps({"frames":frames,"stdout":buf.getvalue(),"error":err,"source":source_code,"truncated":len(frames)>=MAX})
+`;
+
+/* ══════════════════════════════════════════════════════
+   PYODIDE BOOT
+══════════════════════════════════════════════════════ */
+let pyodide = null;
+async function initPy() {
+  pyodide = await loadPyodide();
+  await pyodide.runPythonAsync(TRACER_PY);
+  document.getElementById('py-loading').style.display = 'none';
+  document.getElementById('btn-run').disabled = false;
+  setStatus('', 'Ready — paste code and press Trace');
+}
+initPy().catch(e => {
+  document.getElementById('loading-text').textContent = '⚠ Failed to load runtime';
+  console.error(e);
+});
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let frames=[], cursor=0, sourceLines=[], playTimer=null, playSpeed=700;
+
+/* ── Canvas setup ── */
+const wrap = document.getElementById('canvas-wrap');
+const cvs  = document.getElementById('mem-canvas');
+const ctx  = cvs.getContext('2d');
+let camX=30, camY=20, camZ=1;
+let drag=false, dsx=0, dsy=0, dcx=0, dcy=0;
+
+function resizeCvs(){
+  const r=wrap.getBoundingClientRect();
+  cvs.width=r.width*devicePixelRatio; cvs.height=r.height*devicePixelRatio;
+  cvs.style.width=r.width+'px'; cvs.style.height=r.height+'px';
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  redraw();
+}
+new ResizeObserver(resizeCvs).observe(wrap);
+setTimeout(resizeCvs,150);
+
+wrap.addEventListener('mousedown',e=>{drag=true;dsx=e.clientX;dsy=e.clientY;dcx=camX;dcy=camY;});
+window.addEventListener('mousemove',e=>{if(!drag)return;camX=dcx+(e.clientX-dsx);camY=dcy+(e.clientY-dsy);redraw();});
+window.addEventListener('mouseup',()=>drag=false);
+wrap.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.deltaY<0?1.1:0.91);},{passive:false});
+
+// Touch support
+let t0=null;
+wrap.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;dsx=e.touches[0].clientX;dsy=e.touches[0].clientY;dcx=camX;dcy=camY;}},{passive:true});
+wrap.addEventListener('touchmove',e=>{if(drag&&e.touches.length===1){camX=dcx+(e.touches[0].clientX-dsx);camY=dcy+(e.touches[0].clientY-dsy);redraw();}},{passive:true});
+wrap.addEventListener('touchend',()=>drag=false);
+
+function zoomAt(f){
+  const cw=wrap.clientWidth/2,ch=wrap.clientHeight/2;
+  camX=cw+(camX-cw)*f; camY=ch+(camY-ch)*f;
+  camZ=Math.max(0.2,Math.min(5,camZ*f)); redraw();
+}
+function resetView(){camX=30;camY=20;camZ=1;redraw();}
+
+/* ── Editor line nums ── */
+function updateLN(){
+  const lines=document.getElementById('code-editor').value.split('\n');
+  document.getElementById('line-count').textContent=lines.length+' lines';
+  document.getElementById('line-nums').innerHTML=lines.map((_,i)=>`<div class="lnum">${i+1}</div>`).join('');
+}
+document.getElementById('code-editor').addEventListener('input',updateLN);
+document.getElementById('code-editor').addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();const ta=e.target,s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+'    '+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+4;updateLN();}
+});
+updateLN();
+
+/* ══════════════════════════════════════════════════════
+   TRACE
+══════════════════════════════════════════════════════ */
+document.getElementById('btn-run').addEventListener('click', async()=>{
+  if(!pyodide) return;
+  const code=document.getElementById('code-editor').value;
+  const btn=document.getElementById('btn-run');
+  btn.disabled=true; setStatus('','⏳ tracing…'); stopPlay();
+  let result;
+  try{
+    const js=await pyodide.runPythonAsync(`run_trace(${JSON.stringify(code)})`);
+    result=JSON.parse(js);
+  }catch(e){
+    setStatus('err','⚠ '+e.message); btn.disabled=false; return;
+  }
+  btn.disabled=false;
+  sourceLines=(result.source||'').split('\n');
+  if(result.error&&!result.frames.length){
+    setStatus('err','⚠ '+result.error);
+    const sb=document.getElementById('step-box');sb.className='step-box err';sb.textContent=result.error;return;
+  }
+  frames=result.frames; cursor=0;
+  setStatus('ok',`✓ ${frames.length} steps${result.truncated?' (capped)':''}`);
+  document.getElementById('footer-info').textContent=`frames:${frames.length}${result.truncated?' truncated at 600':''}`;
+  renderTraceCode(); enableCtrl(true); renderStep();
+  if(result.stdout) document.getElementById('step-box').textContent='stdout → '+result.stdout.trim();
+});
+
+function setStatus(cls,msg){const el=document.getElementById('status');el.className=cls;el.textContent=msg;}
+
+function renderTraceCode(){
+  document.getElementById('trace-code').innerHTML=
+    sourceLines.map((l,i)=>`<div class="tl" id="tl-${i+1}"><span class="tl-ln">${i+1}</span><span class="tl-src">${escH(l)}</span></div>`).join('');
+}
+function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* Controls */
+document.getElementById('btn-first').addEventListener('click',()=>seek(0));
+document.getElementById('btn-last').addEventListener('click',()=>seek(frames.length-1));
+document.getElementById('btn-back').addEventListener('click',()=>stepBy(-1));
+document.getElementById('btn-next').addEventListener('click',()=>stepBy(1));
+document.getElementById('btn-play').addEventListener('click',togglePlay);
+function enableCtrl(on){['btn-first','btn-back','btn-play','btn-next','btn-last'].forEach(id=>document.getElementById(id).disabled=!on);}
+function stepBy(d){seek(Math.max(0,Math.min(frames.length-1,cursor+d)));}
+function seek(n){cursor=n;renderStep();if(cursor>=frames.length-1)stopPlay();}
+function togglePlay(){if(playTimer)stopPlay();else startPlay();}
+function startPlay(){if(cursor>=frames.length-1)cursor=0;document.getElementById('btn-play').textContent='⏸';playTimer=setInterval(()=>{if(cursor>=frames.length-1){stopPlay();return;}stepBy(1);},playSpeed);}
+function stopPlay(){if(playTimer){clearInterval(playTimer);playTimer=null;}document.getElementById('btn-play').textContent='▶';}
+function updateSpeed(v){playSpeed=Math.round(1400-v*145);if(playTimer){stopPlay();startPlay();}}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();stepBy(1);}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();stepBy(-1);}
+  if(e.key===' '){e.preventDefault();togglePlay();}
+});
+
+function renderStep(){
+  if(!frames.length) return;
+  const f=frames[cursor];
+  const pct=frames.length>1?(cursor/(frames.length-1))*100:100;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('step-cur').textContent=cursor+1;
+  document.getElementById('step-tot').textContent=frames.length;
+  document.getElementById('btn-back').disabled=cursor<=0;
+  document.getElementById('btn-next').disabled=cursor>=frames.length-1;
+  document.getElementById('btn-first').disabled=cursor<=0;
+  document.getElementById('btn-last').disabled=cursor>=frames.length-1;
+
+  document.querySelectorAll('.tl').forEach(el=>el.classList.remove('active','executed'));
+  for(let ln=1;ln<f.line;ln++){const el=document.getElementById('tl-'+ln);if(el)el.classList.add('executed');}
+  const ae=document.getElementById('tl-'+f.line);
+  if(ae){ae.classList.add('active');ae.scrollIntoView({block:'nearest',behavior:'smooth'});}
+
+  const sb=document.getElementById('step-box');
+  sb.className='step-box';
+  sb.innerHTML=`<span style="color:var(--amber)">${f.func}()</span>  line <span style="color:var(--txt)">${f.line}</span>  — ${f.note||''}`;
+
+  redraw();
+}
+
+/* ══════════════════════════════════════════════════════
+   CANVAS RENDERER  — PythonTutor-style pointer diagram
+══════════════════════════════════════════════════════ */
+
+const C = {
+  bg:'#0a0b0e', surface:'#111318', surface2:'#181c24', surface3:'#1e232e',
+  border:'#252b38', border2:'#2e3545',
+  txt:'#dde3ef', txt2:'#7e8ba3', txt3:'#3d4557',
+  amber:'#f0a500', green:'#2dd4a0', red:'#f06060', blue:'#60a5fa', purple:'#a78bfa',
+  pink:'#f472b6', cyan:'#22d3ee', orange:'#fb923c',
+};
+const MF = "'JetBrains Mono',monospace";
+
+// Colour per type
+function typeColor(kind){
+  switch(kind){
+    case 'int': case 'float': return C.purple;
+    case 'str':   return C.green;
+    case 'bool':  return C.amber;
+    case 'none':  return C.txt3;
+    case 'list':  return C.blue;
+    case 'tuple': return C.cyan;
+    case 'dict':  return C.orange;
+    case 'set':   return C.pink;
+    default:      return C.txt2;
+  }
+}
+
+function cW(){return cvs.width/devicePixelRatio;}
+function cH(){return cvs.height/devicePixelRatio;}
+
+/* ── Grid dots ── */
+function drawGrid(W,H){
+  const step=28*camZ, ox=((camX%step)+step)%step, oy=((camY%step)+step)%step;
+  ctx.fillStyle='rgba(255,255,255,0.02)';
+  for(let x=ox-step;x<W+step;x+=step)
+    for(let y=oy-step;y<H+step;y+=step){ctx.beginPath();ctx.arc(x,y,.9,0,Math.PI*2);ctx.fill();}
+}
+
+/* ── Section label ── */
+function secLabel(txt,x,y){
+  ctx.save();
+  ctx.fillStyle=C.txt3; ctx.font=`600 9px ${MF}`; ctx.textAlign='left';
+  ctx.fillText(txt.toUpperCase(),x,y);
+  ctx.fillStyle=C.border2; ctx.fillRect(x,y+3,90,1);
+  ctx.restore();
+}
+
+/* ── Rounded rect ── */
+function rr(x,y,w,h,rad,fill,stroke,lw){
+  const r=typeof rad==='number'?[rad,rad,rad,rad]:rad;
+  ctx.beginPath();
+  ctx.moveTo(x+r[0],y);
+  ctx.arcTo(x+w,y,x+w,y+h,r[1]);
+  ctx.arcTo(x+w,y+h,x,y+h,r[2]);
+  ctx.arcTo(x,y+h,x,y,r[3]);
+  ctx.arcTo(x,y,x+w,y,r[0]);
+  ctx.closePath();
+  if(fill&&fill!=='none'){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke&&stroke!=='none'){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}
+}
+
+/* ── Animated bezier arrow with pointer dot ── */
+// anim: 0-1 fraction (for future animation hook, currently 1)
+function drawPointerArrow(x1,y1,x2,y2,color,dotR){
+  ctx.save();
+  // source dot
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.arc(x1,y1,dotR||4,0,Math.PI*2); ctx.fill();
+  // outer ring on dot
+  ctx.strokeStyle=color; ctx.lineWidth=1; ctx.globalAlpha=0.35;
+  ctx.beginPath(); ctx.arc(x1,y1,(dotR||4)+2.5,0,Math.PI*2); ctx.stroke();
+  ctx.globalAlpha=1;
+
+  // bezier — curve outward then back in
+  const dx=x2-x1, dy=y2-y1;
+  const cpx1=x1+Math.max(40,Math.abs(dx)*0.5);
+  const cpy1=y1;
+  const cpx2=x2-20;
+  const cpy2=y2;
+
+  ctx.strokeStyle=color; ctx.lineWidth=1.5;
+  ctx.setLineDash([5,3]); ctx.globalAlpha=0.7;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.bezierCurveTo(cpx1,cpy1,cpx2,cpy2,x2,y2);
+  ctx.stroke();
+
+  // arrowhead
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  const angle=Math.atan2(y2-cpy2,x2-cpx2);
+  const aL=8;
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-aL*Math.cos(angle-0.38),y2-aL*Math.sin(angle-0.38));
+  ctx.lineTo(x2-aL*Math.cos(angle+0.38),y2-aL*Math.sin(angle+0.38));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* ── Type label badge ── */
+function typeTag(txt,x,y,color){
+  ctx.save();
+  const w=ctx.measureText(txt).width+10;
+  rr(x,y-10,w,14,3,`rgba(${hexR(color)},0.15)`,color,0.5);
+  ctx.fillStyle=color; ctx.font=`600 8px ${MF}`; ctx.textAlign='left';
+  ctx.fillText(txt,x+5,y+1);
+  ctx.restore();
+  return w;
+}
+
+function hexR(h){
+  return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join(',');
+}
+
+/* ══════════════════════════════════════════════════════
+   HEAP OBJECT BOX DRAWING
+══════════════════════════════════════════════════════ */
+
+// Returns {height} drawn
+function drawObjBox(obj, x, y, w){
+  if(!obj) return 30;
+  const color=typeColor(obj.kind);
+  const PAD=10, ROW=19, HDR=20;
+
+  // count rows
+  let rows=0;
+  if(obj.kind==='list'||obj.kind==='tuple'||obj.kind==='set') rows=(obj.items||[]).length;
+  else if(obj.kind==='dict') rows=(obj.entries||[]).length;
+  else if(obj.kind==='object') rows=Object.keys(obj.attrs||{}).length;
+  else rows=0; // primitive — no inner rows
+  rows=Math.max(rows,1);
+
+  const H=HDR+PAD+rows*ROW+PAD;
+
+  // shadow
+  ctx.save();
+  ctx.shadowColor=`rgba(${hexR(color)},0.18)`; ctx.shadowBlur=12;
+  rr(x,y,w,H,6,C.surface3,color,1);
+  ctx.restore();
+
+  // header band
+  rr(x,y,w,HDR,[6,6,0,0],`rgba(${hexR(color)},0.18)`,'none');
+  ctx.fillStyle=color; ctx.font=`700 10px ${MF}`; ctx.textAlign='left';
+  const kindLabel = obj.kind==='object' ? obj.type : obj.kind;
+  ctx.fillText(kindLabel.toUpperCase(), x+PAD, y+13);
+
+  // oid badge
+  const oidStr=`id:${(obj.oid||0).toString().slice(-5)}`;
+  ctx.fillStyle=C.txt3; ctx.font=`9px ${MF}`; ctx.textAlign='right';
+  ctx.fillText(oidStr, x+w-PAD, y+13);
+
+  let ry=y+HDR+PAD;
+
+  // primitive object — just show value large
+  if(['int','float','bool','none','str','ellipsis','circular'].includes(obj.kind)){
+    ctx.font=`700 13px ${MF}`; ctx.textAlign='center';
+    ctx.fillStyle=color;
+    const disp=obj.kind==='str'?`"${obj.val}"`:String(obj.val??'None');
+    ctx.fillText(disp, x+w/2, ry+13);
+    return H;
+  }
+
+  if(obj.kind==='dict'){
+    (obj.entries||[]).forEach(({k,v})=>{
+      // key
+      renderInlineSmall(k, x+PAD, ry+13);
+      // colon
+      ctx.fillStyle=C.txt3; ctx.font=`10px ${MF}`; ctx.textAlign='left';
+      ctx.fillText(':', x+PAD+52, ry+13);
+      // value
+      renderInlineSmall(v, x+PAD+60, ry+13);
+      ry+=ROW;
+    });
+  } else if(obj.kind==='list'||obj.kind==='tuple'||obj.kind==='set'){
+    (obj.items||[]).forEach((item,i)=>{
+      if(obj.kind!=='set'){
+        ctx.fillStyle=C.txt3; ctx.font=`9px ${MF}`; ctx.textAlign='left';
+        ctx.fillText(`[${i}]`, x+PAD, ry+13);
+      }
+      renderInlineSmall(item, x+PAD+(obj.kind==='set'?0:26), ry+13);
+      ry+=ROW;
+    });
+  } else if(obj.kind==='object'){
+    Object.entries(obj.attrs||{}).forEach(([k,v])=>{
+      ctx.fillStyle=C.purple; ctx.font=`10px ${MF}`; ctx.textAlign='left';
+      ctx.fillText(k, x+PAD, ry+13);
+      ctx.fillStyle=C.txt3; ctx.fillText('=',x+PAD+60,ry+13);
+      renderInlineSmall(v, x+PAD+68, ry+13);
+      ry+=ROW;
+    });
+  }
+  return H;
+}
+
+function renderInlineSmall(v, x, y){
+  if(!v){return;}
+  const c=typeColor(v.kind);
+  ctx.font=`10px ${MF}`; ctx.textAlign='left'; ctx.fillStyle=c;
+  let txt='?';
+  switch(v.kind){
+    case 'int': case 'float': txt=String(v.val); break;
+    case 'bool': txt=v.val; ctx.font=`700 10px ${MF}`; break;
+    case 'none': txt='None'; ctx.font=`italic 10px ${MF}`; break;
+    case 'str':  txt=`"${v.val}"`; break;
+    case 'ellipsis': case 'circular': txt='…'; break;
+    case 'list':  txt=`list[${(v.items||[]).length}]`; break;
+    case 'tuple': txt=`tuple[${(v.items||[]).length}]`; break;
+    case 'dict':  txt=`dict{${(v.entries||[]).length}}`; break;
+    case 'set':   txt=`set{${(v.items||[]).length}}`; break;
+    default:      txt=v.type||v.kind;
+  }
+  ctx.fillText(txt,x,y);
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN DIAGRAM LAYOUT — PythonTutor style
+   Left col: stack frame (var name | pointer dot)
+   Right col: heap objects with arrows connecting them
+══════════════════════════════════════════════════════ */
+
+const FRAME_X=20, FRAME_W=200;
+const HEAP_X=360;  // start of heap column
+const HEAP_W=210;
+const HEAP_GAP=14; // vertical gap between heap boxes
+const ROW_H=26;    // height per variable row in frame
+const FRAME_HDR=28;
+const FRAME_PAD=10;
+
+function redraw(){
+  const W=cW(), H=cH();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  drawGrid(W,H);
+
+  if(!frames.length){
+    ctx.fillStyle=C.txt3; ctx.font=`12px ${MF}`; ctx.textAlign='center';
+    ctx.fillText('Trace your code to see the memory diagram here',W/2,H/2);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(camX,camY); ctx.scale(camZ,camZ);
+  paintFrame(frames[cursor]);
+  ctx.restore();
+}
+
+function paintFrame(f){
+  if(!f) return;
+  const locs=f.locals||{};
+  const entries=Object.entries(locs);
+
+  /* ── 1. Collect all heap objects that need to be drawn.
+          Key insight: ALL values (including ints) become heap objects
+          BUT we deduplicate by oid — same object drawn once, multiple arrows can point to it. ── */
+  const heapMap={};   // oid→{obj, entries that point here}
+  entries.forEach(([k,v])=>{
+    if(!v) return;
+    const oid=String(v.oid||k);
+    if(!heapMap[oid]) heapMap[oid]={obj:v, pointedBy:[]};
+    heapMap[oid].pointedBy.push(k);
+    // recurse into containers
+    collectNestedHeap(v, heapMap);
+  });
+
+  const heapList=Object.values(heapMap);
+
+  /* ── 2. Layout heap objects vertically ── */
+  let hy=36;
+  heapList.forEach(item=>{
+    item._x=HEAP_X; item._y=hy;
+    const h=measureObjBox(item.obj);
+    item._h=h;
+    hy+=h+HEAP_GAP;
+  });
+
+  /* ── 3. Draw section labels ── */
+  secLabel('Frames', FRAME_X, 18);
+  secLabel('Objects', HEAP_X, 18);
+
+  /* ── 4. Draw stack frame box ── */
+  const frameH=FRAME_HDR+FRAME_PAD+Math.max(1,entries.length)*ROW_H+FRAME_PAD;
+  ctx.save();
+  ctx.shadowColor='rgba(240,165,0,0.1)'; ctx.shadowBlur=16;
+  rr(FRAME_X,36,FRAME_W,frameH,6,C.surface2,'rgba(240,165,0,0.5)',1);
+  ctx.restore();
+
+  // frame header
+  rr(FRAME_X,36,FRAME_W,FRAME_HDR,[6,6,0,0],'rgba(240,165,0,0.12)','none');
+  ctx.fillStyle=C.amber; ctx.font=`700 11px ${MF}`; ctx.textAlign='left';
+  ctx.fillText((f.func||'<module>')+'()', FRAME_X+10, 36+19);
+
+  /* ── 5. Draw each variable row: name | pointer dot ── */
+  const DOT_X=FRAME_X+FRAME_W-14; // x of the pointer dot (right edge of frame)
+
+  entries.forEach(([k,v],idx)=>{
+    const ry=36+FRAME_HDR+FRAME_PAD+idx*ROW_H;
+    const dotY=ry+ROW_H/2;
+
+    // separator line
+    if(idx>0){
+      ctx.strokeStyle=C.border; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(FRAME_X+1,ry); ctx.lineTo(FRAME_X+FRAME_W-1,ry); ctx.stroke();
+    }
+
+    // variable name
+    ctx.fillStyle=C.purple; ctx.font=`500 11px ${MF}`; ctx.textAlign='left';
+    ctx.fillText(k, FRAME_X+10, dotY+4);
+
+    if(!v) return;
+    const oid=String(v.oid||k);
+    const color=typeColor(v.kind);
+    const target=heapMap[oid];
+
+    if(target){
+      // draw the pointer dot at right edge
+      ctx.fillStyle=color;
+      ctx.beginPath(); ctx.arc(DOT_X,dotY,4.5,0,Math.PI*2); ctx.fill();
+      // ring
+      ctx.strokeStyle=color; ctx.lineWidth=1; ctx.globalAlpha=0.3;
+      ctx.beginPath(); ctx.arc(DOT_X,dotY,7,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
+
+      // arrow to heap object
+      const tx=target._x;
+      const ty=target._y+(target._h||30)/2;
+      drawBezierArrow(DOT_X,dotY,tx,ty,color);
+    }
+  });
+
+  /* ── 6. Draw all heap object boxes ── */
+  heapList.forEach(item=>{
+    if(item._x===undefined) return;
+    drawObjBox(item.obj, item._x, item._y, HEAP_W);
+  });
+}
+
+function collectNestedHeap(v, heapMap){
+  if(!v) return;
+  const inner=[];
+  if(v.kind==='list'||v.kind==='tuple'||v.kind==='set') inner.push(...(v.items||[]));
+  else if(v.kind==='dict') (v.entries||[]).forEach(e=>{inner.push(e.k);inner.push(e.v);});
+  else if(v.kind==='object') inner.push(...Object.values(v.attrs||{}));
+  inner.forEach(child=>{
+    if(!child||child.kind==='ellipsis'||child.kind==='circular') return;
+    const oid=String(child.oid||Math.random());
+    if(!heapMap[oid]) heapMap[oid]={obj:child,pointedBy:[]};
+  });
+}
+
+function measureObjBox(obj){
+  if(!obj) return 30;
+  const PAD=10, ROW=19, HDR=20;
+  let rows=0;
+  if(obj.kind==='list'||obj.kind==='tuple'||obj.kind==='set') rows=(obj.items||[]).length;
+  else if(obj.kind==='dict') rows=(obj.entries||[]).length;
+  else if(obj.kind==='object') rows=Object.keys(obj.attrs||{}).length;
+  else rows=1; // primitives: just one row for the value
+  return HDR+PAD+Math.max(1,rows)*ROW+PAD;
+}
+
+function drawBezierArrow(x1,y1,x2,y2,color){
+  ctx.save();
+  const dx=x2-x1;
+  // control points: bow outward to the right
+  const bow=Math.max(30, Math.abs(y2-y1)*0.5);
+  const cpx1=x1+bow;
+  const cpy1=y1;
+  const cpx2=x2-20;
+  const cpy2=y2;
+
+  ctx.strokeStyle=color; ctx.lineWidth=1.4;
+  ctx.setLineDash([5,3]); ctx.globalAlpha=0.65;
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.bezierCurveTo(cpx1,cpy1,cpx2,cpy2,x2,y2);
+  ctx.stroke();
+
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  const angle=Math.atan2(y2-cpy2,x2-cpx2);
+  const aL=7;
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-aL*Math.cos(angle-0.4),y2-aL*Math.sin(angle-0.4));
+  ctx.lineTo(x2-aL*Math.cos(angle+0.4),y2-aL*Math.sin(angle+0.4));
+  ctx.closePath(); ctx.fill();
+
+  // target landing dot
+  ctx.fillStyle=`rgba(${hexR(color)},0.25)`;
+  ctx.beginPath(); ctx.arc(x2,y2,5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ── initial draw ── */
+redraw();
+</script>
+</body>
+</html>

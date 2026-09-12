@@ -1,0 +1,23 @@
+{% extends "base.html" %} {% load wagtailcore_tags %} {% block content %}
+<div class="pe-root">
+  <div class="pe-shell">
+    <div class="pe-path">practice/</div>
+    <h1 class="pe-title">{{ page.title }}</h1>
+
+    {% if page.intro %}
+    <div class="pe-intro">{{ page.intro }}</div>
+    {% endif %} {% if top_level_topics %}
+    <div class="pe-topic-grid">
+      {% for topic in top_level_topics %}
+      <a class="pe-topic-tile" href="{% pageurl topic %}">
+        <span class="pe-topic-name">{{ topic.title }}</span>
+        <span class="pe-topic-hint">practice/{{ topic.slug }}/</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="pe-empty">No topics have been published yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% include "topics/includes/practice_styles.html" %} {% endblock %}

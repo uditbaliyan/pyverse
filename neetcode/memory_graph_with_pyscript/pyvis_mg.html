@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PyVis MG — memory_graph Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
+
+<!-- Pyodide -->
+<script>
+(function(){
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+  s.onload=function(){ loadPyodide().then(function(py){ window._pyodide=py; }); };
+  document.head.appendChild(s);
+})();
+</script>
+
+<!-- viz.js (WASM graphviz renderer — renders DOT → SVG in browser) -->
+<script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.11.0/lib/viz-standalone.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090c;--surface:#0d1018;--surface2:#131820;--surface3:#181e2a;
+  --border:#1c2333;--border2:#243048;
+  --txt:#c9d1e8;--txt2:#5d6b85;--txt3:#2a3347;
+  --amber:#f0a500;--amber-dim:rgba(240,165,0,.1);--amber-glow:rgba(240,165,0,.28);
+  --green:#26c48a;--red:#e85555;--blue:#5ba3f5;--purple:#a98cf7;
+  --cyan:#1fcde0;--orange:#f58c30;--pink:#e86aa8;
+  --mono:'JetBrains Mono',monospace;--ui:'Space Grotesk',sans-serif;
+  --r:8px;--r-sm:5px;
+}
+body{background:var(--bg);color:var(--txt);font-family:var(--ui);min-height:100vh;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.018) 3px,rgba(0,0,0,.018) 4px);}
+
+#root{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh;max-width:1600px;margin:0 auto;padding:14px;gap:10px;}
+
+/* ── Header ── */
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.logo{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-.03em;}
+.logo span{color:var(--amber);}
+.badge{font-family:var(--mono);font-size:9px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);padding:2px 8px;border-radius:99px;letter-spacing:.15em;}
+.badge2{font-family:var(--mono);font-size:9px;background:rgba(91,163,245,.1);border:1px solid rgba(91,163,245,.4);color:var(--blue);padding:2px 8px;border-radius:99px;letter-spacing:.1em;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+/* ── Layout ── */
+.main{display:grid;grid-template-columns:370px 1fr;gap:10px;min-height:0;}
+@media(max-width:860px){.main{grid-template-columns:1fr;}}
+.left{display:flex;flex-direction:column;gap:8px;}
+
+/* ── Panels ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:var(--surface2);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.panel-title{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--txt2);}
+
+/* ── Loading ── */
+#py-strip{display:flex;align-items:center;gap:9px;padding:7px 11px;
+  background:linear-gradient(90deg,rgba(240,165,0,.07),transparent);
+  border:1px solid rgba(240,165,0,.18);border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:11px;color:var(--amber);transition:opacity .5s,height .4s,padding .4s;}
+#py-strip.done{opacity:0;pointer-events:none;height:0;padding:0;border:none;overflow:hidden;}
+.mini-spin{width:11px;height:11px;border:1.5px solid rgba(240,165,0,.2);border-top-color:var(--amber);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Editor ── */
+#editor-wrap{position:relative;}
+#code-editor{width:100%;height:200px;resize:vertical;background:var(--bg);border:none;outline:none;
+  font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--txt);
+  padding:10px 10px 10px 40px;tab-size:4;caret-color:var(--amber);}
+.line-nums{position:absolute;left:0;top:0;width:32px;height:100%;display:flex;flex-direction:column;
+  padding:10px 0;pointer-events:none;overflow:hidden;}
+.lnum{font-family:var(--mono);font-size:11px;color:var(--txt3);line-height:1.75;text-align:right;padding-right:6px;}
+
+/* ── Run row ── */
+.run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+#btn-run{display:flex;align-items:center;gap:7px;padding:9px 18px;
+  background:var(--amber);color:#07090c;border:none;border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s;letter-spacing:.04em;box-shadow:0 0 16px var(--amber-glow);}
+#btn-run:hover{filter:brightness(1.1);transform:translateY(-1px);}
+#btn-run:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none;}
+#status{font-family:var(--mono);font-size:11px;color:var(--txt2);}
+#status.ok{color:var(--green);}#status.err{color:var(--red);}
+
+/* ── Execution trace ── */
+.tl{display:flex;gap:8px;padding:1px 8px;border-left:2px solid transparent;transition:background .1s,border-left-color .1s;}
+.tl.active{background:var(--amber-dim);border-left-color:var(--amber);}
+.tl.executed{background:rgba(38,196,138,.04);border-left-color:rgba(38,196,138,.25);}
+.tl-ln{color:var(--txt3);font-size:10px;min-width:18px;text-align:right;flex-shrink:0;padding-top:2px;}
+.tl.active .tl-ln{color:var(--amber);}
+.tl-src{color:var(--txt);white-space:pre;font-family:var(--mono);font-size:12px;line-height:1.75;}
+
+/* ── Step box ── */
+.step-box{font-family:var(--mono);font-size:12px;line-height:1.6;padding:9px 11px;
+  border-radius:var(--r-sm);background:var(--bg);border:1px solid var(--border);
+  border-left:3px solid var(--amber);color:var(--txt);min-height:38px;}
+.step-box.err{border-left-color:var(--red);color:var(--red);}
+.step-box.ret{border-left-color:var(--green);}
+
+/* ── Controls ── */
+.controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.cbtn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);
+  color:var(--txt);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
+  transition:all .14s;flex-shrink:0;}
+.cbtn:hover{background:var(--amber);border-color:var(--amber);color:#07090c;}
+.cbtn:disabled{opacity:.25;cursor:default;}
+.cbtn:disabled:hover{background:var(--surface2);border-color:var(--border2);color:var(--txt);}
+.cbtn.play{width:36px;height:36px;background:var(--amber);border-color:var(--amber);color:#07090c;font-size:13px;box-shadow:0 0 10px var(--amber-glow);}
+.step-ct{font-family:var(--mono);font-size:11px;color:var(--txt2);}
+.step-ct b{color:var(--txt);}
+.speed-wrap{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.speed-lbl{font-size:10px;color:var(--txt3);font-family:var(--mono);}
+input[type=range]{-webkit-appearance:none;width:64px;height:3px;border-radius:99px;background:var(--border2);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--amber);cursor:pointer;}
+.prog{height:2px;background:var(--border);border-radius:99px;overflow:hidden;margin:0 8px 2px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:99px;transition:width .16s;}
+
+/* ── stdout ── */
+#stdout-box{font-family:var(--mono);font-size:12px;color:var(--green);padding:9px 11px;
+  background:var(--bg);max-height:80px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;min-height:30px;}
+
+/* ── Right: graph panel ── */
+.right{display:flex;flex-direction:column;gap:8px;min-height:0;}
+#graph-panel{flex:1;position:relative;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;min-height:500px;}
+
+/* ── SVG container — pannable/zoomable ── */
+#svg-viewport{width:100%;height:100%;overflow:hidden;cursor:grab;position:relative;}
+#svg-viewport:active{cursor:grabbing;}
+#svg-inner{transform-origin:0 0;transition:transform 0s;will-change:transform;}
+#svg-inner svg{display:block;max-width:none;}
+
+/* ── Zoom buttons ── */
+.zoom-btns{position:absolute;top:10px;right:11px;display:flex;flex-direction:column;gap:4px;z-index:10;}
+.zbtn{width:25px;height:25px;background:var(--surface2);border:1px solid var(--border2);color:var(--txt2);
+  border-radius:var(--r-sm);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .14s;}
+.zbtn:hover{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+
+/* ── Canvas badges ── */
+#graph-info{position:absolute;top:10px;left:11px;display:flex;gap:6px;flex-wrap:wrap;z-index:10;pointer-events:none;}
+.ci-badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:99px;
+  background:var(--surface2);border:1px solid var(--border2);color:var(--txt3);}
+.ci-badge.hi{color:var(--amber);border-color:rgba(240,165,0,.3);background:rgba(240,165,0,.07);}
+.ci-badge.green{color:var(--green);border-color:rgba(38,196,138,.3);background:rgba(38,196,138,.06);}
+
+/* ── graph placeholder ── */
+#graph-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;pointer-events:none;}
+#graph-placeholder.hidden{display:none;}
+.ph-icon{font-size:32px;opacity:.3;}
+.ph-txt{font-family:var(--mono);font-size:12px;color:var(--txt3);text-align:center;line-height:1.6;}
+
+/* ── Changed var flash ── */
+#flash-label{position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:10px;color:var(--amber);
+  background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);
+  padding:2px 10px;border-radius:99px;pointer-events:none;
+  opacity:0;transition:opacity .2s;white-space:nowrap;z-index:10;}
+#flash-label.show{opacity:1;}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
+  font-family:var(--mono);font-size:11px;color:var(--txt);
+  background:var(--surface2);border:1px solid var(--border2);
+  padding:6px 16px;border-radius:99px;pointer-events:none;
+  opacity:0;transition:opacity .2s,transform .2s;z-index:10000;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── SVG dark-mode overrides — applied after render ── */
+#svg-inner svg{background:transparent!important;}
+#svg-inner .node polygon,#svg-inner .node ellipse,#svg-inner .node rect,#svg-inner .cluster polygon{
+  fill:var(--surface3)!important;stroke:var(--border2)!important;}
+#svg-inner .edge path{stroke:var(--blue)!important;stroke-width:1.5px!important;}
+#svg-inner .edge polygon{fill:var(--blue)!important;stroke:var(--blue)!important;}
+#svg-inner text{fill:var(--txt)!important;font-family:'JetBrains Mono',monospace!important;font-size:11px!important;}
+#svg-inner .cluster text{fill:var(--amber)!important;font-weight:700!important;}
+
+/* ── Legend ── */
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:6px 10px;background:var(--surface2);border-top:1px solid var(--border);}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--txt3);}
+.leg-dot{width:7px;height:7px;border-radius:50%;}
+
+footer{font-family:var(--mono);font-size:10px;color:var(--txt3);display:flex;gap:20px;flex-wrap:wrap;}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+
+/* snippet select */
+#snippet-picker{font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--txt2);
+  border:1px solid var(--border2);border-radius:var(--r-sm);padding:4px 8px;cursor:pointer;outline:none;}
+kbd{background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;
+  font-size:9px;font-family:var(--mono);color:var(--txt3);}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="root">
+  <header>
+    <div class="logo">py<span>vis</span></div>
+    <div class="badge">LIVE TRACER</div>
+    <div class="badge2">memory_graph</div>
+    <div style="font-size:11px;color:var(--txt2);font-family:var(--mono);">
+      CPython-faithful pointer diagram via memory_graph + viz.js
+    </div>
+    <div class="header-right">
+      <select id="snippet-picker">
+        <option value="">— examples —</option>
+        <option value="twosum">two_sum</option>
+        <option value="fib">fibonacci</option>
+        <option value="bubble">bubble sort</option>
+        <option value="linked">linked list</option>
+        <option value="stack">stack class</option>
+        <option value="shallow">shallow vs deep copy</option>
+        <option value="tree">binary tree</option>
+      </select>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <kbd>←→</kbd><kbd>Space</kbd><kbd>R</kbd>fit
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- LEFT -->
+    <div class="left">
+      <div id="py-strip">
+        <div class="mini-spin"></div>
+        <span id="strip-text">Loading Python + memory_graph…</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-title">✦ Editor</span>
+          <span id="line-count" style="font-family:var(--mono);font-size:10px;color:var(--txt3);"></span>
+        </div>
+        <div style="padding:0;position:relative;" id="editor-wrap">
+          <div class="line-nums" id="line-nums"></div>
+          <textarea id="code-editor" spellcheck="false">def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []
+
+result = two_sum([2, 7, 11, 15], 9)
+print(result)</textarea>
+        </div>
+      </div>
+
+      <div class="run-row">
+        <button id="btn-run" disabled>▶ Trace</button>
+        <span id="status">Loading…</span>
+      </div>
+
+      <div class="panel" style="flex:1;min-height:0;">
+        <div class="panel-hd">
+          <span class="panel-title">⟶ Execution</span>
+          <div class="controls">
+            <button class="cbtn" id="btn-first" disabled>⏮</button>
+            <button class="cbtn" id="btn-back"  disabled>◀</button>
+            <button class="cbtn play" id="btn-play" disabled>▶</button>
+            <button class="cbtn" id="btn-next"  disabled>▶</button>
+            <button class="cbtn" id="btn-last"  disabled>⏭</button>
+            <span class="step-ct"><b id="step-cur">—</b>/<b id="step-tot">—</b></span>
+            <div class="speed-wrap">
+              <span class="speed-lbl">SPD</span>
+              <input type="range" min="1" max="9" value="5" id="speed-slider" oninput="updateSpeed(this.value)"/>
+            </div>
+          </div>
+        </div>
+        <div class="prog"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;padding:5px 0;" id="trace-code"></div>
+      </div>
+
+      <div class="step-box" id="step-box">Press <b>Trace</b> to start.</div>
+
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-title">▸ Output</span>
+          <span id="stdout-hint" style="font-family:var(--mono);font-size:10px;color:var(--txt3);">print() — live per step</span>
+        </div>
+        <div id="stdout-box"><span style="color:var(--txt3);font-style:italic;">no output yet</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: memory_graph SVG -->
+    <div class="right">
+      <div id="graph-panel">
+        <div id="graph-info"></div>
+        <div id="flash-label"></div>
+        <div class="zoom-btns">
+          <button class="zbtn" onclick="zoomBy(1.18)">+</button>
+          <button class="zbtn" onclick="zoomBy(0.85)">−</button>
+          <button class="zbtn" onclick="fitGraph()" title="Fit">⌂</button>
+        </div>
+        <div id="svg-viewport">
+          <div id="svg-inner"></div>
+        </div>
+        <div id="graph-placeholder">
+          <div class="ph-icon">⬡</div>
+          <div class="ph-txt">memory_graph diagram appears here<br/>after you press Trace</div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>frame / scope</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div>reference arrow</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--purple)"></div>int / float</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>str</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--orange)"></div>list / tuple / dict</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--pink)"></div>object / class</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>pyvis-mg v1.0 — Pyodide + micropip memory_graph + viz.js (WASM graphviz)</span>
+    <span id="footer-info"></span>
+  </footer>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   PYTHON TRACER — uses memory_graph for the DOT graph per step
+   Strategy:
+   1. Parse & AST-instrument code (same as before)
+   2. At each probe point, snapshot locals() and call memory_graph
+      to produce a DOT string
+   3. Pass DOT string to JS → viz.js renders it to SVG
+   4. We post-process the SVG to apply dark theme colours
+══════════════════════════════════════════════════════════════ */
+const TRACER_PY = `
+import ast, json, sys, io, builtins, traceback
+
+# ── memory_graph integration ──────────────────────────────────
+# We intercept memory_graph's graphviz Digraph to steal the DOT source
+# without needing the graphviz binary installed.
+import memory_graph as mg
+import graphviz as gv
+
+def _get_dot(local_vars, call_stack_frames=None):
+    """Build a memory_graph graph for local_vars and return DOT source string."""
+    try:
+        g = mg.create_graph(local_vars)
+        # g is a graphviz.Digraph — grab .source directly, no binary needed
+        return g.source
+    except Exception as e:
+        # fallback: plain DOT showing the error
+        return f'digraph G {{ label="{str(e)[:60]}" }}'
+
+# ── AST Injector ─────────────────────────────────────────────
+class _Injecter(ast.NodeTransformer):
+    def __init__(self): self._fn = ["<module>"]
+    def _probe(self, node):
+        c = ast.Expr(value=ast.Call(
+            func=ast.Attribute(value=ast.Name(id='__pv__',ctx=ast.Load()),attr='rec',ctx=ast.Load()),
+            args=[ast.Constant(value=node.lineno), ast.Constant(value=self._fn[-1])],
+            keywords=[]))
+        ast.fix_missing_locations(c); return c
+    def _wrap(self, body):
+        out=[]
+        for s in body: out.append(self._probe(s)); out.append(s)
+        return out
+    def visit_FunctionDef(self, node):
+        self._fn.append(node.name); self.generic_visit(node); self._fn.pop(); return node
+    visit_AsyncFunctionDef = visit_FunctionDef
+    def visit_Module(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_If(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body)
+        if node.orelse: node.orelse=self._wrap(node.orelse)
+        return node
+    def visit_For(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_While(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+    def visit_Try(self, node):
+        self.generic_visit(node); node.body=self._wrap(node.body); return node
+
+# ── Main tracer ───────────────────────────────────────────────
+def run_trace(source_code):
+    frames=[]; MAX=500
+    stdout_lines=[]
+
+    class _Writer:
+        def write(self, s): stdout_lines.append(s); return len(s)
+        def flush(self): pass
+
+    class _Rec:
+        def rec(self, lineno, fn):
+            if len(frames) >= MAX: return
+            import sys as _s
+            caller = _s._getframe(1)
+            ns = {k:v for k,v in caller.f_locals.items()
+                  if not k.startswith('_') and k != '__pv__'
+                  and not callable(v) and not isinstance(v, type)}
+
+            # Build DOT via memory_graph
+            dot = _get_dot(ns)
+
+            frames.append({
+                "line": lineno,
+                "func": fn,
+                "dot": dot,
+                "stdout_so_far": "".join(stdout_lines),
+                "var_names": list(ns.keys()),
+                "note": f"line {lineno} in {fn}",
+                "retval": None,
+            })
+
+    rec = _Rec()
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError as e:
+        return json.dumps({"frames":[],"stdout":"","error":f"SyntaxError: {e}","source":source_code})
+
+    _Injecter().visit(tree)
+    ast.fix_missing_locations(tree)
+    try:
+        code_obj = compile(tree, "<pyvis>", "exec")
+    except Exception as e:
+        return json.dumps({"frames":[],"stdout":"","error":str(e),"source":source_code})
+
+    w = _Writer(); old = sys.stdout; sys.stdout = w; err = None
+    g_ns = {"__builtins__":builtins,"__name__":"__main__","__pv__":rec}
+    try:
+        exec(code_obj, g_ns)
+    except Exception as e:
+        err = f"{type(e).__name__}: {e}"
+    finally:
+        sys.stdout = old
+
+    return json.dumps({
+        "frames": frames,
+        "stdout": "".join(stdout_lines),
+        "error": err,
+        "source": source_code,
+        "truncated": len(frames) >= MAX,
+    })
+`;
+
+/* ══════════════════════════════════════════════════════════════
+   BOOT — Pyodide + micropip install memory_graph + viz.js
+══════════════════════════════════════════════════════════════ */
+let pyodide=null, viz=null;
+
+async function boot() {
+  // Wait for Pyodide to be ready (started in <head>)
+  const waitPy = () => new Promise(res=>{
+    if(window._pyodide){res(window._pyodide);return;}
+    const t=setInterval(()=>{if(window._pyodide){clearInterval(t);res(window._pyodide);}},80);
+  });
+
+  setStrip('⬡ Connecting to Pyodide…');
+  pyodide = await waitPy();
+
+  setStrip('📦 Installing memory_graph via micropip…');
+  await pyodide.loadPackage('micropip');
+  await pyodide.runPythonAsync(`
+import micropip
+await micropip.install('memory-graph')
+`);
+
+  setStrip('⚙ Loading tracer…');
+  await pyodide.runPythonAsync(TRACER_PY);
+
+  setStrip('⚡ Loading viz.js (WASM graphviz)…');
+  // Wait for viz-standalone to expose window.Viz
+  viz = await new Promise((res,rej)=>{
+    const check=()=>{
+      if(window.Viz){ window.Viz.instance().then(res).catch(rej); }
+      else setTimeout(check,100);
+    };
+    check();
+  });
+
+  // All ready
+  const strip=document.getElementById('py-strip');
+  const txt=document.getElementById('strip-text');
+  const spin=strip.querySelector('.mini-spin');
+  txt.textContent='✓ Ready — memory_graph + viz.js loaded';
+  txt.style.color='var(--green)'; spin.style.display='none';
+  strip.style.borderColor='rgba(38,196,138,.18)';
+  strip.style.background='linear-gradient(90deg,rgba(38,196,138,.05),transparent)';
+  setTimeout(()=>strip.classList.add('done'),1600);
+
+  document.getElementById('btn-run').disabled=false;
+  setStatus('','Ready — paste code and press Trace');
+}
+
+function setStrip(msg){
+  document.getElementById('strip-text').textContent=msg;
+}
+
+boot().catch(e=>{
+  document.getElementById('strip-text').textContent='⚠ Boot failed: '+e.message;
+  document.getElementById('strip-text').style.color='var(--red)';
+  console.error(e);
+});
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+let frames=[], cursor=0, prevCursor=-1, sourceLines=[], playTimer=null, playSpeed=600;
+let prevVarNames=[];
+let flashTimer=null, toastTimer=null;
+
+/* ── Pan / Zoom for SVG viewport ── */
+const vp = ()=>document.getElementById('svg-viewport');
+const inner = ()=>document.getElementById('svg-inner');
+let panX=0,panY=0,scale=1,panning=false,psx=0,psy=0,pcx=0,pcy=0;
+
+function applyTransform(){
+  inner().style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+}
+function zoomBy(f){
+  const vw=vp().clientWidth/2, vh=vp().clientHeight/2;
+  panX=vw+(panX-vw)*f; panY=vh+(panY-vh)*f;
+  scale=Math.max(0.1,Math.min(6,scale*f));
+  applyTransform();
+}
+function fitGraph(){
+  const svg=inner().querySelector('svg');
+  if(!svg){panX=20;panY=20;scale=1;applyTransform();return;}
+  const svgW=parseFloat(svg.getAttribute('width'))||svg.viewBox?.baseVal?.width||600;
+  const svgH=parseFloat(svg.getAttribute('height'))||svg.viewBox?.baseVal?.height||400;
+  const vw=vp().clientWidth-40, vh=vp().clientHeight-40;
+  scale=Math.min(vw/svgW, vh/svgH, 1.2);
+  panX=(vp().clientWidth-svgW*scale)/2;
+  panY=20;
+  applyTransform();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const vEl=document.getElementById('svg-viewport');
+  vEl.addEventListener('mousedown',e=>{panning=true;psx=e.clientX;psy=e.clientY;pcx=panX;pcy=panY;});
+  window.addEventListener('mousemove',e=>{if(!panning)return;panX=pcx+(e.clientX-psx);panY=pcy+(e.clientY-psy);applyTransform();});
+  window.addEventListener('mouseup',()=>panning=false);
+  vEl.addEventListener('wheel',e=>{e.preventDefault();zoomBy(e.deltaY<0?1.1:0.91);},{passive:false});
+  vEl.addEventListener('touchstart',e=>{if(e.touches.length===1){panning=true;psx=e.touches[0].clientX;psy=e.touches[0].clientY;pcx=panX;pcy=panY;}},{passive:true});
+  window.addEventListener('touchmove',e=>{if(panning&&e.touches.length===1){panX=pcx+(e.touches[0].clientX-psx);panY=pcy+(e.touches[0].clientY-psy);applyTransform();}},{passive:true});
+  window.addEventListener('touchend',()=>panning=false);
+});
+
+/* ── Editor line nums ── */
+function updateLN(){
+  const lines=document.getElementById('code-editor').value.split('\n');
+  document.getElementById('line-count').textContent=lines.length+' lines';
+  document.getElementById('line-nums').innerHTML=lines.map((_,i)=>`<div class="lnum">${i+1}</div>`).join('');
+}
+document.getElementById('code-editor').addEventListener('input',updateLN);
+document.getElementById('code-editor').addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();const ta=e.target,s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+'    '+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+4;updateLN();}
+});
+updateLN();
+
+/* ══════════════════════════════════════════════════════════════
+   TRACE
+══════════════════════════════════════════════════════════════ */
+document.getElementById('btn-run').addEventListener('click', async()=>{
+  if(!pyodide||!viz) return;
+  const code=document.getElementById('code-editor').value;
+  const btn=document.getElementById('btn-run');
+  btn.disabled=true; setStatus('','⏳ tracing…'); stopPlay();
+
+  let result;
+  try{
+    const js=await pyodide.runPythonAsync(`run_trace(${JSON.stringify(code)})`);
+    result=JSON.parse(js);
+  }catch(e){
+    setStatus('err','⚠ '+e.message); btn.disabled=false; return;
+  }
+  btn.disabled=false;
+  sourceLines=(result.source||'').split('\n');
+
+  if(result.error && !result.frames.length){
+    setStatus('err','⚠ '+result.error);
+    const sb=document.getElementById('step-box');sb.className='step-box err';sb.textContent=result.error;
+    return;
+  }
+
+  frames=result.frames; cursor=0; prevCursor=-1; prevVarNames=[];
+  const cap=result.truncated?' (capped at 500)':'';
+  setStatus('ok',`✓ ${frames.length} steps${cap}`);
+  document.getElementById('footer-info').textContent=`${frames.length} steps · memory_graph + viz.js`;
+
+  document.getElementById('graph-placeholder').classList.add('hidden');
+  renderTraceCode();
+  enableCtrl(true);
+  await renderStep();
+});
+
+function setStatus(cls,msg){const el=document.getElementById('status');el.className=cls;el.textContent=msg;}
+function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderTraceCode(){
+  document.getElementById('trace-code').innerHTML=
+    sourceLines.map((l,i)=>`<div class="tl" id="tl-${i+1}"><span class="tl-ln">${i+1}</span><span class="tl-src">${escH(l)}</span></div>`).join('');
+}
+
+/* ── Controls ── */
+document.getElementById('btn-first').addEventListener('click',()=>seek(0));
+document.getElementById('btn-last').addEventListener('click',()=>seek(frames.length-1));
+document.getElementById('btn-back').addEventListener('click',()=>stepBy(-1));
+document.getElementById('btn-next').addEventListener('click',()=>stepBy(1));
+document.getElementById('btn-play').addEventListener('click',togglePlay);
+function enableCtrl(on){['btn-first','btn-back','btn-play','btn-next','btn-last'].forEach(id=>document.getElementById(id).disabled=!on);}
+function stepBy(d){seek(Math.max(0,Math.min(frames.length-1,cursor+d)));}
+async function seek(n){prevCursor=cursor;cursor=n;await renderStep();if(cursor>=frames.length-1)stopPlay();}
+function togglePlay(){if(playTimer)stopPlay();else startPlay();}
+function startPlay(){
+  if(cursor>=frames.length-1)cursor=0;
+  document.getElementById('btn-play').textContent='⏸';
+  playTimer=setInterval(async()=>{
+    if(cursor>=frames.length-1){stopPlay();return;}
+    await seek(cursor+1);
+  },playSpeed);
+}
+function stopPlay(){if(playTimer){clearInterval(playTimer);playTimer=null;}document.getElementById('btn-play').textContent='▶';}
+function updateSpeed(v){playSpeed=Math.round(1500-v*160);if(playTimer){stopPlay();startPlay();}}
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();stepBy(1);}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();stepBy(-1);}
+  if(e.key===' '){e.preventDefault();togglePlay();}
+  if(e.key==='r'||e.key==='R'){fitGraph();toast('view fit');}
+  if(e.key==='t'||e.key==='T'){document.getElementById('btn-run').click();}
+});
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER STEP — update all UI + render DOT → SVG
+══════════════════════════════════════════════════════════════ */
+async function renderStep(){
+  if(!frames.length) return;
+  const f=frames[cursor];
+
+  // progress bar
+  const pct=frames.length>1?(cursor/(frames.length-1))*100:100;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('step-cur').textContent=cursor+1;
+  document.getElementById('step-tot').textContent=frames.length;
+  document.getElementById('btn-back').disabled=cursor<=0;
+  document.getElementById('btn-next').disabled=cursor>=frames.length-1;
+  document.getElementById('btn-first').disabled=cursor<=0;
+  document.getElementById('btn-last').disabled=cursor>=frames.length-1;
+
+  // highlight active code line
+  document.querySelectorAll('.tl').forEach(el=>el.classList.remove('active','executed'));
+  for(let ln=1;ln<f.line;ln++){const el=document.getElementById('tl-'+ln);if(el)el.classList.add('executed');}
+  const ae=document.getElementById('tl-'+f.line);
+  if(ae){ae.classList.add('active');ae.scrollIntoView({block:'nearest',behavior:'smooth'});}
+
+  // step info box
+  const sb=document.getElementById('step-box');
+  sb.className='step-box';
+  const newVars=(f.var_names||[]).filter(v=>!prevVarNames.includes(v));
+  const newBit=newVars.length?` <span style="color:var(--green);font-size:10px;">+${newVars.join(', ')}</span>`:'';
+  sb.innerHTML=`<span style="color:var(--amber)">${f.func}()</span> <span style="color:var(--txt3)">line</span> <span style="color:var(--txt)">${f.line}</span>${newBit}`;
+  prevVarNames=f.var_names||[];
+
+  // stdout
+  const outEl=document.getElementById('stdout-box');
+  if(f.stdout_so_far){
+    outEl.textContent=f.stdout_so_far;
+    outEl.scrollTop=outEl.scrollHeight;
+  } else {
+    outEl.innerHTML='<span style="color:var(--txt3);font-style:italic;">no output yet</span>';
+  }
+
+  // canvas info badges
+  updateBadges(f);
+
+  // flash new variables
+  if(newVars.length) flash('new: '+newVars.join(', '));
+
+  // render DOT → SVG
+  await renderDot(f.dot);
+}
+
+/* ── Render DOT string to SVG via viz.js ── */
+async function renderDot(dot){
+  if(!viz||!dot) return;
+  try{
+    // Inject dark-mode style into the DOT before rendering
+    const styledDot = injectDotStyle(dot);
+    const svgStr=viz.renderString(styledDot, {format:'svg', engine:'dot'});
+    const svgInner=document.getElementById('svg-inner');
+    svgInner.innerHTML=svgStr;
+
+    // Post-process SVG: remove white background rect, fix fonts
+    postprocessSVG(svgInner.querySelector('svg'));
+
+    // Auto-fit on first render
+    if(cursor===0) fitGraph();
+  }catch(e){
+    console.error('viz.js render error',e);
+    document.getElementById('svg-inner').innerHTML=
+      `<div style="color:var(--red);font-family:var(--mono);font-size:11px;padding:20px;">DOT render error: ${e.message}</div>`;
+  }
+}
+
+/* ── Inject dark theme into DOT source ── */
+function injectDotStyle(dot){
+  // memory_graph produces a digraph with cluster_ subgraphs for frames
+  // We patch global graph attrs and node/edge defaults
+  const darkAttrs=`
+  graph [bgcolor="#07090c" fontname="JetBrains Mono" fontcolor="#c9d1e8" pad="0.4" ranksep="0.7" nodesep="0.5"];
+  node  [fontname="JetBrains Mono" fontsize="10" fontcolor="#c9d1e8" color="#243048" fillcolor="#181e2a" style="filled,rounded" shape="record" margin="0.12,0.06"];
+  edge  [fontname="JetBrains Mono" fontsize="9" color="#5ba3f5" arrowsize="0.7" fontcolor="#5d6b85"];
+`;
+  // Insert after opening brace of the top-level digraph
+  return dot.replace(/^(digraph\s+\w*\s*\{)/, '$1\n'+darkAttrs);
+}
+
+/* ── Post-process SVG for full dark mode ── */
+function postprocessSVG(svg){
+  if(!svg) return;
+  // Remove the white background polygon (first polygon in the graph element)
+  const polys=svg.querySelectorAll('g.graph > polygon');
+  polys.forEach(p=>p.remove());
+  // Remove explicit white/lightgrey fills
+  svg.querySelectorAll('[fill="white"],[fill="#ffffff"],[fill="lightgrey"],[fill="WhiteSmoke"]').forEach(el=>{
+    el.setAttribute('fill','#181e2a');
+  });
+  // Fix cluster subgraph label styling
+  svg.querySelectorAll('g[id^="cluster_"] text, .cluster text').forEach(t=>{
+    t.setAttribute('fill','#f0a500');
+  });
+  // Style edge arrows
+  svg.querySelectorAll('.edge polygon').forEach(p=>{
+    p.setAttribute('fill','#5ba3f5');
+    p.setAttribute('stroke','#5ba3f5');
+  });
+  // Remove explicit black strokes on nodes
+  svg.querySelectorAll('.node polygon,.node ellipse,.node rect').forEach(el=>{
+    if(el.getAttribute('stroke')==='black') el.setAttribute('stroke','#243048');
+    if(el.getAttribute('fill')==='none'||el.getAttribute('fill')==='white')
+      el.setAttribute('fill','#181e2a');
+  });
+}
+
+/* ── Canvas info badges ── */
+function updateBadges(f){
+  const ci=document.getElementById('graph-info');
+  const vars=f.var_names||[];
+  const isInFn=f.func&&f.func!=='<module>';
+  ci.innerHTML=`
+    <span class="ci-badge ${isInFn?'hi':''}">${isInFn?'fn: '+f.func:'module'}</span>
+    <span class="ci-badge">${vars.length} var${vars.length!==1?'s':''}</span>
+    <span class="ci-badge ${cursor===frames.length-1?'green':''}">step ${cursor+1}/${frames.length}</span>
+  `;
+}
+
+/* ── Flash label ── */
+function flash(msg){
+  const el=document.getElementById('flash-label');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>el.classList.remove('show'),1800);
+}
+
+/* ── Toast ── */
+function toast(msg,dur=1500){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SAMPLE SNIPPETS
+══════════════════════════════════════════════════════════════ */
+const SNIPPETS={
+  twosum:`def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []
+
+result = two_sum([2, 7, 11, 15], 9)
+print(result)`,
+
+  fib:`def fib(n):
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(n - 1):
+        a, b = b, a + b
+    return b
+
+print(fib(7))`,
+
+  bubble:`def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n):
+        for j in range(n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr
+
+nums = [64, 34, 25, 12]
+result = bubble_sort(nums)
+print(result)`,
+
+  linked:`class Node:
+    def __init__(self, val):
+        self.val = val
+        self.next = None
+
+head = Node(1)
+head.next = Node(2)
+head.next.next = Node(3)
+
+cur = head
+vals = []
+while cur:
+    vals.append(cur.val)
+    cur = cur.next
+print(vals)`,
+
+  stack:`class Stack:
+    def __init__(self):
+        self.items = []
+    def push(self, x):
+        self.items.append(x)
+    def pop(self):
+        return self.items.pop()
+
+s = Stack()
+s.push(10)
+s.push(20)
+top = s.pop()
+print(top)`,
+
+  shallow:`import copy
+
+a = [[1, 2], [3, 4]]
+b = a            # alias
+c = a.copy()     # shallow copy
+d = copy.deepcopy(a)  # deep copy
+
+a[0].append(99)
+print(a, b, c, d)`,
+
+  tree:`class Node:
+    def __init__(self, val):
+        self.val = val
+        self.left = None
+        self.right = None
+
+root = Node(1)
+root.left = Node(2)
+root.right = Node(3)
+root.left.left = Node(4)
+
+def inorder(node):
+    if not node:
+        return []
+    return inorder(node.left) + [node.val] + inorder(node.right)
+
+print(inorder(root))`
+};
+
+document.getElementById('snippet-picker').addEventListener('change',function(){
+  const key=this.value; if(!key) return;
+  document.getElementById('code-editor').value=SNIPPETS[key]||'';
+  updateLN(); toast('loaded: '+key); this.value='';
+});
+</script>
+</body>
+</html>

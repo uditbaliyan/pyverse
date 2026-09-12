@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/**
+  * A catch-all path to Django template files, JavaScript, and Python files
+  * that contain Tailwind CSS classes and will be scanned by Tailwind to generate the final CSS file.
+  *
+  * If your final CSS file is not being updated after code changes, you may want to broaden or narrow
+  * the scope of this path.
+  */
+@source "../../../**/*.{html,py,js}";
+
+@theme {
+  --color-bg: #eae1c8;
+  --color-bg-2: #e2d8bc;
+  --color-ink: #1b1712;
+  --color-screen: #8c9873;
+  --color-screen-dk: #6e7a5a;
+  --color-red: #b23a2e;
+  --color-device: #ddd4b4;
+  --color-device-edge: #b9af8e;
+  --color-muted: #5b5645;
+  --color-body-txt: #3a342a;
+  --color-s1: #c0392b;
+  --color-s2: #e08a3c;
+  --color-s3: #e8c547;
+  --color-s4: #7a9b5c;
+  --color-s5: #4a8b7c;
+  --color-s6: #3d6b8c;
+
+  --font-black: "Archivo Black", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: Inter, sans-serif;
+
+  --shadow-device: 8px 8px 0 #b9af8e;
+  --shadow-card: 6px 6px 0 #b9af8e;
+  --shadow-card-h: 9px 9px 0 #b23a2e;
+}

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYVERSE // core_v2 — See The Machine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F4F1;
+    --ink:#0A0A0A;
+    --signal:#FACC15;
+    --volt:#3B5BFF;
+    --fault:#FF4B3E;
+    --wire:#1F1F1F;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+    background-image:
+      linear-gradient(var(--ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+    background-size:64px 64px;
+    background-position:-1px -1px;
+    background-attachment:fixed;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .hard{box-shadow:8px 8px 0 0 rgba(10,10,10,1);}
+  .hard-sm{box-shadow:4px 4px 0 0 rgba(10,10,10,1);}
+  .hard-xl{box-shadow:14px 14px 0 0 rgba(10,10,10,1);}
+  .press:active{transform:translate(4px,4px); box-shadow:0 0 0 0 rgba(10,10,10,1);}
+  .tight{letter-spacing:-0.04em;}
+  .marquee-track{display:flex; width:max-content; animation:scroll 28s linear infinite;}
+  @keyframes scroll{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+  @keyframes dash { to { stroke-dashoffset: -16; } }
+  .dashmove{ stroke-dasharray:6 6; animation: dash 0.6s linear infinite; }
+  @keyframes blink{ 50%{opacity:0;} }
+  .cursor-blink{ animation: blink 1s step-end infinite; }
+  @keyframes glitch{
+    0%,100%{ clip-path:inset(0 0 0 0); transform:translate(0,0); }
+    20%{ clip-path:inset(10% 0 60% 0); transform:translate(-3px,2px); }
+    40%{ clip-path:inset(60% 0 5% 0); transform:translate(3px,-2px); }
+    60%{ clip-path:inset(30% 0 40% 0); transform:translate(-2px,0); }
+    80%{ clip-path:inset(0 0 80% 0); transform:translate(2px,1px); }
+  }
+  .glitch-layer{ position:absolute; inset:0; }
+  .glitch:hover .glitch-layer.r{ animation:glitch 0.35s steps(2,end) infinite; color:var(--fault); }
+  .glitch:hover .glitch-layer.b{ animation:glitch 0.4s steps(2,end) infinite reverse; color:var(--volt); }
+  ::selection{ background:var(--signal); color:var(--ink); }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+  .scanline::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(10,10,10,0.05) 0px, rgba(10,10,10,0.05) 1px, transparent 1px, transparent 3px);
+  }
+</style>
+</head>
+<body class="min-h-screen" x-data="{ activeModule:'viz', mobileNav:false }">
+
+<!-- STATUS TICKER -->
+<div class="bg-[var(--ink)] text-[var(--paper)] mono text-[11px] overflow-hidden border-b-4 border-black whitespace-nowrap">
+  <div class="marquee-track py-1.5">
+    <span class="px-6">◆ 0% SERVER STORAGE</span>
+    <span class="px-6 text-[var(--signal)]">◆ RUNTIME: PYODIDE / PYSCRIPT WASM</span>
+    <span class="px-6">◆ MEMORY IS NOT MAGIC</span>
+    <span class="px-6 text-[var(--signal)]">◆ 8 MODULES ONLINE</span>
+    <span class="px-6">◆ 0% SERVER STORAGE</span>
+    <span class="px-6 text-[var(--signal)]">◆ RUNTIME: PYODIDE / PYSCRIPT WASM</span>
+    <span class="px-6">◆ MEMORY IS NOT MAGIC</span>
+    <span class="px-6 text-[var(--signal)]">◆ 8 MODULES ONLINE</span>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="sticky top-0 z-40 border-b-4 border-black bg-[var(--paper)]/95 backdrop-blur">
+  <div class="max-w-[1400px] mx-auto px-5 md:px-8 py-4 flex justify-between items-center">
+    <a href="#top" class="flex items-center gap-3">
+      <span class="w-4 h-4 bg-black inline-block"></span>
+      <span class="mono font-bold tracking-tight text-lg md:text-xl">PYVERSE <span class="text-[var(--signal)] bg-black px-1">// core_v2</span></span>
+    </a>
+    <nav class="hidden md:flex items-center gap-6 mono text-xs uppercase tracking-wider">
+      <a href="#modules" class="hover:text-[var(--volt)]">Modules</a>
+      <a href="#dashboard" class="hover:text-[var(--volt)]">Sandbox</a>
+      <a href="#manifesto" class="hover:text-[var(--volt)]">Manifesto</a>
+      <a href="#" class="bg-black text-[var(--paper)] px-3 py-2 hard-sm hover:bg-[var(--volt)] transition-colors">Enter_</a>
+    </nav>
+    <button @click="mobileNav = !mobileNav" class="md:hidden border-2 border-black w-9 h-9 flex items-center justify-center mono">≡</button>
+  </div>
+  <div x-show="mobileNav" x-cloak class="md:hidden border-t-4 border-black mono text-sm uppercase">
+    <a href="#modules" class="block px-5 py-3 border-b-2 border-black">Modules</a>
+    <a href="#dashboard" class="block px-5 py-3 border-b-2 border-black">Sandbox</a>
+    <a href="#manifesto" class="block px-5 py-3">Manifesto</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="top" class="max-w-[1400px] mx-auto px-5 md:px-8 pt-10 md:pt-16 pb-10">
+  <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8 items-stretch">
+
+    <div class="border-4 border-black bg-white hard-xl p-6 md:p-10 relative overflow-hidden scanline">
+      <span class="mono text-[11px] tracking-widest text-stone-500">[ THE DIGITAL CURTAIN, REMOVED ]</span>
+      <h1 class="glitch relative mt-3 font-bold tight leading-[0.85] text-[13vw] md:text-[6.4vw] lg:text-[5.4rem] uppercase inline-block">
+        <span class="relative z-10">SEE THE<br>MACHINE.</span>
+        <span aria-hidden="true" class="glitch-layer r absolute top-0 left-0 z-0">SEE THE<br>MACHINE.</span>
+        <span aria-hidden="true" class="glitch-layer b absolute top-0 left-0 z-0">SEE THE<br>MACHINE.</span>
+      </h1>
+      <p class="mono text-sm md:text-base mt-6 max-w-xl leading-relaxed">
+        Every loop allocates. Every object has an address. Every stack frame dies on schedule.
+        Corporate courseware hides this behind soft gradients. PyVerse doesn't.
+        <span class="bg-[var(--signal)] px-1">Nine sandboxed tools</span>, one browser tab, zero server round-trips.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-4">
+        <a href="#dashboard" class="press bg-black text-[var(--paper)] mono uppercase text-sm font-bold px-6 py-4 hard-sm hover:bg-[var(--volt)] transition-colors">Open Sandbox →</a>
+        <a href="#modules" class="press bg-white border-4 border-black mono uppercase text-sm font-bold px-6 py-4 hard-sm hover:bg-[var(--signal)] transition-colors">Inspect Modules</a>
+      </div>
+      <div class="mt-8 flex flex-wrap gap-x-8 gap-y-2 mono text-xs text-stone-600 border-t-2 border-dashed border-black pt-4">
+        <span>NO ACCOUNT REQUIRED</span>
+        <span>NO TELEMETRY</span>
+        <span>RUNS OFFLINE AFTER LOAD</span>
+      </div>
+    </div>
+
+    <!-- SIGNATURE: LIVE MEMORY STACK -->
+    <div class="border-4 border-black bg-[var(--ink)] text-[var(--paper)] hard-xl p-5 md:p-6 flex flex-col"
+         x-data="{
+            step:0,
+            frames:[
+              {label:'globals()', vars:[{n:'x',v:'7'}]},
+              {label:'globals()', vars:[{n:'x',v:'7'},{n:'box',v:'→ #A3F1'}]},
+              {label:'inc(box)', vars:[{n:'box',v:'→ #A3F1'},{n:'n',v:'7'}]},
+              {label:'inc(box) [returns]', vars:[{n:'n',v:'8'}]},
+            ],
+            tick(){ this.step = (this.step + 1) % this.frames.length; }
+         }" x-init="setInterval(() => tick(), 1600)">
+      <div class="flex justify-between items-center mono text-[11px] uppercase tracking-widest border-b-2 border-[var(--paper)]/30 pb-3">
+        <span>[ CALL STACK :: LIVE ]</span>
+        <span class="flex items-center gap-2"><span class="w-2 h-2 bg-[var(--signal)] inline-block animate-pulse"></span>tracing</span>
+      </div>
+
+      <div class="flex-1 mt-4 flex flex-col justify-center gap-3 min-h-[220px]">
+        <template x-for="(f, i) in frames" :key="i">
+          <div class="border-2 mono text-xs px-3 py-2.5 transition-all duration-300"
+               :class="i === step ? 'border-[var(--signal)] bg-[var(--signal)]/10 translate-x-1' : 'border-[var(--paper)]/25 opacity-60'">
+            <div class="flex justify-between">
+              <span class="font-bold" x-text="f.label"></span>
+              <span class="text-[var(--signal)]" x-show="i === step">◀ ACTIVE</span>
+            </div>
+            <div class="mt-1.5 flex flex-wrap gap-2">
+              <template x-for="v in f.vars" :key="v.n">
+                <span class="border border-[var(--paper)]/30 px-1.5 py-0.5"><span x-text="v.n"></span>: <span class="text-[var(--signal)]" x-text="v.v"></span></span>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="mono text-[10px] mt-4 border-t-2 border-[var(--paper)]/30 pt-3 text-[var(--paper)]/60">
+        <span class="cursor-blink">▍</span> heap object #A3F1 is a reference, not a copy. this is the part textbooks skip.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- MANIFESTO STRIP -->
+<section id="manifesto" class="border-y-4 border-black bg-black text-[var(--paper)] py-14">
+  <div class="max-w-[1400px] mx-auto px-5 md:px-8 grid md:grid-cols-3 gap-8">
+    <div>
+      <span class="mono text-[var(--signal)] text-xs">A.</span>
+      <h3 class="font-bold text-2xl tight mt-2 uppercase">No coddling.</h3>
+      <p class="mono text-xs text-stone-400 mt-3 leading-relaxed">No rounded buttons pretending the interpreter is friendly. Hard edges, hard borders. The interface matches the determinism of the code it teaches.</p>
+    </div>
+    <div>
+      <span class="mono text-[var(--signal)] text-xs">B.</span>
+      <h3 class="font-bold text-2xl tight mt-2 uppercase">No server.</h3>
+      <p class="mono text-xs text-stone-400 mt-3 leading-relaxed">Pyodide and PyScript compile Python to WebAssembly in your tab. Your code, your mistakes, your machine. Nothing you type ever leaves the browser.</p>
+    </div>
+    <div>
+      <span class="mono text-[var(--signal)] text-xs">C.</span>
+      <h3 class="font-bold text-2xl tight mt-2 uppercase">No abstraction theater.</h3>
+      <p class="mono text-xs text-stone-400 mt-3 leading-relaxed">Pointers are drawn as pointers. Stack frames are drawn as frames. If the machine does something, the screen shows that exact thing happening.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MODULE GRID -->
+<section id="modules" class="max-w-[1400px] mx-auto px-5 md:px-8 py-16">
+  <div class="flex items-end justify-between border-b-4 border-black pb-4 mb-10 flex-wrap gap-3">
+    <h2 class="font-bold tight uppercase text-4xl md:text-5xl">The Inventory</h2>
+    <span class="mono text-xs uppercase text-stone-500">9 fragments, unified under one grid</span>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+    <!-- card template repeated manually for full control -->
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 01</span><span>syntax</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">PyMonkey</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Character-level syntax velocity trainer. Correct keystrokes stamp harsh yellow fills; errors strike through in heavy black. No default caret — you watch the cursor as a mechanical stylus.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: KEYSTROKE</span><span>OUTPUT: WPM/ACC</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 02</span><span>memory</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">PyVisualizer</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Pyodide-driven local trace and memory visualizer. No floating smooth-canvas networks — objects are stark rectangles, pointers are hard 90° paths. Exactly what the interpreter is holding, drawn exactly.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: SOURCE</span><span>OUTPUT: HEAP MAP</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 03</span><span>grading</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">LeetWasm</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Browser-isolated sandboxed coding lab. Dual-trace oscilloscope layout — editor left, raw client-side assertion stream right. Nothing you submit touches a grading server.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: CODE</span><span>OUTPUT: ASSERTIONS</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 04</span><span>deduction</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">Black Box Challenge</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Functional input → output deduction grid. Inputs slide from the left; expected outputs are stamped in bold black ink on the right. You reconstruct the function nobody showed you.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: I/O PAIRS</span><span>OUTPUT: HYPOTHESIS</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 05</span><span>debugging</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">Code Time Bomb</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Time-decay debugging and code archaeology. A live countdown clock flashes aggressive yellow warning blocks as your window to fix the fault shrinks to zero.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: BROKEN SRC</span><span>OUTPUT: PATCH</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 06</span><span>retention</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">Structural Logic Set</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Parsons problems, schema matcher, trace tables, memory recall. Asymmetric tokens clip into hard-bordered slots with loud mechanical feedback on every correct placement.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: TOKENS</span><span>OUTPUT: SEQUENCE</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 07</span><span>recall</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">PyCortex</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">Monospace active recall system. No smooth 3D card spins — front-to-back is an instant binary swap. The concept is either known or it isn't; the UI doesn't soften that.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: RECALL</span><span>OUTPUT: RETENTION %</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-white hard p-6 flex flex-col hover:bg-[var(--signal)]/15 transition-colors">
+      <div class="flex justify-between items-start mono text-[10px] uppercase text-stone-500"><span>MOD // 08</span><span>routing</span></div>
+      <h3 class="font-bold text-xl mt-3 uppercase tight">The Marketing Shell</h3>
+      <p class="mono text-xs mt-2 text-stone-700 leading-relaxed flex-1">The master layout controller. Glues eight independent prototypes into one Django-templated, Alpine-driven application router — this exact page is its output.</p>
+      <div class="mt-4 border-t-2 border-dashed border-black pt-3 mono text-[10px] flex justify-between"><span>INPUT: MODULES</span><span>OUTPUT: ONE APP</span></div>
+    </article>
+
+    <article class="border-4 border-black bg-[var(--ink)] text-[var(--paper)] hard p-6 flex flex-col justify-between">
+      <div>
+        <span class="mono text-[10px] uppercase text-[var(--signal)]">MOD // 09</span>
+        <h3 class="font-bold text-xl mt-3 uppercase tight">Your Module Here</h3>
+        <p class="mono text-xs mt-2 text-stone-400 leading-relaxed">The inventory isn't closed. Every fragment above started as one HTML file with inconsistent styling before it was forced into this grid.</p>
+      </div>
+      <a href="#dashboard" class="mt-4 mono text-xs uppercase border-2 border-[var(--paper)] px-3 py-2 text-center hover:bg-[var(--signal)] hover:text-black hover:border-black transition-colors">See it run →</a>
+    </article>
+
+  </div>
+</section>
+
+<!-- INTERACTIVE DASHBOARD -->
+<section id="dashboard" class="max-w-[1400px] mx-auto px-5 md:px-8 pb-20">
+  <div class="border-b-4 border-black pb-4 mb-8 flex items-end justify-between flex-wrap gap-3">
+    <h2 class="font-bold tight uppercase text-4xl md:text-5xl">Run It</h2>
+    <span class="mono text-xs uppercase text-stone-500">[ ENV: CLIENT_SIDE_WASM_SANDBOX ]</span>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 items-start">
+
+    <nav class="border-4 border-black bg-white p-5 hard xl:sticky xl:top-24">
+      <h3 class="mono uppercase text-xs tracking-widest border-b-2 border-black pb-2 mb-4">Module Select</h3>
+      <ul class="space-y-2 mono text-xs uppercase">
+        <template x-for="m in [
+            {id:'viz', label:'PyVisualizer'},
+            {id:'wasm', label:'LeetWasm Lab'},
+            {id:'bomb', label:'Code Time Bomb'},
+            {id:'monkey', label:'PyMonkey Syntax'},
+          ]" :key="m.id">
+          <li>
+            <button @click="activeModule = m.id"
+                    class="w-full text-left border-2 border-black px-3 py-2.5 transition-all hard-sm hover:-translate-x-0.5 hover:-translate-y-0.5"
+                    :class="activeModule === m.id ? 'bg-[var(--signal)] font-bold' : 'bg-white hover:bg-[var(--signal)]/30'">
+              <span x-text="m.label"></span>
+            </button>
+          </li>
+        </template>
+      </ul>
+      <div class="mt-6 border-t-2 border-dashed border-black pt-4 mono text-[10px] text-stone-500 leading-relaxed">
+        Switching modules updates one Alpine pointer. No page reload, no route change, no server round-trip.
+      </div>
+    </nav>
+
+    <div class="border-4 border-black bg-white hard-xl p-6 md:p-8 min-h-[420px]">
+
+      <!-- PyVisualizer panel -->
+      <div x-show="activeModule === 'viz'" x-cloak>
+        <div class="border-2 border-dashed border-black p-3 mb-6 mono text-[10px] uppercase text-stone-500">[ Active Sandbox Context: PyVisualizer Engine ]</div>
+        <div x-data="{running:false, output:'', code:'box = [1, 2]\\nref = box\\nref.append(3)\\nprint(box)'}" class="grid md:grid-cols-2 gap-6">
+          <div>
+            <div class="mono text-[10px] uppercase text-stone-500 mb-2">source.py</div>
+            <pre class="border-2 border-black bg-[#F4F4F1] p-4 mono text-xs whitespace-pre-wrap leading-relaxed" x-text="code"></pre>
+            <button @click="running=true; output=''; setTimeout(() => { running=false; output='[1, 2, 3]  ← same list, two names'; }, 1200)"
+                    class="press mt-4 w-full bg-black text-[var(--paper)] mono uppercase text-xs font-bold py-3 hard-sm hover:bg-[var(--volt)] transition-colors">
+              <span x-show="!running">▶ Trace Execution</span>
+              <span x-show="running">Walking references...</span>
+            </button>
+          </div>
+          <div>
+            <div class="mono text-[10px] uppercase text-stone-500 mb-2">heap</div>
+            <svg viewBox="0 0 260 160" class="w-full border-2 border-black bg-[var(--ink)]">
+              <rect x="20" y="20" width="70" height="26" fill="none" stroke="#F4F4F1" stroke-width="2"/>
+              <text x="55" y="37" fill="#F4F4F1" font-size="10" text-anchor="middle" font-family="JetBrains Mono">box</text>
+              <rect x="20" y="60" width="70" height="26" fill="none" stroke="#F4F4F1" stroke-width="2"/>
+              <text x="55" y="77" fill="#F4F4F1" font-size="10" text-anchor="middle" font-family="JetBrains Mono">ref</text>
+              <path d="M 90 33 L 170 70" stroke="#FACC15" stroke-width="2" fill="none" :class="running && 'dashmove'"/>
+              <path d="M 90 73 L 170 70" stroke="#FACC15" stroke-width="2" fill="none" :class="running && 'dashmove'"/>
+              <rect x="170" y="50" width="70" height="40" fill="none" stroke="#FACC15" stroke-width="2"/>
+              <text x="205" y="65" fill="#FACC15" font-size="9" text-anchor="middle" font-family="JetBrains Mono">list@A3F1</text>
+              <text x="205" y="80" fill="#F4F4F1" font-size="9" text-anchor="middle" font-family="JetBrains Mono" x-text="running ? '[1,2,3]' : '[1,2]'"></text>
+            </svg>
+            <div class="mono text-[10px] mt-2 min-h-[16px] text-stone-600" x-text="output"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LeetWasm panel -->
+      <div x-show="activeModule === 'wasm'" x-cloak
+           x-data="{ compiling:false, gradingComplete:false, assertionsPassed:0 }">
+        <div class="border-2 border-dashed border-black p-3 mb-6 mono text-[10px] uppercase text-stone-500">[ Active Sandbox Context: LeetWasm Grader ]</div>
+        <div class="border-4 border-black p-6 bg-white hard-sm max-w-md mx-auto">
+          <div class="flex justify-between items-center mb-4 border-b-2 border-black pb-2">
+            <span class="font-bold mono text-xs uppercase">[ WASM RUNTIME INTERACTION ]</span>
+            <span class="w-3 h-3 border border-black inline-block" :class="compiling ? 'bg-[var(--signal)] animate-ping' : 'bg-[var(--fault)]'"></span>
+          </div>
+          <svg class="w-full h-32 bg-[#F4F4F1] border-2 border-black p-2 mb-4" viewBox="0 0 200 80">
+            <rect x="10" y="20" width="40" height="40" fill="none" stroke="black" stroke-width="2"/>
+            <line x1="15" y1="30" x2="35" y2="30" stroke="black" stroke-width="2"/>
+            <line x1="15" y1="40" x2="45" y2="40" stroke="black" stroke-width="2"/>
+            <g stroke="black" stroke-width="2" fill="none">
+              <path d="M 70 40 L 130 40" :class="compiling && 'dashmove'" :stroke="compiling ? '#FACC15' : 'black'" stroke-width="3"/>
+            </g>
+            <rect x="150" y="20" width="40" height="40" fill="none" stroke="black" stroke-width="2" :fill="gradingComplete ? '#FACC15' : 'none'"/>
+            <path d="M 160 40 L 170 50 L 185 30" fill="none" stroke="black" stroke-width="3" x-show="gradingComplete" style="display:none"/>
+          </svg>
+          <button @click="compiling=true; gradingComplete=false; setTimeout(() => { compiling=false; gradingComplete=true; assertionsPassed=8; }, 2200)"
+                  class="press w-full bg-black hover:bg-[var(--signal)] text-[var(--paper)] hover:text-black mono font-bold py-3 uppercase border-2 border-black hard-sm transition-all">
+            <span x-show="!compiling && !gradingComplete">Execute Code (Ctrl + Enter)</span>
+            <span x-show="compiling" class="tracking-widest">Parsing Local AST Structures...</span>
+            <span x-show="gradingComplete" x-text="'All ' + assertionsPassed + ' Assertions Passed OK.'"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Code Time Bomb panel -->
+      <div x-show="activeModule === 'bomb'" x-cloak
+           x-data="{ seconds:30, armed:false, iv:null,
+                     start(){ this.armed=true; this.seconds=30; clearInterval(this.iv); this.iv=setInterval(() => { if(this.seconds>0) this.seconds--; else { clearInterval(this.iv); this.armed=false; } }, 1000); } }">
+        <div class="border-2 border-dashed border-black p-3 mb-6 mono text-[10px] uppercase text-stone-500">[ Active Sandbox Context: Code Time Bomb ]</div>
+        <div class="grid md:grid-cols-[1fr_140px] gap-6 items-start max-w-2xl mx-auto">
+          <pre class="border-2 border-black bg-[#F4F4F1] p-4 mono text-xs leading-relaxed whitespace-pre-wrap">def total(items):
+    result = 0
+    for i in range(len(items)):
+        result = items[i]  # ← bug: overwrites, never adds
+    return result</pre>
+          <div class="border-4 border-black p-4 text-center hard-sm" :class="seconds <= 10 && armed ? 'bg-[var(--fault)] text-white animate-pulse' : 'bg-[var(--signal)]'">
+            <div class="mono text-[10px] uppercase">time left</div>
+            <div class="mono font-bold text-3xl" x-text="String(seconds).padStart(2,'0') + 's'"></div>
+          </div>
+        </div>
+        <button @click="start()" class="press mt-6 mx-auto block bg-black text-[var(--paper)] mono uppercase text-xs font-bold px-6 py-3 hard-sm hover:bg-[var(--volt)]">Arm Countdown</button>
+      </div>
+
+      <!-- PyMonkey panel -->
+      <div x-show="activeModule === 'monkey'" x-cloak
+           x-data="{ target:'result = sorted(data, reverse=True)', typed:'',
+                     handle(e){ const val = e.target.value; if(this.target.startsWith(val)){ this.typed = val; } } }">
+        <div class="border-2 border-dashed border-black p-3 mb-6 mono text-[10px] uppercase text-stone-500">[ Active Sandbox Context: PyMonkey Trainer ]</div>
+        <div class="max-w-2xl mx-auto">
+          <div class="mono text-base md:text-lg tracking-wide border-2 border-black p-5 bg-[#F4F4F1] select-none">
+            <template x-for="(ch,i) in target.split('')" :key="i">
+              <span :class="i < typed.length ? 'bg-[var(--signal)]' : ''" x-text="ch"></span>
+            </template>
+          </div>
+          <input type="text" @input="handle($event)" placeholder="type the line above, verbatim..."
+                 class="mt-4 w-full border-2 border-black px-4 py-3 mono text-sm focus:outline-none focus:ring-4 focus:ring-[var(--volt)]">
+          <div class="mono text-xs mt-2 text-stone-500" x-text="typed.length + ' / ' + target.length + ' characters matched'"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t-4 border-black bg-black text-[var(--paper)] mt-4">
+  <div class="max-w-[1400px] mx-auto px-5 md:px-8 py-12 grid md:grid-cols-4 gap-8">
+    <div class="md:col-span-2">
+      <span class="mono font-bold text-lg">PYVERSE <span class="text-[var(--signal)] bg-white/10 px-1">// core_v2</span></span>
+      <p class="mono text-xs text-stone-400 mt-4 max-w-md leading-relaxed">A single-canvas consolidation of nine standalone teaching prototypes into one Django-templated, Tailwind + Alpine + client-side Wasm learning environment.</p>
+    </div>
+    <div>
+      <div class="mono text-xs uppercase text-stone-500 mb-3">System</div>
+      <ul class="mono text-xs space-y-2 text-stone-300">
+        <li>Runtime: Pyodide / PyScript</li>
+        <li>Storage: none (local only)</li>
+        <li>Server: template fragments only</li>
+      </ul>
+    </div>
+    <div>
+      <div class="mono text-xs uppercase text-stone-500 mb-3">Status</div>
+      <ul class="mono text-xs space-y-2 text-stone-300">
+        <li><span class="text-[var(--signal)]">●</span> All 9 modules online</li>
+        <li><span class="text-[var(--signal)]">●</span> WASM sandbox healthy</li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t-2 border-white/20 py-4 text-center mono text-[10px] text-stone-500 uppercase tracking-widest">
+    Built for the developer who wants to see the machine, not trust it.
+  </div>
+</footer>
+
+</body>
+</html>

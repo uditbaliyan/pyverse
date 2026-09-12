@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYVERSE MODULAR — Signal Chain for Python</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --panel:#1C1A17;
+    --panel2:#242019;
+    --wood:#4A3324;
+    --wood-dark:#301F14;
+    --brass:#C9A227;
+    --cream:#EDE3D0;
+    --led-green:#39FF88;
+    --led-amber:#FFB020;
+    --led-red:#FF4757;
+    --cable-a:#E3452E;
+    --cable-b:#3E8EDE;
+    --cable-c:#F2C14E;
+    --cable-d:#39FF88;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--wood-dark);
+    color:var(--cream);
+    font-family:'IBM Plex Mono',monospace;
+    background-image: radial-gradient(circle at 20% 10%, rgba(255,255,255,0.03), transparent 40%), repeating-linear-gradient(115deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 2px, transparent 2px, transparent 6px);
+  }
+  .display{ font-family:'Big Shoulders Display',sans-serif; font-weight:800; letter-spacing:-0.01em; }
+  ::selection{ background:var(--brass); color:#1C1A17; }
+  .panel{ background:var(--panel); border:1px solid rgba(255,255,255,0.06); }
+  .rack-shadow{ box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 30px rgba(0,0,0,0.5); }
+  .screw{ width:9px; height:9px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #d8d8d8, #6a6a6a 60%, #333 100%); position:relative; transition:transform .5s ease; }
+  .screw::after{ content:""; position:absolute; inset:0; margin:auto; width:7px; height:1.4px; background:#2a2a2a; top:50%; transform:translateY(-50%) rotate(35deg); }
+  .group:hover .screw{ transform:rotate(140deg); }
+  .led{ width:9px; height:9px; border-radius:50%; background:#3a3a3a; box-shadow: inset 0 0 2px rgba(0,0,0,0.6); transition: all .3s; }
+  .led.on-green{ background:var(--led-green); box-shadow:0 0 8px 2px var(--led-green), inset 0 0 2px rgba(0,0,0,0.3); }
+  .led.on-amber{ background:var(--led-amber); box-shadow:0 0 8px 2px var(--led-amber), inset 0 0 2px rgba(0,0,0,0.3); }
+  .led.on-red{ background:var(--led-red); box-shadow:0 0 8px 2px var(--led-red), inset 0 0 2px rgba(0,0,0,0.3); }
+  .knob{ width:44px; height:44px; border-radius:50%; background: conic-gradient(from 220deg, #3d3a34, #17150f 60%, #3d3a34); border:2px solid #0d0c0a; box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.15); position:relative; cursor:grab; }
+  .knob::after{ content:""; position:absolute; top:4px; left:50%; width:2px; height:14px; background:var(--brass); transform-origin:bottom center; transform: translateX(-50%) rotate(var(--rot,0deg)); }
+  .jack{ width:26px; height:26px; border-radius:50%; background:#0e0d0b; border:3px solid #4a4436; display:flex; align-items:center; justify-content:center; transition: all .2s; }
+  .jack:hover, .jack.active{ border-color: var(--brass); box-shadow:0 0 10px 2px rgba(201,162,39,0.5); }
+  .jack::after{ content:""; width:8px; height:8px; border-radius:50%; background:#000; }
+  .toggle-track{ width:52px; height:26px; border-radius:999px; background:#0e0d0b; border:2px solid #100f0c; position:relative; transition: background .4s; }
+  .toggle-track.on{ background:#1c3a1c; }
+  .toggle-dot{ width:18px; height:18px; border-radius:50%; background:linear-gradient(#dcd6c6,#9a9484); position:absolute; top:2px; left:2px; transition: left .3s; box-shadow:0 1px 3px rgba(0,0,0,0.6); }
+  .toggle-track.on .toggle-dot{ left:28px; background:linear-gradient(var(--led-green),#1c8a4e); }
+  .vu-bar{ width:5px; background:#3a3a3a; transition: height .12s ease, background .12s; }
+  @keyframes flicker{ 0%,100%{opacity:1;} 45%{opacity:.85;} 50%{opacity:1;} }
+  .hum{ animation: flicker 4s ease-in-out infinite; }
+  .cable-path{ fill:none; stroke-width:5; stroke-linecap:round; }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; transition-duration:.001ms !important; } }
+  [x-cloak]{ display:none !important; }
+</style>
+</head>
+<body class="min-h-screen">
+<div x-data="{ power:false }" class="transition-all duration-700" :class="power ? '' : 'saturate-[.35] brightness-[.55]'">
+
+  <!-- TOP RACK STRIP -->
+  <header class="border-b border-black/40" style="background:linear-gradient(180deg, #26211a, #1c1712);">
+    <div class="max-w-[1300px] mx-auto px-5 md:px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center" style="border-color:var(--brass);">
+          <div class="w-2.5 h-2.5 rounded-full led" :class="power ? 'on-amber' : ''"></div>
+        </div>
+        <span class="display text-xl md:text-2xl tracking-tight uppercase" style="color:var(--cream);">PYVERSE <span style="color:var(--brass);">MODULAR</span></span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-[10px] uppercase tracking-widest hidden sm:inline" x-text="power ? 'unit online' : 'standby'"></span>
+        <button @click="power = !power" class="toggle-track" :class="power && 'on'">
+          <div class="toggle-dot"></div>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO: MAIN SIGNAL CHAIN -->
+  <section class="max-w-[1300px] mx-auto px-5 md:px-8 pt-12 md:pt-16 pb-10">
+    <div class="grid lg:grid-cols-[1.1fr_1fr] gap-8 items-center">
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <span class="led" :class="power ? 'on-green' : ''"></span>
+          <span class="text-[11px] uppercase tracking-[0.2em]" style="color:var(--brass);">signal chain / rev. 2</span>
+        </div>
+        <h1 class="display uppercase leading-[0.82] tight text-[15vw] md:text-[5.6rem]" :class="power && 'hum'" style="color:var(--cream);">
+          Your Code<br>Is A <span style="color:var(--brass);">Signal.</span>
+        </h1>
+        <p class="text-sm mt-6 max-w-lg leading-relaxed" style="color:#c7bda5;">
+          Every Python program is a chain: source in, execution through, output out. PyVerse Modular routes that
+          chain through nine physical-feeling rack units — patch them, watch the meters swing, hear the machine think.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="#rack" class="px-6 py-3 uppercase text-xs font-semibold tracking-wide rounded-sm transition-all"
+             style="background:var(--brass); color:#1c1712;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">Enter the Rack →</a>
+          <a href="#patchbay" class="px-6 py-3 uppercase text-xs font-semibold tracking-wide rounded-sm border" style="border-color:#4a4436; color:var(--cream);">Try the Patchbay</a>
+        </div>
+      </div>
+
+      <!-- SIGNATURE: LIVE SIGNAL CHAIN MODULE -->
+      <div class="panel rack-shadow rounded-md p-5 relative" x-data="{ vus:[4,4,4,4,4,4,4,4], iv:null }" x-init="iv=setInterval(() => { vus = vus.map(()=> power ? (8+Math.random()*70) : 4) }, 220)">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-[10px] uppercase tracking-widest" style="color:#9c927a;">exec monitor</span>
+          <div class="flex gap-1.5">
+            <div class="screw"></div><div class="screw"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-3 text-center">
+          <template x-for="(label,i) in ['SRC','LEX','AST','EXEC']" :key="label">
+            <div>
+              <div class="text-[9px] uppercase mb-2" style="color:#9c927a;" x-text="label"></div>
+              <div class="h-24 flex items-end justify-center gap-1 border-b" style="border-color:#3a352b;">
+                <div class="vu-bar" :style="`height:${vus[i]}%; background:${vus[i] > 60 ? 'var(--led-red)' : vus[i] > 30 ? 'var(--led-amber)' : 'var(--led-green)'}`"></div>
+                <div class="vu-bar" :style="`height:${vus[i+4]}%; background:${vus[i+4] > 60 ? 'var(--led-red)' : vus[i+4] > 30 ? 'var(--led-amber)' : 'var(--led-green)'}`"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="mt-5 flex justify-between items-center text-[10px] uppercase tracking-wide" style="color:#9c927a;">
+          <span x-text="power ? 'processing loop.py' : 'no signal'"></span>
+          <span class="flex items-center gap-1.5"><span class="led" :class="power ? 'on-green' : ''"></span>clip</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE RACK: MODULE GRID -->
+  <section id="rack" class="max-w-[1300px] mx-auto px-5 md:px-8 py-14">
+    <div class="flex items-end justify-between border-b pb-4 mb-10 flex-wrap gap-3" style="border-color:#3a352b;">
+      <h2 class="display uppercase text-3xl md:text-4xl" style="color:var(--cream);">The Rack</h2>
+      <span class="text-[10px] uppercase tracking-widest" style="color:#9c927a;">9 units, one bus</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+
+      <!-- Module card component pattern, repeated with unique content -->
+      <template x-for="mod in [
+        {n:'01', name:'PyMonkey', tag:'syntax osc.', desc:'Character-level keystroke oscillator. Correct input pulses an amber LED; a miss trips the red fault light.', led:'amber'},
+        {n:'02', name:'PyVisualizer', tag:'trace filter', desc:'Local Pyodide trace filter. Sweeps the heap and renders every object and pointer as they exist, not as a metaphor.', led:'green'},
+        {n:'03', name:'LeetWasm', tag:'grader vca', desc:'Sandboxed dual-channel grader. Left channel runs your code, right channel returns raw assertion signal.', led:'green'},
+        {n:'04', name:'Black Box', tag:'deduction gate', desc:'Feeds input/output pairs through a logic gate you have to reverse-engineer by ear.', led:'amber'},
+        {n:'05', name:'Time Bomb', tag:'decay env.', desc:'An envelope generator that decays to zero. Patch the fix in before the red LED holds.', led:'red'},
+        {n:'06', name:'Structural Set', tag:'sequencer', desc:'Parsons problems and trace tables as a step sequencer — each token clicks into its slot.', led:'green'},
+        {n:'07', name:'PyCortex', tag:'recall trig.', desc:'A hard flip-flop: front or back, known or not. No crossfade between the two states.', led:'amber'},
+        {n:'08', name:'Marketing Shell', tag:'bus router', desc:'The patch bay itself — the module that routes every other module into one Django template.', led:'green'},
+        {n:'09', name:'Open Slot', tag:'expansion', desc:'Empty 3U bay, pre-wired to the bus. Whatever you build next slots straight in.', led:'red'},
+      ]" :key="mod.n">
+        <div class="panel rack-shadow rounded-md p-5 group relative overflow-hidden">
+          <div class="absolute top-2 left-2 screw"></div>
+          <div class="absolute top-2 right-2 screw"></div>
+          <div class="absolute bottom-2 left-2 screw"></div>
+          <div class="absolute bottom-2 right-2 screw"></div>
+
+          <div class="flex justify-between items-start px-2">
+            <span class="text-[9px] uppercase tracking-widest" style="color:#9c927a;" x-text="'unit ' + mod.n"></span>
+            <div class="led" :class="power ? 'on-' + mod.led : ''"></div>
+          </div>
+          <h3 class="display uppercase text-2xl mt-3 px-2" style="color:var(--cream);" x-text="mod.name"></h3>
+          <div class="text-[9px] uppercase tracking-widest px-2 mb-3" style="color:var(--brass);" x-text="mod.tag"></div>
+          <p class="text-xs px-2 leading-relaxed" style="color:#b8ad94;" x-text="mod.desc"></p>
+
+          <div class="flex justify-between items-center mt-5 px-2">
+            <div class="knob" :style="`--rot: ${power ? Math.random()*280-140 : -140}deg`"></div>
+            <div class="flex gap-2">
+              <div class="jack"></div>
+              <div class="jack"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE PATCHBAY -->
+  <section id="patchbay" class="max-w-[1300px] mx-auto px-5 md:px-8 py-14"
+            x-data="{
+              sel:null,
+              links:[],
+              palette:['var(--cable-a)','var(--cable-b)','var(--cable-c)','var(--cable-d)'],
+              coords:{
+                S1:{x:60,y:34},S2:{x:180,y:34},S3:{x:300,y:34},S4:{x:420,y:34},
+                T1:{x:60,y:206},T2:{x:180,y:206},T3:{x:300,y:206},T4:{x:420,y:206}
+              },
+              click(id){
+                if(id.startsWith('S')){
+                  this.sel = id;
+                } else if(this.sel){
+                  this.links = this.links.filter(l => l.to !== id && l.from !== this.sel);
+                  this.links.push({from:this.sel, to:id, color:this.palette[this.links.length % this.palette.length]});
+                  this.sel = null;
+                }
+              },
+              path(l){
+                const a=this.coords[l.from], b=this.coords[l.to];
+                return `M ${a.x} ${a.y} C ${a.x} ${a.y+90}, ${b.x} ${b.y-90}, ${b.x} ${b.y}`;
+              },
+              clear(){ this.links = []; this.sel = null; }
+            }">
+    <div class="flex items-end justify-between border-b pb-4 mb-10 flex-wrap gap-3" style="border-color:#3a352b;">
+      <h2 class="display uppercase text-3xl md:text-4xl" style="color:var(--cream);">Patch It Yourself</h2>
+      <button @click="clear()" class="text-[10px] uppercase tracking-widest border px-3 py-2 rounded-sm" style="border-color:#4a4436; color:var(--cream);">Clear cables</button>
+    </div>
+
+    <div class="panel rack-shadow rounded-md p-6 md:p-10 relative">
+      <p class="text-xs mb-6" style="color:#b8ad94;">Click a source jack up top, then a destination jack below. Wire <span style="color:var(--brass);">SRC → STDOUT</span>, <span style="color:var(--brass);">LEX → TRACE</span>, <span style="color:var(--brass);">AST → HEAP</span>, <span style="color:var(--brass);">EXEC → ERR</span> to complete the chain — or just make noise.</p>
+
+      <div class="relative w-full max-w-xl mx-auto" style="height:240px;">
+        <svg viewBox="0 0 480 240" class="absolute inset-0 w-full h-full pointer-events-none">
+          <template x-for="(l,i) in links" :key="i">
+            <path class="cable-path" :d="path(l)" :stroke="l.color"/>
+          </template>
+        </svg>
+
+        <template x-for="(label,i) in ['SRC','LEX','AST','EXEC']" :key="'s'+i">
+          <button @click="click('S'+(i+1))"
+                  class="absolute -translate-x-1/2 flex flex-col items-center gap-2"
+                  :style="`left:${60+i*120}px; top:10px;`">
+            <div class="jack" :class="sel==='S'+(i+1) && 'active'"></div>
+            <span class="text-[9px] uppercase tracking-widest" style="color:#9c927a;" x-text="label"></span>
+          </button>
+        </template>
+
+        <template x-for="(label,i) in ['STDOUT','TRACE','HEAP','ERR']" :key="'t'+i">
+          <button @click="click('T'+(i+1))"
+                  class="absolute -translate-x-1/2 flex flex-col items-center gap-2"
+                  :style="`left:${60+i*120}px; top:182px;`">
+            <span class="text-[9px] uppercase tracking-widest" style="color:#9c927a;" x-text="label"></span>
+            <div class="jack"></div>
+          </button>
+        </template>
+      </div>
+
+      <div class="mt-6 flex items-center gap-2 justify-center text-[10px] uppercase tracking-widest" style="color:#9c927a;">
+        <span class="led" :class="links.length===4 ? 'on-green' : links.length>0 ? 'on-amber' : ''"></span>
+        <span x-text="links.length + ' / 4 connections patched'"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER: POWER SUPPLY STRIP -->
+  <footer class="border-t mt-4" style="border-color:#000; background:linear-gradient(180deg, #1c1712, #141110);">
+    <div class="max-w-[1300px] mx-auto px-5 md:px-8 py-10 grid md:grid-cols-3 gap-8">
+      <div>
+        <span class="display uppercase text-lg" style="color:var(--cream);">PYVERSE <span style="color:var(--brass);">MODULAR</span></span>
+        <p class="text-xs mt-3 leading-relaxed" style="color:#8f8570;">Nine teaching prototypes, patched into a single rack. Client-side WASM only — nothing leaves your unit.</p>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase tracking-widest mb-3" style="color:#9c927a;">Power</div>
+        <ul class="text-xs space-y-2" style="color:#b8ad94;">
+          <li class="flex items-center gap-2"><span class="led" :class="power ? 'on-green' : ''"></span>Main bus <span x-text="power ? 'energized' : 'off'"></span></li>
+          <li class="flex items-center gap-2"><span class="led" :class="power ? 'on-amber' : ''"></span>Local compute only</li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase tracking-widest mb-3" style="color:#9c927a;">Chain</div>
+        <p class="text-xs leading-relaxed" style="color:#b8ad94;">source → lex → ast → exec → stdout. always in that order. always visible.</p>
+      </div>
+    </div>
+    <div class="border-t py-4 text-center text-[9px] uppercase tracking-widest" style="border-color:#000; color:#5f5847;">
+      Unit ships cold. Flip the switch up top to bring it online.
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

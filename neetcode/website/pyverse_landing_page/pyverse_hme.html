@@ -1,0 +1,1030 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PyVerse — Learn Python by Doing</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg: '#0D0E1A',
+        surface: '#13152B',
+        surfaceHover: '#181A35',
+        violet: { DEFAULT: '#7C5CFC', light: '#9B83FD', dark: '#5A3EDB' },
+        amber: { DEFAULT: '#F5C842', light: '#FAD96A', dark: '#C9A020' },
+        mint: { DEFAULT: '#3EFCB4', light: '#7AFCCC' },
+        muted: '#8A87A8',
+        border: 'rgba(255,255,255,0.07)',
+      },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+        body: ['Inter', 'sans-serif'],
+      },
+    }
+  }
+}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: #0D0E1A; color: #F0EEF8; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+
+/* Scroll progress bar */
+#progress-bar { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, #7C5CFC, #3EFCB4); z-index: 9999; transition: width 0.1s; }
+
+/* Navbar */
+#navbar { position: fixed; top: 2px; left: 0; right: 0; z-index: 100; transition: all 0.3s; }
+#navbar.scrolled { background: rgba(13,14,26,0.88); backdrop-filter: blur(18px); border-bottom: 1px solid rgba(255,255,255,0.07); }
+.nav-link { position: relative; color: #8A87A8; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+.nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1.5px; background: #7C5CFC; transition: width 0.25s ease; }
+.nav-link:hover { color: #F0EEF8; }
+.nav-link:hover::after { width: 100%; }
+
+/* Gradient text */
+.grad-text { background: linear-gradient(135deg, #7C5CFC 0%, #3EFCB4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.grad-text-amber { background: linear-gradient(135deg, #F5C842 0%, #FC9D3E 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+/* Buttons */
+.btn-primary { background: #7C5CFC; color: #fff; border-radius: 100px; padding: 12px 24px; font-weight: 600; font-size: 15px; transition: all 0.2s; position: relative; overflow: hidden; }
+.btn-primary::before { content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transform: skewX(-20deg); transition: left 0.5s; }
+.btn-primary:hover::before { left: 150%; }
+.btn-primary:hover { background: #9B83FD; transform: translateY(-1px); box-shadow: 0 8px 30px rgba(124,92,252,0.4); }
+.btn-ghost { border: 1px solid rgba(255,255,255,0.15); color: #F0EEF8; border-radius: 100px; padding: 11px 22px; font-weight: 600; font-size: 15px; transition: all 0.2s; }
+.btn-ghost:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.25); }
+
+/* Cards */
+.card { background: #13152B; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; transition: all 0.25s; }
+.card:hover { border-color: rgba(124,92,252,0.3); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+
+/* Glow orbs */
+.orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+
+/* Typewriter cursor */
+.cursor { display: inline-block; width: 2px; height: 1em; background: #7C5CFC; margin-left: 2px; vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Floating badges */
+@keyframes float1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes float2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes float3 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.float1 { animation: float1 3s ease-in-out infinite; }
+.float2 { animation: float2 4s ease-in-out infinite; }
+.float3 { animation: float3 2.5s ease-in-out infinite; }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+.reveal-d3 { transition-delay: 0.3s; }
+.reveal-d4 { transition-delay: 0.4s; }
+
+/* Bento grid */
+.bento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.bento-tall { grid-row: span 2; }
+@media(max-width:900px){ .bento { grid-template-columns: repeat(2,1fr); } .bento-tall{grid-row:span 1;} }
+@media(max-width:600px){ .bento { grid-template-columns: 1fr; } }
+
+/* Lab card accent borders */
+.lab-io { border-top: 2px solid #7C5CFC; }
+.lab-bug { border-top: 2px solid #FC5C5C; }
+.lab-syn { border-top: 2px solid #F5C842; }
+.lab-drag { border-top: 2px solid #3EFCB4; }
+.lab-quiz { border-top: 2px solid #5CB8FC; }
+.lab-fill { border-top: 2px solid #FC9D3E; }
+.lab-viz { border-top: 2px solid #C45CFC; }
+.lab-speed { border-top: 2px solid #FC5C9D; }
+
+/* Code editor mockup */
+.editor-wrap { background: #0A0B16; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; }
+.editor-topbar { background: #111320; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* Scrollbar hide for course row */
+.courses-scroll::-webkit-scrollbar { display: none; }
+.courses-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Step timeline */
+.step-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: linear-gradient(180deg, #7C5CFC, rgba(124,92,252,0)); transform: translateX(-50%); }
+
+/* Avatar stack */
+.avatar-stack .av { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #0D0E1A; margin-left: -8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+
+/* Count-up stat */
+.stat-num { font-size: 52px; font-weight: 800; line-height: 1; }
+
+/* Coming soon locked */
+.locked-row { opacity: 0.45; }
+.lock-badge { background: rgba(245,200,66,0.15); color: #F5C842; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+
+/* Mobile menu */
+#mobile-menu { display: none; }
+#mobile-menu.open { display: flex; }
+
+/* Demo editor textarea */
+#demo-code { background: transparent; border: none; outline: none; color: #C4B9FF; font-family: 'JetBrains Mono', monospace; font-size: 13px; resize: none; width: 100%; line-height: 1.7; }
+
+/* Shimmer on amber badge */
+.badge-pill { background: rgba(245,200,66,0.12); color: #F5C842; border: 1px solid rgba(245,200,66,0.25); border-radius: 100px; padding: 5px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Section divider */
+.divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(124,92,252,0.25), transparent); }
+
+/* Hamburger */
+.ham span { display: block; width: 22px; height: 2px; background: #F0EEF8; margin: 4px 0; border-radius: 2px; transition: all 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- Scroll progress -->
+<div id="progress-bar" style="width:0%"></div>
+
+<!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+<nav id="navbar" class="px-6 py-4">
+  <div class="max-w-6xl mx-auto flex items-center justify-between">
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-2.5 no-underline">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#7C5CFC,#5A3EDB);border-radius:9px;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 4C3 3.44772 3.44772 3 4 3H8C8.55228 3 9 3.44772 9 4V8C9 8.55228 8.55228 9 8 9H4C3.44772 9 3 8.55228 3 8V4Z" fill="white" opacity="0.9"/><path d="M9 10C9 9.44772 9.44772 9 10 9H14C14.5523 9 15 9.44772 15 10V14C15 14.5523 14.5523 15 14 15H10C9.44772 15 9 14.5523 9 14V10Z" fill="white" opacity="0.7"/><path d="M3 11.5C3 10.9477 3.44772 10.5 4 10.5H7C7.55228 10.5 8 10.9477 8 11.5C8 12.0523 7.55228 12.5 7 12.5H4C3.44772 12.5 3 12.0523 3 11.5Z" fill="#3EFCB4"/><path d="M11 6.5C10.4477 6.5 10 6.05228 10 5.5C10 4.94772 10.4477 4.5 11 4.5H14C14.5523 4.5 15 4.94772 15 5.5C15 6.05228 14.5523 6.5 14 6.5H11Z" fill="#F5C842"/></svg>
+      </div>
+      <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;color:#F0EEF8;">PyVerse</span>
+      <span style="background:rgba(245,200,66,0.18);color:#F5C842;border:1px solid rgba(245,200,66,0.3);border-radius:100px;padding:1px 8px;font-size:10px;font-weight:700;letter-spacing:0.05em;">BETA</span>
+    </a>
+
+    <!-- Desktop Nav links -->
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#why" class="nav-link">Why PyVerse</a>
+      <a href="#labs" class="nav-link">What's Inside</a>
+      <a href="#how" class="nav-link">How It Works</a>
+      <a href="#preview" class="nav-link">Try a Lab</a>
+    </div>
+
+    <!-- Desktop CTAs -->
+    <div class="hidden md:flex items-center gap-3">
+      <a href="#" class="btn-ghost text-sm" style="padding:8px 18px;">Sign In</a>
+      <a href="#" class="btn-primary text-sm" style="padding:9px 20px;">Start Free →</a>
+    </div>
+
+    <!-- Hamburger (mobile) -->
+    <button class="ham md:hidden" id="ham-btn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="flex-col gap-4 pt-4 pb-2 px-2 mt-2 border-t" style="border-color:rgba(255,255,255,0.07)">
+    <a href="#why" class="nav-link block py-1">Why PyVerse</a>
+    <a href="#labs" class="nav-link block py-1">What's Inside</a>
+    <a href="#how" class="nav-link block py-1">How It Works</a>
+    <a href="#preview" class="nav-link block py-1">Try a Lab</a>
+    <div class="flex gap-3 pt-2">
+      <a href="#" class="btn-ghost text-sm flex-1 text-center" style="padding:9px 14px;">Sign In</a>
+      <a href="#" class="btn-primary text-sm flex-1 text-center" style="padding:9px 14px;">Start Free →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section id="hero" style="padding:140px 24px 100px;position:relative;overflow:hidden;">
+  <!-- Background orbs -->
+  <div class="orb" style="width:600px;height:600px;background:rgba(124,92,252,0.12);top:-200px;left:-100px;"></div>
+  <div class="orb" style="width:400px;height:400px;background:rgba(62,252,180,0.07);top:100px;right:-80px;"></div>
+
+  <div class="max-w-6xl mx-auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;" class="hero-grid">
+
+      <!-- Left: text -->
+      <div>
+        <div class="badge-pill reveal" style="margin-bottom:22px;">🐍 Built for Python Learners</div>
+
+        <h1 class="reveal reveal-d1" style="font-size:clamp(38px,5vw,64px);font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:20px;">
+          Learn Python by<br>
+          <span class="grad-text">doing,</span> not watching.
+        </h1>
+
+        <p class="reveal reveal-d2" style="color:#8A87A8;font-size:17px;line-height:1.7;max-width:460px;margin-bottom:32px;">
+          PyVerse is a lab-first Python platform with 8 different challenge formats — from drag-and-drop to visualizations — all free, all in your browser.
+        </p>
+
+        <div class="reveal reveal-d3" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px;">
+          <a href="#preview" class="btn-primary">Start Learning Free →</a>
+          <a href="#labs" class="btn-ghost">See All Labs</a>
+        </div>
+
+        <!-- Social proof -->
+        <div class="reveal reveal-d4" style="display:flex;align-items:center;gap:12px;">
+          <div class="avatar-stack" style="display:flex;">
+            <div class="av" style="background:#7C5CFC;">AS</div>
+            <div class="av" style="background:#3EFCB4;color:#0D0E1A;">KR</div>
+            <div class="av" style="background:#F5C842;color:#0D0E1A;">MP</div>
+            <div class="av" style="background:#FC5C5C;">JL</div>
+            <div class="av" style="background:#5CB8FC;">+</div>
+          </div>
+          <div>
+            <div style="display:flex;gap:2px;margin-bottom:2px;">
+              <span style="color:#F5C842;font-size:13px;">★★★★★</span>
+            </div>
+            <span style="color:#8A87A8;font-size:13px;">Loved by <strong style="color:#F0EEF8;">12,000+</strong> learners</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: code mockup -->
+      <div style="position:relative;" class="reveal reveal-d2">
+        <!-- Floating badges -->
+        <div class="float1" style="position:absolute;top:-18px;right:10%;background:#13152B;border:1px solid rgba(62,252,180,0.3);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;color:#3EFCB4;z-index:2;white-space:nowrap;">✓ Test Passed</div>
+        <div class="float2" style="position:absolute;bottom:30px;left:-20px;background:#13152B;border:1px solid rgba(245,200,66,0.3);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;color:#F5C842;z-index:2;white-space:nowrap;">🎯 +50 XP</div>
+        <div class="float3" style="position:absolute;bottom:-10px;right:5%;background:#13152B;border:1px solid rgba(124,92,252,0.3);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;color:#9B83FD;z-index:2;white-space:nowrap;">⚡ 38ms</div>
+
+        <div class="editor-wrap" style="box-shadow:0 30px 80px rgba(0,0,0,0.6);">
+          <!-- Tab bar -->
+          <div class="editor-topbar">
+            <div class="dot" style="background:#FC5C5C;"></div>
+            <div class="dot" style="background:#F5C842;"></div>
+            <div class="dot" style="background:#3EFCB4;"></div>
+            <div style="display:flex;gap:4px;margin-left:10px;">
+              <div style="background:rgba(124,92,252,0.2);color:#9B83FD;border-radius:6px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;">main.py</div>
+              <div style="color:#8A87A8;border-radius:6px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;">output</div>
+            </div>
+          </div>
+
+          <!-- Code area -->
+          <div style="padding:18px 20px;min-height:170px;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.8;">
+            <div style="color:#8A87A8;margin-bottom:4px;"><span style="color:#C45CFC;"># </span><span>Find the sum of even numbers</span></div>
+            <div id="type-target" style="color:#C4B9FF;"></div>
+            <span class="cursor" id="cursor"></span>
+          </div>
+
+          <!-- Divider -->
+          <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
+
+          <!-- Output area -->
+          <div style="padding:12px 20px;background:#080912;">
+            <div style="color:#8A87A8;font-family:'JetBrains Mono',monospace;font-size:11px;margin-bottom:6px;">▶ Output</div>
+            <div id="hero-output" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#3EFCB4;min-height:20px;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Stats strip -->
+<div style="border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);padding:28px 24px;">
+  <div class="max-w-6xl mx-auto" style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center;">
+    <div class="reveal"><div style="font-size:28px;font-weight:800;color:#F0EEF8;" class="counter" data-target="200">0</div><div style="color:#8A87A8;font-size:13px;margin-top:2px;">Labs &amp; Challenges</div></div>
+    <div class="reveal reveal-d1"><div style="font-size:28px;font-weight:800;color:#F0EEF8;" class="counter" data-target="8">0</div><div style="color:#8A87A8;font-size:13px;margin-top:2px;">Lab Formats</div></div>
+    <div class="reveal reveal-d2"><div style="font-size:28px;font-weight:800;color:#F0EEF8;" class="counter" data-target="12">0</div><div style="color:#8A87A8;font-size:13px;margin-top:2px;">Structured Courses</div></div>
+    <div class="reveal reveal-d3"><div style="font-size:28px;font-weight:800;" class="counter grad-text" data-target="100">0</div><div style="color:#8A87A8;font-size:13px;margin-top:2px;">% Free to Start</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ WHY PYVERSE ═══════════════════════════ -->
+<section id="why" style="padding:100px 24px;">
+  <div class="max-w-6xl mx-auto">
+    <div class="reveal" style="text-align:center;margin-bottom:56px;">
+      <div class="badge-pill" style="margin-bottom:16px;display:inline-flex;">The Problem with Tutorials</div>
+      <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.02em;">Why most Python courses <span class="grad-text-amber">fail you</span></h2>
+      <p style="color:#8A87A8;font-size:16px;margin-top:12px;max-width:520px;margin-left:auto;margin-right:auto;">You watch a video, follow along, and three days later it's gone. PyVerse fixes this with active recall and hands-on practice.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+      <!-- Card 1 -->
+      <div class="card reveal" style="padding:28px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;">
+          <div style="background:rgba(252,92,92,0.12);border-radius:10px;padding:10px;flex-shrink:0;"><span style="font-size:20px;">📺</span></div>
+          <div style="background:rgba(62,252,180,0.1);border-radius:10px;padding:10px;flex-shrink:0;margin-left:auto;"><span style="font-size:20px;">⌨️</span></div>
+        </div>
+        <div style="color:#FC5C5C;font-size:12px;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">The Problem</div>
+        <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">You watch. You forget.</h3>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Passive video learning has a 90% forgetting rate within a week. Your brain needs to actively struggle to build real memory.</p>
+        <div style="margin-top:16px;height:1px;background:rgba(255,255,255,0.05);"></div>
+        <div style="margin-top:14px;color:#3EFCB4;font-size:13px;font-weight:600;">✓ PyVerse forces you to <em>do</em> — every session is hands-on.</div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card reveal reveal-d1" style="padding:28px;">
+        <div style="background:rgba(245,200,66,0.08);border-radius:10px;padding:10px;width:fit-content;margin-bottom:16px;"><span style="font-size:20px;">⏳</span></div>
+        <div style="color:#FC5C5C;font-size:12px;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">The Problem</div>
+        <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">No feedback until it's too late.</h3>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Submit a project, wait days. Build the wrong mental model and no one tells you. PyVerse checks your understanding instantly.</p>
+        <div style="margin-top:16px;height:1px;background:rgba(255,255,255,0.05);"></div>
+        <div style="margin-top:14px;color:#3EFCB4;font-size:13px;font-weight:600;">✓ Instant feedback on every answer — with explanations.</div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card reveal reveal-d2" style="padding:28px;">
+        <div style="background:rgba(124,92,252,0.12);border-radius:10px;padding:10px;width:fit-content;margin-bottom:16px;"><span style="font-size:20px;">🧱</span></div>
+        <div style="color:#FC5C5C;font-size:12px;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">The Problem</div>
+        <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">One format for everyone.</h3>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Some people learn by building, some by debugging, some visually. One quiz format fits none of them well.</p>
+        <div style="margin-top:16px;height:1px;background:rgba(255,255,255,0.05);"></div>
+        <div style="margin-top:14px;color:#3EFCB4;font-size:13px;font-weight:600;">✓ 8 lab formats so you learn the way <em>you</em> think.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════ LAB TYPES ═══════════════════════════ -->
+<section id="labs" style="padding:100px 24px;">
+  <div class="max-w-6xl mx-auto">
+    <div class="reveal" style="text-align:center;margin-bottom:56px;">
+      <div class="badge-pill" style="margin-bottom:16px;display:inline-flex;">Lab Formats</div>
+      <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.02em;">8 ways to <span class="grad-text">level up</span> your Python</h2>
+      <p style="color:#8A87A8;font-size:16px;margin-top:12px;max-width:500px;margin-left:auto;margin-right:auto;">Every format is designed to build a different thinking muscle. Mix and match based on your mood.</p>
+    </div>
+
+    <div class="bento">
+      <!-- 1: Code from I/O (tall) -->
+      <div class="card lab-io bento-tall reveal" style="padding:26px;grid-row:span 2;">
+        <div style="background:rgba(124,92,252,0.12);border-radius:10px;padding:10px;width:fit-content;margin-bottom:16px;font-size:22px;">📥</div>
+        <div style="background:rgba(124,92,252,0.15);color:#9B83FD;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:10px;">CODE FROM I/O</div>
+        <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">See input/output, write the solution.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.7;margin-bottom:18px;">You're given example inputs and their expected outputs. Figure out the pattern and write the function. Closest thing to real interviews.</p>
+        <!-- Mini mockup -->
+        <div style="background:#080912;border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:auto;">
+          <div style="color:#8A87A8;margin-bottom:6px;">Input → Output</div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px;"><span style="color:#5CB8FC;">[1,2,3,4]</span><span style="color:#8A87A8;">→</span><span style="color:#3EFCB4;">6</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><span style="color:#5CB8FC;">[2,4,6]</span><span style="color:#8A87A8;">→</span><span style="color:#3EFCB4;">12</span></div>
+          <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;color:#C4B9FF;">def solve(nums):<span class="cursor" style="display:inline-block;width:2px;height:0.9em;background:#7C5CFC;margin-left:2px;vertical-align:text-bottom;"></span></div>
+        </div>
+      </div>
+
+      <!-- 2: Find the Bug -->
+      <div class="card lab-bug reveal reveal-d1" style="padding:22px;">
+        <div style="font-size:20px;margin-bottom:12px;">🐛</div>
+        <div style="background:rgba(252,92,92,0.12);color:#FC5C5C;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">FIND THE BUG</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Click the broken line.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.6;">Read real buggy code, identify the exact line causing the problem, then fix it.</p>
+        <div style="margin-top:12px;background:#080912;border-radius:8px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;">
+          <div style="color:#8A87A8;padding:2px 6px;">for i in range(5):</div>
+          <div style="background:rgba(252,92,92,0.15);border-left:2px solid #FC5C5C;padding:2px 6px;color:#FC5C5C;cursor:pointer;border-radius:0 4px 4px 0;">  print(i * i  ← bug here</div>
+          <div style="color:#8A87A8;padding:2px 6px;">  total += i</div>
+        </div>
+      </div>
+
+      <!-- 3: Fix Syntax -->
+      <div class="card lab-syn reveal reveal-d2" style="padding:22px;">
+        <div style="font-size:20px;margin-bottom:12px;">🔧</div>
+        <div style="background:rgba(245,200,66,0.12);color:#F5C842;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">FIX SYNTAX</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Spot the syntax error.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.6;">Highlighted error markers guide you to the issue — you correct the code directly inline.</p>
+      </div>
+
+      <!-- 4: Drag & Drop (tall) -->
+      <div class="card lab-drag bento-tall reveal" style="padding:22px;grid-row:span 2;">
+        <div style="font-size:20px;margin-bottom:12px;">🧩</div>
+        <div style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">DRAG &amp; DROP</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Arrange code into order.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.6;margin-bottom:14px;">Scrambled code blocks. Drag them into the right sequence. Great for understanding flow and logic.</p>
+        <!-- Drag mockup -->
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:auto;">
+          <div style="background:#080912;border:1px solid rgba(62,252,180,0.2);border-radius:8px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#C4B9FF;cursor:grab;display:flex;align-items:center;gap:8px;"><span style="color:#8A87A8;">⠿</span>return total</div>
+          <div style="background:#080912;border:1px solid rgba(62,252,180,0.3);border-radius:8px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#C4B9FF;cursor:grab;display:flex;align-items:center;gap:8px;"><span style="color:#8A87A8;">⠿</span>total = 0</div>
+          <div style="background:#080912;border:1px solid rgba(62,252,180,0.15);border-radius:8px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#C4B9FF;cursor:grab;display:flex;align-items:center;gap:8px;"><span style="color:#8A87A8;">⠿</span>for n in nums:</div>
+        </div>
+      </div>
+
+      <!-- 5: Theory Quiz -->
+      <div class="card lab-quiz reveal" style="padding:22px;">
+        <div style="font-size:20px;margin-bottom:12px;">🧠</div>
+        <div style="background:rgba(92,184,252,0.1);color:#5CB8FC;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">THEORY QUIZ</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">MCQ with explanations.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.6;">Multiple choice, but every wrong answer reveals <em>why</em> it's wrong.</p>
+      </div>
+
+      <!-- 6: Fill in Blank -->
+      <div class="card lab-fill reveal reveal-d1" style="padding:22px;">
+        <div style="font-size:20px;margin-bottom:12px;">✍️</div>
+        <div style="background:rgba(252,157,62,0.1);color:#FC9D3E;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">FILL IN BLANK</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Complete the missing code.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.6;">Code with strategic gaps. Type the missing keyword, function, or expression to complete it.</p>
+      </div>
+
+      <!-- 7: Visualization (wide) -->
+      <div class="card lab-viz reveal" style="padding:22px;grid-column:span 2;">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div>
+            <div style="font-size:20px;margin-bottom:10px;">🔬</div>
+            <div style="background:rgba(196,92,252,0.1);color:#C45CFC;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">VISUALIZATION</div>
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Watch code execute step by step.</h3>
+            <p style="color:#8A87A8;font-size:13px;line-height:1.6;">Python Tutor-style variable inspector. See exactly what happens to memory at each line. No more guessing.</p>
+          </div>
+          <!-- Mini step viz -->
+          <div style="min-width:160px;background:#080912;border-radius:10px;padding:12px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+            <div style="color:#8A87A8;margin-bottom:8px;font-size:10px;">Step 3/6</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="display:flex;justify-content:space-between;"><span style="color:#5CB8FC;">x</span><span style="color:#3EFCB4;">→ 10</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:#5CB8FC;">y</span><span style="color:#3EFCB4;">→ 5</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:#5CB8FC;">result</span><span style="color:#F5C842;">→ ?</span></div>
+            </div>
+            <div style="margin-top:8px;height:1px;background:rgba(255,255,255,0.05);"></div>
+            <div style="margin-top:6px;color:#C45CFC;">result = x + y ←</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8: Speed Round -->
+      <div class="card lab-speed reveal reveal-d2" style="padding:22px;">
+        <div style="font-size:20px;margin-bottom:12px;">⚡</div>
+        <div style="background:rgba(252,92,157,0.1);color:#FC5C9D;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;width:fit-content;margin-bottom:8px;">SPEED ROUND</div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Timed rapid-fire challenges.</h3>
+        <p style="color:#8A87A8;font-size:13px;line-height:1.6;">10 questions, 60 seconds. Forces pattern recognition over deliberate thinking.</p>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;"><div style="flex:1;height:4px;background:rgba(252,92,157,0.15);border-radius:2px;"><div style="width:60%;height:100%;background:#FC5C9D;border-radius:2px;"></div></div><span style="color:#FC5C9D;font-size:12px;font-weight:700;">0:36</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════ COURSES ═══════════════════════════ -->
+<section id="courses" style="padding:100px 24px;">
+  <div class="max-w-6xl mx-auto">
+    <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;flex-wrap:gap;">
+      <div>
+        <div class="badge-pill" style="margin-bottom:14px;display:inline-flex;">Structured Paths</div>
+        <h2 style="font-size:clamp(24px,3.5vw,38px);font-weight:800;letter-spacing:-0.02em;">Courses, not random tutorials.</h2>
+        <p style="color:#8A87A8;font-size:15px;margin-top:8px;">Follow a path or jump straight into any topic.</p>
+      </div>
+      <a href="#" style="color:#9B83FD;font-size:14px;font-weight:600;white-space:nowrap;text-decoration:none;">View all courses →</a>
+    </div>
+
+    <!-- Horizontal scroll -->
+    <div class="courses-scroll" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;">
+      <!-- Course cards -->
+      <div class="reveal" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#3A1FC4,#7C5CFC);display:flex;align-items:center;justify-content:center;font-size:32px;">🐍</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Python Basics</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">24 labs · Beginner</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(124,92,252,0.12);color:#9B83FD;border-radius:6px;padding:2px 8px;font-size:11px;">Beginner</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-d1" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#0F5F3A,#1D9E75);display:flex;align-items:center;justify-content:center;font-size:32px;">🧱</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Data Types Deep Dive</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">18 labs · Beginner</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(124,92,252,0.12);color:#9B83FD;border-radius:6px;padding:2px 8px;font-size:11px;">Beginner</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-d2" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#7A3A00,#C9A020);display:flex;align-items:center;justify-content:center;font-size:32px;">⚙️</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Functions &amp; Scope</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">22 labs · Intermediate</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(245,200,66,0.12);color:#F5C842;border-radius:6px;padding:2px 8px;font-size:11px;">Intermediate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-d3" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#5C0A7A,#C45CFC);display:flex;align-items:center;justify-content:center;font-size:32px;">🎭</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">OOP Mastery</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">30 labs · Intermediate</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(245,200,66,0.12);color:#F5C842;border-radius:6px;padding:2px 8px;font-size:11px;">Intermediate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#0A3A7A,#185FA5);display:flex;align-items:center;justify-content:center;font-size:32px;">📂</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">File Handling</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">15 labs · Intermediate</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(245,200,66,0.12);color:#F5C842;border-radius:6px;padding:2px 8px;font-size:11px;">Intermediate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-d1" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#7A0A0A,#E24B4A);display:flex;align-items:center;justify-content:center;font-size:32px;">🚨</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Error Handling</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">12 labs · Intermediate</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(245,200,66,0.12);color:#F5C842;border-radius:6px;padding:2px 8px;font-size:11px;">Intermediate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-d2" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#003A3A,#0F6E56);display:flex;align-items:center;justify-content:center;font-size:32px;">⚡</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Comprehensions</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">16 labs · Advanced</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(252,92,92,0.12);color:#FC5C5C;border-radius:6px;padding:2px 8px;font-size:11px;">Advanced</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-d3" style="flex:0 0 220px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="height:90px;background:linear-gradient(135deg,#1A0A3A,#534AB7);display:flex;align-items:center;justify-content:center;font-size:32px;">🧮</div>
+          <div style="padding:16px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Algorithms 101</div>
+            <div style="color:#8A87A8;font-size:12px;margin-bottom:10px;">28 labs · Advanced</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">Free</span>
+              <span style="background:rgba(252,92,92,0.12);color:#FC5C5C;border-radius:6px;padding:2px 8px;font-size:11px;">Advanced</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════ HOW IT WORKS ═══════════════════════════ -->
+<section id="how" style="padding:100px 24px;">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal" style="text-align:center;margin-bottom:60px;">
+      <div class="badge-pill" style="margin-bottom:16px;display:inline-flex;">Zero Setup</div>
+      <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.02em;">100% in your browser.<br><span class="grad-text">No installs. No setup.</span></h2>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0;position:relative;">
+      <!-- Vertical line -->
+      <div style="position:absolute;left:50%;top:24px;bottom:24px;width:1px;background:linear-gradient(180deg,rgba(124,92,252,0.5),rgba(124,92,252,0.05));transform:translateX(-50%);" class="hidden md:block"></div>
+
+      <!-- Step 1 -->
+      <div class="reveal" style="display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:center;margin-bottom:40px;">
+        <div style="text-align:right;">
+          <div style="font-size:12px;font-weight:700;color:#7C5CFC;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Step 1</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Pick a course or browse labs</h3>
+          <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Follow a structured course or jump to any specific topic — search by concept, difficulty, or format.</p>
+        </div>
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,#7C5CFC,#5A3EDB);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:16px;flex-shrink:0;z-index:1;">1</div>
+        <div style="background:#13152B;border:1px solid rgba(124,92,252,0.15);border-radius:12px;padding:14px;font-size:13px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="background:rgba(124,92,252,0.12);color:#9B83FD;border-radius:8px;padding:4px 10px;font-size:12px;">Python Basics</span>
+            <span style="background:rgba(62,252,180,0.08);color:#3EFCB4;border-radius:8px;padding:4px 10px;font-size:12px;">Functions</span>
+            <span style="background:rgba(245,200,66,0.08);color:#F5C842;border-radius:8px;padding:4px 10px;font-size:12px;">OOP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="reveal reveal-d1" style="display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:center;margin-bottom:40px;">
+        <div style="background:#13152B;border:1px solid rgba(62,252,180,0.15);border-radius:12px;padding:14px;text-align:right;">
+          <div style="display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;">
+            <span style="background:rgba(124,92,252,0.12);color:#9B83FD;border-radius:8px;padding:4px 10px;font-size:12px;">📥 Code from I/O</span>
+            <span style="background:rgba(252,92,92,0.1);color:#FC5C5C;border-radius:8px;padding:4px 10px;font-size:12px;">🐛 Find Bug</span>
+            <span style="background:rgba(62,252,180,0.08);color:#3EFCB4;border-radius:8px;padding:4px 10px;font-size:12px;">🧩 Drag &amp; Drop</span>
+          </div>
+        </div>
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,#3EFCB4,#0F6E56);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#0D0E1A;font-size:16px;flex-shrink:0;z-index:1;">2</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#3EFCB4;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Step 2</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Choose your lab format</h3>
+          <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Same concept, different challenge types. Pick what suits your learning style today.</p>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="reveal reveal-d2" style="display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:center;margin-bottom:40px;">
+        <div style="text-align:right;">
+          <div style="font-size:12px;font-weight:700;color:#F5C842;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Step 3</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Write, drag, fix, or answer</h3>
+          <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Everything runs in your browser. No accounts, no installs. Your code runs instantly.</p>
+        </div>
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,#F5C842,#C9A020);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#0D0E1A;font-size:16px;flex-shrink:0;z-index:1;">3</div>
+        <div style="background:#13152B;border:1px solid rgba(245,200,66,0.15);border-radius:12px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#C4B9FF;">
+          <div>sum_evens([2,4,6,8])</div>
+          <div style="color:#3EFCB4;margin-top:4px;">→ 20 ✓</div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="reveal reveal-d3" style="display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:center;margin-bottom:40px;">
+        <div style="background:#13152B;border:1px solid rgba(252,92,92,0.15);border-radius:12px;padding:14px;">
+          <div style="color:#3EFCB4;font-size:13px;font-weight:600;margin-bottom:4px;">✓ Correct!</div>
+          <div style="color:#8A87A8;font-size:12px;line-height:1.6;">The <code style="color:#C4B9FF;font-family:'JetBrains Mono',monospace;">%</code> operator checks remainder. <code style="color:#C4B9FF;font-family:'JetBrains Mono',monospace;">n % 2 == 0</code> is True for even numbers.</div>
+        </div>
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,#FC9D3E,#993C1D);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:16px;flex-shrink:0;z-index:1;">4</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#FC9D3E;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Step 4</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Instant feedback + explanation</h3>
+          <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Not just right/wrong — you get a clear explanation of <em>why</em> so it actually sticks.</p>
+        </div>
+      </div>
+
+      <!-- Step 5 (coming soon) -->
+      <div class="reveal" style="display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:center;opacity:0.5;">
+        <div style="text-align:right;">
+          <div style="font-size:12px;font-weight:700;color:#8A87A8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Step 5 — Coming Soon 🔒</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Track your progress &amp; streaks</h3>
+          <p style="color:#8A87A8;font-size:14px;line-height:1.7;">Account-linked progress, XP, streaks, leaderboards, and certificates. Coming with PyVerse Pro.</p>
+        </div>
+        <div style="width:48px;height:48px;background:#13152B;border:1px solid rgba(255,255,255,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#8A87A8;font-size:20px;flex-shrink:0;z-index:1;">🔒</div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════ LIVE DEMO ═══════════════════════════ -->
+<section id="preview" style="padding:100px 24px;">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal" style="text-align:center;margin-bottom:48px;">
+      <div class="badge-pill" style="margin-bottom:16px;display:inline-flex;">Try It Now</div>
+      <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.02em;">No account needed.<br><span class="grad-text">Start solving right now.</span></h2>
+    </div>
+
+    <div class="card reveal" style="overflow:hidden;border-color:rgba(124,92,252,0.2);">
+      <!-- Lab header -->
+      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="background:rgba(124,92,252,0.15);color:#9B83FD;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">📥 CODE FROM I/O</span>
+          <span style="color:#8A87A8;font-size:13px;">Lab #12 — Lists</span>
+        </div>
+        <span style="background:rgba(62,252,180,0.1);color:#3EFCB4;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;">Free</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;min-height:320px;" class="demo-grid">
+        <!-- Problem panel -->
+        <div style="padding:24px;border-right:1px solid rgba(255,255,255,0.06);">
+          <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Count Vowels</h3>
+          <p style="color:#8A87A8;font-size:14px;line-height:1.7;margin-bottom:18px;">Write a function <code style="color:#C4B9FF;font-family:'JetBrains Mono',monospace;">count_vowels(s)</code> that returns the number of vowels in a string.</p>
+
+          <div style="background:#080912;border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:13px;">
+            <div style="color:#8A87A8;margin-bottom:8px;font-size:11px;">Examples</div>
+            <div style="display:flex;gap:10px;margin-bottom:4px;"><span style="color:#5CB8FC;">"hello"</span><span style="color:#8A87A8;">→</span><span style="color:#3EFCB4;">2</span></div>
+            <div style="display:flex;gap:10px;margin-bottom:4px;"><span style="color:#5CB8FC;">"python"</span><span style="color:#8A87A8;">→</span><span style="color:#3EFCB4;">1</span></div>
+            <div style="display:flex;gap:10px;"><span style="color:#5CB8FC;">"aeiou"</span><span style="color:#8A87A8;">→</span><span style="color:#3EFCB4;">5</span></div>
+          </div>
+
+          <div style="margin-top:14px;background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.15);border-radius:8px;padding:10px 12px;font-size:12px;color:#F5C842;">
+            💡 Hint: vowels are a, e, i, o, u (and their uppercase versions)
+          </div>
+        </div>
+
+        <!-- Code editor panel -->
+        <div style="display:flex;flex-direction:column;">
+          <div class="editor-topbar" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="dot" style="background:#FC5C5C;"></div>
+              <div class="dot" style="background:#F5C842;"></div>
+              <div class="dot" style="background:#3EFCB4;"></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A87A8;">solution.py</span>
+          </div>
+          <textarea id="demo-code" rows="7" style="padding:16px 18px;flex:1;background:#080912;" placeholder="def count_vowels(s):&#10;    # write your solution here&#10;    pass">def count_vowels(s):
+    # write your solution here
+    pass</textarea>
+          <div style="padding:12px 16px;background:#080912;border-top:1px solid rgba(255,255,255,0.05);">
+            <button id="run-btn" class="btn-primary" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px;border:none;cursor:pointer;">
+              <span id="run-label">▶ Run Code</span>
+            </button>
+          </div>
+          <!-- Output -->
+          <div id="demo-output" style="padding:14px 18px;background:#050610;min-height:60px;border-top:1px solid rgba(255,255,255,0.04);">
+            <div style="color:#8A87A8;font-size:12px;font-family:'JetBrains Mono',monospace;">— output will appear here —</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal" style="text-align:center;margin-top:32px;color:#8A87A8;font-size:15px;">
+      This is just one lab. There are <strong style="color:#F0EEF8;">200+ challenges</strong> waiting for you —
+      <a href="#" style="color:#9B83FD;font-weight:600;text-decoration:none;"> all free →</a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════ FREE VS COMING SOON ═══════════════════════════ -->
+<section id="free" style="padding:100px 24px;">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal" style="text-align:center;margin-bottom:56px;">
+      <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.02em;">Everything you need, <span class="grad-text">for free.</span><br>More on the way.</h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <!-- Free -->
+      <div class="card reveal" style="padding:32px;border-color:rgba(62,252,180,0.2);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <div style="width:36px;height:36px;background:rgba(62,252,180,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">✓</div>
+          <h3 style="font-size:18px;font-weight:800;">Free Forever</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">All 200+ labs &amp; challenges</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">All 8 lab formats</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">All 12 structured courses</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">In-browser code execution</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">Step-by-step visualizations</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">Instant feedback &amp; explanations</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="color:#3EFCB4;font-size:16px;">✓</span><span style="font-size:14px;">No account required to start</span></div>
+        </div>
+        <a href="#" class="btn-primary" style="display:block;text-align:center;margin-top:28px;text-decoration:none;">Start Learning Free →</a>
+      </div>
+
+      <!-- Coming soon -->
+      <div class="card reveal reveal-d1" style="padding:32px;border-color:rgba(245,200,66,0.15);position:relative;overflow:hidden;">
+        <!-- Ribbon -->
+        <div style="position:absolute;top:16px;right:-24px;background:#F5C842;color:#0D0E1A;font-size:10px;font-weight:800;padding:4px 32px;transform:rotate(35deg);letter-spacing:0.06em;">SOON</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <div style="width:36px;height:36px;background:rgba(245,200,66,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>
+          <h3 style="font-size:18px;font-weight:800;">PyVerse Pro <span style="color:#F5C842;font-size:13px;">coming soon</span></h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;opacity:0.6;">
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">Account &amp; progress sync</span><span class="lock-badge">Soon</span></div>
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">Streaks &amp; XP system</span><span class="lock-badge">Soon</span></div>
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">Global leaderboards</span><span class="lock-badge">Soon</span></div>
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">Completion certificates</span><span class="lock-badge">Soon</span></div>
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">AI-powered hints</span><span class="lock-badge">Soon</span></div>
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">Custom learning paths</span><span class="lock-badge">Soon</span></div>
+          <div class="locked-row" style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">🔒</span><span style="font-size:14px;">Code reviews &amp; feedback</span><span class="lock-badge">Soon</span></div>
+        </div>
+        <button class="btn-ghost" style="width:100%;margin-top:28px;cursor:pointer;border:1px solid rgba(245,200,66,0.25);color:#F5C842;">Notify Me When Ready 🔔</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════ SOCIAL PROOF ═══════════════════════════ -->
+<section style="padding:80px 24px;">
+  <div class="max-w-5xl mx-auto">
+    <!-- Testimonials -->
+    <div class="reveal" style="text-align:center;margin-bottom:48px;">
+      <h2 style="font-size:clamp(24px,3.5vw,38px);font-weight:800;letter-spacing:-0.02em;">Learners love PyVerse</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+      <div class="card reveal" style="padding:24px;">
+        <div style="color:#F5C842;font-size:14px;margin-bottom:12px;">★★★★★</div>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;margin-bottom:16px;">"I tried three Python courses before PyVerse. The drag-and-drop labs finally made functions click for me. It's the only platform that made me actually think."</p>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#7C5CFC,#3EFCB4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">AK</div>
+          <div><div style="font-size:13px;font-weight:600;">Arjun K.</div><div style="font-size:12px;color:#8A87A8;">CS Student, Delhi</div></div>
+        </div>
+      </div>
+      <div class="card reveal reveal-d1" style="padding:24px;">
+        <div style="color:#F5C842;font-size:14px;margin-bottom:12px;">★★★★★</div>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;margin-bottom:16px;">"The visualization lab is insane. Watching variables change in real time as my code runs — I finally understand how loops actually work under the hood."</p>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3EFCB4,#185FA5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0D0E1A;">SR</div>
+          <div><div style="font-size:13px;font-weight:600;">Sofia R.</div><div style="font-size:12px;color:#8A87A8;">Self-taught dev, Spain</div></div>
+        </div>
+      </div>
+      <div class="card reveal reveal-d2" style="padding:24px;">
+        <div style="color:#F5C842;font-size:14px;margin-bottom:12px;">★★★★★</div>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;margin-bottom:16px;">"Find the Bug labs are addictive. I spent 2 hours on them without realizing it. Nothing else made debugging feel this rewarding."</p>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#F5C842,#FC9D3E);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0D0E1A;">ML</div>
+          <div><div style="font-size:13px;font-weight:600;">Marcus L.</div><div style="font-size:12px;color:#8A87A8;">Bootcamp grad, USA</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FINAL CTA ═══════════════════════════ -->
+<section style="padding:80px 24px;text-align:center;position:relative;overflow:hidden;">
+  <div class="orb" style="width:500px;height:300px;background:rgba(124,92,252,0.1);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+  <div class="max-w-2xl mx-auto reveal" style="position:relative;">
+    <h2 style="font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.03em;margin-bottom:16px;">Ready to actually<br><span class="grad-text">learn Python?</span></h2>
+    <p style="color:#8A87A8;font-size:17px;margin-bottom:32px;line-height:1.7;">200+ labs. 8 formats. Zero setup. Free forever.<br>No excuses — your first lab is one click away.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <a href="#preview" class="btn-primary" style="font-size:16px;padding:14px 32px;">Start My First Lab →</a>
+      <a href="#labs" class="btn-ghost" style="font-size:16px;padding:14px 28px;">Explore Lab Types</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<footer style="border-top:1px solid rgba(255,255,255,0.06);padding:56px 24px 32px;">
+  <div class="max-w-6xl mx-auto">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px;" class="footer-grid">
+      <!-- Brand -->
+      <div>
+        <a href="#" style="display:flex;align-items:center;gap:10px;text-decoration:none;margin-bottom:14px;">
+          <div style="width:30px;height:30px;background:linear-gradient(135deg,#7C5CFC,#5A3EDB);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;">⬡</div>
+          <span style="font-weight:800;font-size:16px;color:#F0EEF8;">PyVerse</span>
+        </a>
+        <p style="color:#8A87A8;font-size:14px;line-height:1.7;max-width:240px;">The lab-first Python learning platform. Learn by doing, not watching.</p>
+        <div style="display:flex;gap:12px;margin-top:18px;">
+          <a href="#" style="color:#8A87A8;font-size:13px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">GitHub</a>
+          <a href="#" style="color:#8A87A8;font-size:13px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Twitter</a>
+          <a href="#" style="color:#8A87A8;font-size:13px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Discord</a>
+        </div>
+      </div>
+      <!-- Links -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#F0EEF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Platform</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">All Labs</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Courses</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Lab Types</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Changelog</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#F0EEF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Learn</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Python Basics</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">OOP</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Algorithms</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">For Beginners</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#F0EEF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">Company</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">About</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Blog</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Privacy</a>
+          <a href="#" style="color:#8A87A8;font-size:14px;text-decoration:none;" onmouseover="this.style.color='#F0EEF8'" onmouseout="this.style.color='#8A87A8'">Terms</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <span style="color:#8A87A8;font-size:13px;">© 2025 PyVerse. Made with 🐍 and ☕</span>
+      <span style="color:#8A87A8;font-size:13px;">Free to use · No tracking · No ads</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Responsive overrides -->
+<style>
+@media(max-width:768px){
+  .hero-grid{grid-template-columns:1fr!important;}
+  .demo-grid{grid-template-columns:1fr!important;}
+  .footer-grid{grid-template-columns:1fr 1fr!important;gap:28px!important;}
+  .step-line{display:none;}
+  [style*="grid-template-columns:1fr auto 1fr"]{grid-template-columns:auto 1fr!important;}
+  [style*="grid-template-columns:1fr auto 1fr"] > :first-child:not([style*="48px"]){display:none;}
+  #free > div > div{grid-template-columns:1fr!important;}
+}
+@media(max-width:480px){
+  .footer-grid{grid-template-columns:1fr!important;}
+}
+</style>
+
+<script>
+// ── Scroll progress bar
+const bar = document.getElementById('progress-bar');
+window.addEventListener('scroll', () => {
+  const scrolled = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  bar.style.width = scrolled + '%';
+});
+
+// ── Navbar scroll effect
+const nav = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// ── Mobile menu toggle
+document.getElementById('ham-btn').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+
+// ── Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+});
+
+// ── IntersectionObserver scroll reveal
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ── Counter animation
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const target = parseInt(el.dataset.target);
+    const suffix = el.dataset.target === '100' ? '%+' : '+';
+    let current = 0;
+    const step = Math.ceil(target / 40);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current + suffix;
+      if (current >= target) clearInterval(timer);
+    }, 30);
+    counterObs.unobserve(el);
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.counter').forEach(el => counterObs.observe(el));
+
+// ── Hero typewriter
+const lines = [
+  'def sum_evens(nums):',
+  '    return sum(n for n',
+  '               in nums',
+  '               if n % 2 == 0)',
+];
+const target = document.getElementById('type-target');
+const cursor = document.getElementById('cursor');
+const heroOut = document.getElementById('hero-output');
+let lineIdx = 0, charIdx = 0;
+const tw = setInterval(() => {
+  if (lineIdx >= lines.length) {
+    clearInterval(tw);
+    setTimeout(() => { heroOut.textContent = '→ 30'; }, 600);
+    return;
+  }
+  const line = lines[lineIdx];
+  target.innerHTML = lines.slice(0, lineIdx).map(l => `<div>${escHtml(l)}</div>`).join('') + `<div>${escHtml(line.slice(0, charIdx))}</div>`;
+  charIdx++;
+  if (charIdx > line.length) { lineIdx++; charIdx = 0; }
+}, 45);
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Demo run button
+const runBtn = document.getElementById('run-btn');
+const runLabel = document.getElementById('run-label');
+const demoOut = document.getElementById('demo-output');
+const demoCode = document.getElementById('demo-code');
+
+runBtn.addEventListener('click', () => {
+  runLabel.textContent = '⏳ Running...';
+  runBtn.disabled = true;
+  demoOut.innerHTML = '<div style="color:#8A87A8;font-size:12px;font-family:JetBrains Mono,monospace;">Running tests...</div>';
+  setTimeout(() => {
+    const code = demoCode.value;
+    const hasVowels = code.includes('vowel') || code.includes('aeiou') || code.includes('aeiouAEIOU');
+    if (hasVowels && !code.includes('pass')) {
+      demoOut.innerHTML = `
+        <div style="color:#3EFCB4;font-weight:600;font-size:13px;margin-bottom:8px;">✓ All tests passed!</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A87A8;line-height:1.8;">
+          Test 1: count_vowels("hello") → <span style="color:#3EFCB4;">2 ✓</span><br>
+          Test 2: count_vowels("python") → <span style="color:#3EFCB4;">1 ✓</span><br>
+          Test 3: count_vowels("aeiou") → <span style="color:#3EFCB4;">5 ✓</span>
+        </div>`;
+    } else {
+      demoOut.innerHTML = `
+        <div style="color:#FC5C5C;font-weight:600;font-size:13px;margin-bottom:8px;">✗ Tests failed</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A87A8;line-height:1.8;">
+          Test 1: count_vowels("hello") → <span style="color:#FC5C5C;">None (expected 2)</span><br>
+          <span style="color:#F5C842;font-size:11px;">💡 Hint: Loop through the string and check if each character is in 'aeiouAEIOU'</span>
+        </div>`;
+    }
+    runLabel.textContent = '▶ Run Code';
+    runBtn.disabled = false;
+  }, 900);
+});
+</script>
+</body>
+</html>

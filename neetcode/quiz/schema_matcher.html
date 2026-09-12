@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architectural Schema Matcher</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo:   #4f46e5;
+      --indigo-l: #eef2ff;
+      --indigo-b: #c7d2fe;
+      --green:    #059669;
+      --green-l:  #ecfdf5;
+      --green-b:  #6ee7b7;
+      --rose:     #dc2626;
+      --rose-l:   #fff1f2;
+      --rose-b:   #fca5a5;
+      --amber:    #d97706;
+      --amber-l:  #fffbeb;
+      --slate:    #475569;
+      --track:    #f1f5f9;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+    }
+
+    /* ── Pipeline rail track ── */
+    .pipeline-rail {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 28px 24px;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+      background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    /* ── Connector arrows between slots ── */
+    .connector {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      width: 52px;
+      position: relative;
+    }
+
+    .connector-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: #cbd5e1;
+      transition: background 0.4s;
+    }
+
+    .connector.active .connector-line {
+      background: linear-gradient(90deg, var(--indigo), #818cf8);
+    }
+
+    .connector.correct .connector-line {
+      background: linear-gradient(90deg, var(--green), #34d399);
+    }
+
+    /* Animated chevron */
+    .chevron {
+      position: absolute;
+      right: 0;
+      width: 0; height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 9px solid #cbd5e1;
+      transition: border-left-color 0.4s;
+    }
+
+    .connector.active .chevron { border-left-color: #818cf8; }
+    .connector.correct .chevron { border-left-color: #34d399; }
+
+    /* Flow pulse animation on correct */
+    @keyframes flow-pulse {
+      0%   { opacity: 1; transform: scaleX(1); }
+      50%  { opacity: 0.6; transform: scaleX(0.95); }
+      100% { opacity: 1; transform: scaleX(1); }
+    }
+
+    .connector.correct .connector-line {
+      animation: flow-pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ── Drop slots ── */
+    .drop-slot {
+      flex-shrink: 0;
+      width: 148px;
+      min-height: 82px;
+      border: 2px dashed #94a3b8;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+      position: relative;
+      cursor: default;
+    }
+
+    .drop-slot .slot-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .drop-slot .slot-hint {
+      font-size: 11px;
+      color: #cbd5e1;
+      font-style: italic;
+    }
+
+    .drop-slot.dragover {
+      border-color: var(--indigo);
+      background: var(--indigo-l);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+    }
+
+    .drop-slot.correct {
+      border-color: var(--green);
+      border-style: solid;
+      background: var(--green-l);
+    }
+
+    .drop-slot.wrong {
+      border-color: var(--rose);
+      border-style: solid;
+      background: var(--rose-l);
+      animation: slot-shake 0.35s ease;
+    }
+
+    @keyframes slot-shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-5px); }
+      75%       { transform: translateX(5px); }
+    }
+
+    /* ── Placed chip inside slot ── */
+    .placed-chip {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.35;
+      cursor: grab;
+      user-select: none;
+      position: relative;
+    }
+
+    .placed-chip:active { cursor: grabbing; }
+
+    /* Remove button on placed chip */
+    .chip-remove {
+      position: absolute;
+      top: -6px; right: -6px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      color: #94a3b8;
+      font-size: 11px;
+      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-weight: 700;
+      transition: color 0.12s, border-color 0.12s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .chip-remove:hover { color: var(--rose); border-color: var(--rose-b); }
+
+    /* ── Component pool ── */
+    .component-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 18px 20px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      min-height: 72px;
+    }
+
+    /* ── Draggable chips ── */
+    .drag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      cursor: grab;
+      user-select: none;
+      transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      white-space: nowrap;
+    }
+
+    .drag-chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    }
+
+    .drag-chip:active { cursor: grabbing; transform: scale(0.97); }
+    .drag-chip.dragging { opacity: 0.35; }
+    .drag-chip.used { opacity: 0.28; pointer-events: none; }
+
+    /* ── Score pills ── */
+    .score-pill {
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 8px 16px; font-family: 'Inter', sans-serif;
+    }
+
+    .score-pill .v { font-size: 19px; font-weight: 800; color: #0f172a; line-height: 1; }
+    .score-pill .l { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; }
+
+    /* ── Feedback banner ── */
+    .feedback-banner {
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: 13px;
+      line-height: 1.65;
+      display: none;
+      animation: banner-in 0.22s ease;
+    }
+
+    @keyframes banner-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .feedback-banner.success { background: var(--green-l); border: 1.5px solid var(--green-b); color: #065f46; display: block; }
+    .feedback-banner.error   { background: var(--rose-l);  border: 1.5px solid var(--rose-b);  color: #991b1b; display: block; }
+    .feedback-banner.partial { background: var(--amber-l); border: 1.5px solid #fde68a; color: #92400e; display: block; }
+
+    /* ── Puzzle tabs ── */
+    .ptab {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid #e2e8f0;
+      background: #fff; color: #64748b;
+      transition: all 0.15s;
+    }
+
+    .ptab.active  { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+    .ptab.solved  { border-color: var(--green-b); color: var(--green); background: var(--green-l); }
+
+    /* ── Action buttons ── */
+    .btn-audit {
+      background: var(--indigo); color: #fff; font-weight: 700; font-size: 13px;
+      border: none; border-radius: 9px; padding: 10px 22px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.01em;
+    }
+    .btn-audit:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-audit:active { transform: none; }
+
+    .btn-reset {
+      background: #fff; color: #64748b; font-weight: 600; font-size: 12px;
+      border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 10px 16px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-reset:hover { background: #f8fafc; }
+
+    .btn-next {
+      background: linear-gradient(135deg, #4f46e5, #4338ca); color: #fff;
+      font-weight: 700; font-size: 13px; border: none; border-radius: 9px;
+      padding: 10px 22px; cursor: pointer; transition: opacity 0.15s;
+      display: none;
+    }
+    .btn-next:hover { opacity: 0.88; }
+
+    /* Category color system for chips */
+    .cat-auth    { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+    .cat-net     { background: linear-gradient(135deg, #0369a1, #0284c7); }
+    .cat-logic   { background: linear-gradient(135deg, #065f46, #059669); }
+    .cat-data    { background: linear-gradient(135deg, #b45309, #d97706); }
+    .cat-err     { background: linear-gradient(135deg, #991b1b, #dc2626); }
+    .cat-cache   { background: linear-gradient(135deg, #1e40af, #2563eb); }
+    .cat-queue   { background: linear-gradient(135deg, #5b21b6, #7c3aed); }
+    .cat-log     { background: linear-gradient(135deg, #374151, #6b7280); }
+    .cat-store   { background: linear-gradient(135deg, #92400e, #b45309); }
+    .cat-view    { background: linear-gradient(135deg, #065f46, #047857); }
+    .cat-router  { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+    .cat-event   { background: linear-gradient(135deg, #6d28d9, #8b5cf6); }
+
+    /* ── Slot position label ── */
+    .slot-pos {
+      position: absolute;
+      top: -11px; left: 50%; transform: translateX(-50%);
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 99px;
+      font-size: 10px; font-weight: 700;
+      color: #94a3b8;
+      padding: 1px 8px;
+      white-space: nowrap;
+    }
+
+    /* ── Loading ── */
+    #py-loading {
+      position: fixed; inset: 0; background: #f8fafc;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 9999; gap: 14px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader {
+      width: 30px; height: 30px;
+      border: 2.5px solid #e2e8f0; border-top-color: var(--indigo);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+
+    py-terminal { display: none !important; }
+
+    /* Tooltip on chip hover */
+    .drag-chip[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: #f1f5f9;
+      font-size: 10.5px; font-weight: 400;
+      padding: 5px 10px; border-radius: 6px;
+      white-space: nowrap; pointer-events: none;
+      z-index: 99;
+    }
+
+    .drag-chip { position: relative; }
+
+    /* Entry animation for result chips */
+    @keyframes pop-in {
+      from { transform: scale(0.8); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .placed-chip { animation: pop-in 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="py-loading">
+  <div class="loader"></div>
+  <p style="font-size:12px;color:#94a3b8;font-family:'Inter',sans-serif;margin-top:4px;">Initialising PyScript runtime…</p>
+</div>
+
+<!-- ══════════════════════ SHELL ══════════════════════ -->
+<div id="app" style="display:none;" class="min-h-screen py-8 px-4">
+<div class="max-w-5xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-5">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;">System Design Lab</span>
+        <span style="color:#e2e8f0;">·</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;">Schema Matcher</span>
+      </div>
+      <h1 style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">Architectural Pipeline Matcher</h1>
+      <p style="font-size:13px;color:#64748b;margin-top:3px;">Drag each component into its correct position in the architecture. Then audit the pipeline.</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <div class="score-pill"><span class="v" id="score-val">0</span><span class="l">Score</span></div>
+      <div class="score-pill"><span class="v" id="solved-val">0/3</span><span class="l">Solved</span></div>
+      <div class="score-pill"><span class="v" id="attempts-val">0</span><span class="l">Attempts</span></div>
+    </div>
+  </div>
+
+  <!-- Puzzle tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+    <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-right:4px;">Architecture</span>
+    <button class="ptab active" id="ptab-0" onclick="pySelectPuzzle(0)">01 · HTTP Middleware</button>
+    <button class="ptab" id="ptab-1" onclick="pySelectPuzzle(1)">02 · MVC Data Flow</button>
+    <button class="ptab" id="ptab-2" onclick="pySelectPuzzle(2)">03 · Event-Driven Bus</button>
+  </div>
+
+  <!-- Main card -->
+  <div style="background:#fff;border-radius:20px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06);overflow:hidden;">
+
+    <!-- Card header -->
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
+      <div>
+        <div id="puzzle-title" style="font-size:14px;font-weight:700;color:#1e293b;"></div>
+        <div id="puzzle-desc"  style="font-size:12px;color:#64748b;margin-top:2px;"></div>
+      </div>
+      <div id="diff-badge" style="margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:3px 10px;border-radius:99px;"></div>
+    </div>
+
+    <div style="padding:24px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Pipeline rail -->
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#94a3b8;">Pipeline Flow  →  Request to Response</span>
+        </div>
+        <div class="pipeline-rail" id="pipeline-rail">
+          <!-- Slots injected by PyScript -->
+        </div>
+      </div>
+
+      <!-- Separator -->
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;height:1px;background:#f1f5f9;"></div>
+        <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.09em;">Component Pool — drag from here</span>
+        <div style="flex:1;height:1px;background:#f1f5f9;"></div>
+      </div>
+
+      <!-- Component pool -->
+      <div class="component-pool" id="component-pool"
+           ondragover="event.preventDefault()"
+           ondrop="pyDropToPool(event)">
+        <!-- Chips injected by PyScript -->
+      </div>
+
+      <!-- Feedback -->
+      <div class="feedback-banner" id="feedback-banner"></div>
+
+      <!-- Actions -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn-audit" id="audit-btn">Audit Pipeline</button>
+        <button class="btn-reset" id="reset-btn">↺ Reset</button>
+        <button class="btn-next"  id="next-btn">Next Architecture →</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+          <div id="slot-fill-track" style="display:flex;gap:4px;"></div>
+          <span style="font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace;" id="fill-label">0/0 placed</span>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div style="display:flex;gap:16px;padding-top:2px;border-top:1px solid #f8fafc;">
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:var(--green-l);border:1.5px solid var(--green-b);"></div><span style="font-size:11px;color:#64748b;">Correct slot</span></div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:var(--rose-l);border:1.5px solid var(--rose-b);"></div><span style="font-size:11px;color:#64748b;">Wrong slot</span></div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:2px;background:linear-gradient(90deg,#059669,#34d399);border-radius:2px;"></div><span style="font-size:11px;color:#64748b;">Active flow</span></div>
+        <span style="margin-left:auto;font-size:11px;color:#94a3b8;">Drop a chip onto any dashed slot</span>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center;margin-top:16px;font-size:11px;color:#cbd5e1;">Powered by PyScript · All logic runs locally in your browser</p>
+</div>
+</div>
+
+<!-- ══════════════════════ PYSCRIPT ══════════════════════ -->
+<script type="py">
+import asyncio
+from pyscript import document
+import js
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PUZZLE DATA
+# ─────────────────────────────────────────────────────────────────────────────
+# Each puzzle:
+#   slots: ordered list of {id, label, answer_id}
+#   components: list of {id, label, category, desc}
+#   distractors: component ids that are in the pool but NOT part of the answer
+# ─────────────────────────────────────────────────────────────────────────────
+
+PUZZLES = [
+
+# ══════════ PUZZLE 1 · HTTP Request-Response Middleware Pipeline ══════════
+{
+  "title":  "HTTP Request–Response Middleware Pipeline",
+  "desc":   "Order the middleware layers an incoming HTTP request passes through before the response is returned.",
+  "difficulty": "intermediate",
+  "diff_cls": "bg-amber-100 text-amber-700",
+
+  "slots": [
+    {"id": "s1", "label": "Layer 1",  "answer_id": "rate-limiter"},
+    {"id": "s2", "label": "Layer 2",  "answer_id": "jwt-auth"},
+    {"id": "s3", "label": "Layer 3",  "answer_id": "request-validator"},
+    {"id": "s4", "label": "Layer 4",  "answer_id": "controller"},
+    {"id": "s5", "label": "Layer 5",  "answer_id": "serializer"},
+    {"id": "s6", "label": "Layer 6",  "answer_id": "response-cache"},
+  ],
+
+  "components": [
+    {"id": "rate-limiter",     "label": "Rate Limiter",          "cat": "cat-net",   "desc": "Throttles requests per IP before auth"},
+    {"id": "jwt-auth",         "label": "JWT Authenticator",     "cat": "cat-auth",  "desc": "Validates bearer token & extracts claims"},
+    {"id": "request-validator","label": "Request Validator",     "cat": "cat-logic", "desc": "Schema validation on request payload"},
+    {"id": "controller",       "label": "Business Controller",   "cat": "cat-logic", "desc": "Core application logic handler"},
+    {"id": "serializer",       "label": "Data Serializer",       "cat": "cat-data",  "desc": "Transforms domain objects to JSON"},
+    {"id": "response-cache",   "label": "Response Cache",        "cat": "cat-cache", "desc": "Caches serialized output for repeat calls"},
+    # Distractors
+    {"id": "orm-layer",        "label": "ORM Query Layer",       "cat": "cat-store", "desc": "Database abstraction — not middleware"},
+    {"id": "error-handler",    "label": "Error Handler",         "cat": "cat-err",   "desc": "Cross-cutting concern, not a linear stage"},
+  ],
+},
+
+
+# ══════════ PUZZLE 2 · MVC Application Data Flow ══════════
+{
+  "title":  "MVC Application Data Flow",
+  "desc":   "Place each component into the correct role in the Model-View-Controller pattern.",
+  "difficulty": "beginner",
+  "diff_cls": "bg-green-100 text-green-700",
+
+  "slots": [
+    {"id": "m1", "label": "Entry",      "answer_id": "url-router"},
+    {"id": "m2", "label": "Controller", "answer_id": "view-controller"},
+    {"id": "m3", "label": "Service",    "answer_id": "business-service"},
+    {"id": "m4", "label": "Model",      "answer_id": "data-model"},
+    {"id": "m5", "label": "Template",   "answer_id": "template-engine"},
+  ],
+
+  "components": [
+    {"id": "url-router",      "label": "URL Router",           "cat": "cat-router","desc": "Maps incoming paths to controller methods"},
+    {"id": "view-controller", "label": "View Controller",      "cat": "cat-logic", "desc": "Handles request & delegates to services"},
+    {"id": "business-service","label": "Business Service",     "cat": "cat-logic", "desc": "Encapsulates domain rules & orchestration"},
+    {"id": "data-model",      "label": "Data Model / ORM",     "cat": "cat-store", "desc": "Represents DB schema and queries"},
+    {"id": "template-engine", "label": "Template Engine",      "cat": "cat-view",  "desc": "Renders HTML from context data"},
+    # Distractors
+    {"id": "message-queue",   "label": "Message Queue",        "cat": "cat-queue", "desc": "Async comms — not part of MVC flow"},
+    {"id": "cdn-layer",       "label": "CDN Layer",            "cat": "cat-net",   "desc": "Static asset delivery, not MVC"},
+  ],
+},
+
+
+# ══════════ PUZZLE 3 · Event-Driven Microservice Bus ══════════
+{
+  "title":  "Event-Driven Microservice Bus",
+  "desc":   "Arrange the event-driven pipeline from producer to final consumer persistence.",
+  "difficulty": "advanced",
+  "diff_cls": "bg-purple-100 text-purple-700",
+
+  "slots": [
+    {"id": "e1", "label": "Stage 1",   "answer_id": "event-producer"},
+    {"id": "e2", "label": "Stage 2",   "answer_id": "schema-registry"},
+    {"id": "e3", "label": "Stage 3",   "answer_id": "event-broker"},
+    {"id": "e4", "label": "Stage 4",   "answer_id": "stream-processor"},
+    {"id": "e5", "label": "Stage 5",   "answer_id": "dead-letter"},
+    {"id": "e6", "label": "Stage 6",   "answer_id": "event-store"},
+    {"id": "e7", "label": "Stage 7",   "answer_id": "read-model"},
+  ],
+
+  "components": [
+    {"id": "event-producer",   "label": "Event Producer",        "cat": "cat-event", "desc": "Publishes domain events to the bus"},
+    {"id": "schema-registry",  "label": "Schema Registry",       "cat": "cat-data",  "desc": "Validates & versions event contracts"},
+    {"id": "event-broker",     "label": "Event Broker (Kafka)",  "cat": "cat-queue", "desc": "Partitions & routes event streams"},
+    {"id": "stream-processor", "label": "Stream Processor",      "cat": "cat-logic", "desc": "Filters, aggregates, transforms events"},
+    {"id": "dead-letter",      "label": "Dead-Letter Queue",     "cat": "cat-err",   "desc": "Captures unprocessable failed events"},
+    {"id": "event-store",      "label": "Event Store",           "cat": "cat-store", "desc": "Persists immutable event log"},
+    {"id": "read-model",       "label": "Read Model Projector",  "cat": "cat-view",  "desc": "Builds query-optimised read projections"},
+    # Distractors
+    {"id": "api-gateway",      "label": "API Gateway",           "cat": "cat-net",   "desc": "Synchronous HTTP entry — not in event pipeline"},
+    {"id": "jwt-auth2",        "label": "JWT Authenticator",     "cat": "cat-auth",  "desc": "Auth layer for REST, not event bus"},
+  ],
+},
+
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  GLOBAL STATE
+# ─────────────────────────────────────────────────────────────────────────────
+state = {
+    "puzzle_idx":   0,
+    "score":        0,
+    "solved":       set(),
+    "attempts":     0,
+    # slot_id -> component_id (or None)
+    "slot_contents": {},
+    # component_id -> slot_id (or None = in pool)
+    "comp_slot":    {},
+    "dragging_id":  None,
+    "locked":       False,   # True after correct audit
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  DOM helpers
+# ─────────────────────────────────────────────────────────────────────────────
+def el(id_): return document.getElementById(id_)
+def set_text(id_, t): el(id_).textContent = t
+def set_html(id_, h): el(id_).innerHTML = h
+
+def _safe(txt):
+    return txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RENDER PUZZLE
+# ─────────────────────────────────────────────────────────────────────────────
+def render_puzzle(idx):
+    p = PUZZLES[idx]
+    state["slot_contents"] = {s["id"]: None for s in p["slots"]}
+    state["comp_slot"]     = {c["id"]: None for c in p["components"]}
+    state["dragging_id"]   = None
+    state["locked"]        = False
+    state["attempts"]      = 0
+
+    el("puzzle-title").textContent = p["title"]
+    el("puzzle-desc").textContent  = p["desc"]
+
+    badge = el("diff-badge")
+    badge.textContent = p["difficulty"].capitalize()
+    badge.className   = "diff-badge " + p["diff_cls"]
+
+    el("feedback-banner").className = "feedback-banner"
+    el("feedback-banner").style.display = "none"
+    el("next-btn").style.display = "none"
+    el("audit-btn").disabled = False
+    el("attempts-val").textContent = "0"
+
+    _render_pipeline(p)
+    _render_pool(p)
+    _update_fill_bar(p)
+    _update_tabs()
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PIPELINE RENDER
+# ─────────────────────────────────────────────────────────────────────────────
+def _render_pipeline(p):
+    rail = el("pipeline-rail")
+    rail.innerHTML = ""
+
+    for i, slot in enumerate(p["slots"]):
+        # Drop slot
+        slot_div = document.createElement("div")
+        slot_div.className = "drop-slot"
+        slot_div.id = f"slot-{slot['id']}"
+        slot_div.dataset.slotId = slot["id"]
+
+        # Position label
+        pos_lbl = document.createElement("div")
+        pos_lbl.className = "slot-pos"
+        pos_lbl.textContent = slot["label"]
+        slot_div.appendChild(pos_lbl)
+
+        # Inner hint
+        hint = document.createElement("div")
+        hint.className = "slot-hint"
+        hint.textContent = "drop here"
+        hint.id = f"slot-hint-{slot['id']}"
+        slot_div.appendChild(hint)
+
+        slot_div.addEventListener("dragover", js.pyDragOver)
+        slot_div.addEventListener("dragleave", js.pyDragLeave)
+        slot_div.addEventListener("drop", js.pyDropToSlot)
+
+        rail.appendChild(slot_div)
+
+        # Connector (not after last slot)
+        if i < len(p["slots"]) - 1:
+            conn = document.createElement("div")
+            conn.className = "connector"
+            conn.id = f"conn-{i}"
+
+            line = document.createElement("div")
+            line.className = "connector-line"
+            conn.appendChild(line)
+
+            chevron = document.createElement("div")
+            chevron.className = "chevron"
+            conn.appendChild(chevron)
+
+            rail.appendChild(conn)
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  POOL RENDER
+# ─────────────────────────────────────────────────────────────────────────────
+def _render_pool(p):
+    pool = el("component-pool")
+    pool.innerHTML = ""
+
+    for comp in p["components"]:
+        chip = document.createElement("div")
+        chip.className = f"drag-chip {comp['cat']}"
+        chip.id = f"chip-{comp['id']}"
+        chip.draggable = True
+        chip.dataset.compId = comp["id"]
+        chip.title = comp["desc"]
+
+        chip.innerHTML = f'<span>{_safe(comp["label"])}</span>'
+        chip.addEventListener("dragstart", js.pyDragStart)
+        chip.addEventListener("dragend",   js.pyDragEnd)
+
+        pool.appendChild(chip)
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  DRAG HANDLERS
+# ─────────────────────────────────────────────────────────────────────────────
+def drag_start(event):
+    comp_id = event.target.dataset.compId
+    if not comp_id:
+        # Could be a placed chip — look up
+        comp_id = event.target.closest("[data-comp-id]").dataset.compId if event.target.closest("[data-comp-id]") else None
+    if not comp_id:
+        return
+
+    state["dragging_id"] = comp_id
+    event.dataTransfer.effectAllowed = "move"
+    event.dataTransfer.setData("text/plain", comp_id)
+
+    chip = el(f"chip-{comp_id}")
+    if chip:
+        chip.classList.add("dragging")
+
+
+def drag_end(event):
+    comp_id = state["dragging_id"]
+    if comp_id:
+        chip = el(f"chip-{comp_id}")
+        if chip:
+            chip.classList.remove("dragging")
+    state["dragging_id"] = None
+
+
+def drag_over(event):
+    event.preventDefault()
+    slot_div = event.currentTarget
+    slot_div.classList.add("dragover")
+
+
+def drag_leave(event):
+    event.currentTarget.classList.remove("dragover")
+
+
+def drop_to_slot(event):
+    event.preventDefault()
+    if state["locked"]:
+        return
+
+    slot_div = event.currentTarget
+    slot_div.classList.remove("dragover")
+
+    slot_id  = slot_div.dataset.slotId
+    comp_id  = state["dragging_id"] or event.dataTransfer.getData("text/plain")
+
+    if not comp_id or not slot_id:
+        return
+
+    # If slot already occupied, return old chip to pool
+    existing = state["slot_contents"].get(slot_id)
+    if existing:
+        _return_to_pool(existing)
+
+    # If this comp was in another slot, clear it
+    old_slot = state["comp_slot"].get(comp_id)
+    if old_slot and old_slot != slot_id:
+        state["slot_contents"][old_slot] = None
+        _clear_slot_ui(old_slot)
+
+    # Place
+    state["slot_contents"][slot_id] = comp_id
+    state["comp_slot"][comp_id]     = slot_id
+
+    _place_chip_in_slot(slot_id, comp_id)
+    _update_fill_bar(PUZZLES[state["puzzle_idx"]])
+    _update_connector(slot_id)
+
+
+def drop_to_pool(event):
+    event.preventDefault()
+    if state["locked"]:
+        return
+
+    comp_id = state["dragging_id"] or event.dataTransfer.getData("text/plain")
+    if not comp_id:
+        return
+
+    old_slot = state["comp_slot"].get(comp_id)
+    if old_slot:
+        state["slot_contents"][old_slot] = None
+        state["comp_slot"][comp_id]      = None
+        _clear_slot_ui(old_slot)
+        _update_connector(old_slot)
+
+    _return_to_pool(comp_id)
+    _update_fill_bar(PUZZLES[state["puzzle_idx"]])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  UI HELPERS FOR DRAG
+# ─────────────────────────────────────────────────────────────────────────────
+def _place_chip_in_slot(slot_id, comp_id):
+    p = PUZZLES[state["puzzle_idx"]]
+    comp = next(c for c in p["components"] if c["id"] == comp_id)
+
+    slot_div = el(f"slot-{slot_id}")
+    # Clear previous content but keep pos label
+    for child in list(slot_div.childNodes):
+        if not child.classList or not child.classList.contains("slot-pos"):
+            slot_div.removeChild(child)
+
+    chip = document.createElement("div")
+    chip.className = f"placed-chip {comp['cat']}"
+    chip.draggable = True
+    chip.dataset.compId = comp_id
+    chip.innerHTML = _safe(comp["label"])
+    chip.addEventListener("dragstart", js.pyDragStart)
+    chip.addEventListener("dragend",   js.pyDragEnd)
+
+    # Remove button
+    rm_btn = document.createElement("div")
+    rm_btn.className = "chip-remove"
+    rm_btn.textContent = "×"
+    rm_btn.dataset.compId = comp_id
+    rm_btn.onclick = js.pyRemoveChip
+    chip.appendChild(rm_btn)
+
+    slot_div.appendChild(chip)
+
+    # Hide the "drop here" hint
+    hint = el(f"slot-hint-{slot_id}")
+    if hint:
+        hint.style.display = "none"
+
+    # Mark pool chip as used
+    pool_chip = el(f"chip-{comp_id}")
+    if pool_chip:
+        pool_chip.classList.add("used")
+
+
+def _clear_slot_ui(slot_id):
+    slot_div = el(f"slot-{slot_id}")
+    for child in list(slot_div.childNodes):
+        if child.classList and child.classList.contains("slot-pos"):
+            continue
+        slot_div.removeChild(child)
+
+    # Restore hint
+    hint_el = document.createElement("div")
+    hint_el.className = "slot-hint"
+    hint_el.textContent = "drop here"
+    hint_el.id = f"slot-hint-{slot_id}"
+    slot_div.appendChild(hint_el)
+
+    slot_div.classList.remove("correct", "wrong")
+
+
+def _return_to_pool(comp_id):
+    state["comp_slot"][comp_id] = None
+    pool_chip = el(f"chip-{comp_id}")
+    if pool_chip:
+        pool_chip.classList.remove("used", "dragging")
+
+
+def remove_chip(event):
+    if state["locked"]:
+        return
+    btn = event.target if event.target.dataset.compId else event.currentTarget
+    comp_id = btn.dataset.compId
+    old_slot = state["comp_slot"].get(comp_id)
+    if old_slot:
+        state["slot_contents"][old_slot] = None
+        state["comp_slot"][comp_id]      = None
+        _clear_slot_ui(old_slot)
+        _update_connector(old_slot)
+        _return_to_pool(comp_id)
+        _update_fill_bar(PUZZLES[state["puzzle_idx"]])
+
+
+def _update_connector(slot_id):
+    p = PUZZLES[state["puzzle_idx"]]
+    slot_ids = [s["id"] for s in p["slots"]]
+    if slot_id in slot_ids:
+        idx = slot_ids.index(slot_id)
+        # Connector before this slot (idx-1)
+        if idx > 0:
+            _refresh_connector(idx - 1, slot_ids)
+        # Connector after this slot (idx)
+        if idx < len(slot_ids) - 1:
+            _refresh_connector(idx, slot_ids)
+
+
+def _refresh_connector(conn_idx, slot_ids):
+    left_slot  = slot_ids[conn_idx]
+    right_slot = slot_ids[conn_idx + 1]
+    left_filled  = state["slot_contents"].get(left_slot)  is not None
+    right_filled = state["slot_contents"].get(right_slot) is not None
+
+    conn = el(f"conn-{conn_idx}")
+    if conn:
+        conn.classList.remove("active", "correct")
+        if left_filled and right_filled:
+            conn.classList.add("active")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  FILL BAR
+# ─────────────────────────────────────────────────────────────────────────────
+def _update_fill_bar(p):
+    total  = len(p["slots"])
+    filled = sum(1 for sid in state["slot_contents"] if state["slot_contents"][sid] is not None)
+
+    # Dot indicators
+    track = el("slot-fill-track")
+    track.innerHTML = ""
+    for i in range(total):
+        dot = document.createElement("div")
+        dot.style.cssText = (
+            f"width:7px;height:7px;border-radius:50%;"
+            f"background:{'#4f46e5' if i < filled else '#e2e8f0'};"
+            f"transition:background 0.2s;"
+        )
+        track.appendChild(dot)
+
+    el("fill-label").textContent = f"{filled}/{total} placed"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  AUDIT
+# ─────────────────────────────────────────────────────────────────────────────
+def audit_pipeline(event=None):
+    if state["locked"]:
+        return
+
+    p = PUZZLES[state["puzzle_idx"]]
+    state["attempts"] += 1
+    el("attempts-val").textContent = str(state["attempts"])
+
+    correct_count = 0
+    wrong_count   = 0
+    empty_count   = 0
+
+    slot_ids = [s["id"] for s in p["slots"]]
+
+    for slot in p["slots"]:
+        sid        = slot["id"]
+        answer_id  = slot["answer_id"]
+        placed     = state["slot_contents"].get(sid)
+        slot_div   = el(f"slot-{sid}")
+
+        slot_div.classList.remove("correct", "wrong")
+
+        if placed is None:
+            empty_count += 1
+        elif placed == answer_id:
+            correct_count += 1
+            slot_div.classList.add("correct")
+        else:
+            wrong_count += 1
+            slot_div.classList.remove("correct")
+            slot_div.classList.add("wrong")
+            # Re-add wrong to retrigger animation
+            slot_div.style.animation = "none"
+            _ = slot_div.offsetWidth
+            slot_div.style.animation = ""
+
+    # Activate connectors if fully correct
+    all_correct = (correct_count == len(p["slots"]) and wrong_count == 0 and empty_count == 0)
+
+    if all_correct:
+        # Light up all connectors
+        for i in range(len(slot_ids) - 1):
+            conn = el(f"conn-{i}")
+            if conn:
+                conn.classList.add("correct")
+                conn.classList.remove("active")
+
+        pts = max(5, 20 - (state["attempts"] - 1) * 4)
+        state["score"]  += pts
+        state["solved"].add(state["puzzle_idx"])
+        state["locked"] = True
+
+        el("score-val").textContent  = str(state["score"])
+        el("solved-val").textContent = f"{len(state['solved'])}/3"
+
+        banner = el("feedback-banner")
+        banner.className = "feedback-banner success"
+        banner.innerHTML = (
+            f"<strong>✓ Pipeline architecture is correct!</strong> +{pts} pts — "
+            f"All {len(p['slots'])} components placed in the right sequence. "
+            f"The data flow is valid end-to-end."
+        )
+
+        el("audit-btn").disabled = True
+        el("next-btn").style.display = "inline-block"
+        _update_tabs()
+
+    elif empty_count == len(p["slots"]):
+        banner = el("feedback-banner")
+        banner.className = "feedback-banner error"
+        banner.innerHTML = "<strong>No components placed.</strong> Drag components from the pool into the pipeline slots first."
+
+    else:
+        banner = el("feedback-banner")
+        banner.className = "feedback-banner partial"
+        if empty_count > 0:
+            banner.innerHTML = (
+                f"<strong>{correct_count} correct · {wrong_count} wrong · {empty_count} empty.</strong> "
+                f"Fill all slots before auditing for a complete result."
+            )
+        else:
+            banner.innerHTML = (
+                f"<strong>{correct_count} / {len(p['slots'])} correct.</strong> "
+                f"{wrong_count} component{'s are' if wrong_count!=1 else ' is'} misplaced. "
+                f"Re-read the architecture description and try again."
+            )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RESET
+# ─────────────────────────────────────────────────────────────────────────────
+def reset_puzzle(event=None):
+    render_puzzle(state["puzzle_idx"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  NEXT
+# ─────────────────────────────────────────────────────────────────────────────
+def next_puzzle(event=None):
+    nxt = (state["puzzle_idx"] + 1) % len(PUZZLES)
+    select_puzzle(nxt)
+
+
+def select_puzzle(idx):
+    state["puzzle_idx"] = idx
+    render_puzzle(idx)
+
+
+def _update_tabs():
+    for i in range(len(PUZZLES)):
+        tab = el(f"ptab-{i}")
+        tab.className = "ptab"
+        if i in state["solved"]:
+            tab.className += " solved"
+        if i == state["puzzle_idx"]:
+            tab.className += " active"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  JS BRIDGES
+# ─────────────────────────────────────────────────────────────────────────────
+js.pySelectPuzzle = select_puzzle
+js.pyDragStart    = drag_start
+js.pyDragEnd      = drag_end
+js.pyDragOver     = drag_over
+js.pyDragLeave    = drag_leave
+js.pyDropToSlot   = drop_to_slot
+js.pyDropToPool   = drop_to_pool
+js.pyRemoveChip   = remove_chip
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  BOOT
+# ─────────────────────────────────────────────────────────────────────────────
+async def boot():
+    loading = el("py-loading")
+    loading.style.opacity = "0"
+    await asyncio.sleep(0.35)
+    loading.style.display = "none"
+    el("app").style.display = "block"
+
+    el("audit-btn").onclick = audit_pipeline
+    el("reset-btn").onclick = reset_puzzle
+    el("next-btn").onclick  = next_puzzle
+
+    render_puzzle(0)
+
+asyncio.ensure_future(boot())
+</script>
+
+</body>
+</html>

@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Memory: The Scouting Report</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- PyScript -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+  <!-- JetBrains Mono for terminal feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    /* ── Terminal window ── */
+    .terminal-wrap {
+      background: #0f172a;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.35);
+      position: relative;
+    }
+
+    .terminal-titlebar {
+      background: #1e293b;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red    { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green  { background: #22c55e; }
+
+    .terminal-filename {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #64748b;
+      letter-spacing: 0.05em;
+    }
+
+    /* CRT scan-line shimmer — active during memory phase */
+    .terminal-body {
+      position: relative;
+      padding: 20px 24px 24px;
+      transition: filter 1.2s ease, opacity 1.2s ease;
+    }
+
+    .terminal-body::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Animated scan sweep — only when .scanning class present */
+    @keyframes scanSweep {
+      0%   { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+
+    .scanning .scan-line-sweep {
+      display: block;
+      animation: scanSweep 3s linear infinite;
+    }
+
+    .scan-line-sweep {
+      display: none;
+      position: absolute;
+      left: 0; right: 0;
+      height: 60px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(99,202,255,0.04),
+        rgba(99,202,255,0.09),
+        rgba(99,202,255,0.04),
+        transparent
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Blurred state */
+    .code-blurred {
+      filter: blur(14px);
+      opacity: 0.12;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Code coloring */
+    .code-block { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85; }
+    .ln { color: #334155; min-width: 28px; display: inline-block; text-align: right; margin-right: 18px; font-size: 11px; user-select: none; }
+    .kw  { color: #c084fc; }      /* keywords */
+    .fn  { color: #38bdf8; }      /* function names */
+    .cn  { color: #fb923c; }      /* class names */
+    .st  { color: #86efac; }      /* strings */
+    .cm  { color: #475569; font-style: italic; } /* comments */
+    .num { color: #f9a8d4; }      /* numbers */
+    .op  { color: #94a3b8; }      /* operators, punctuation */
+    .df  { color: #e2e8f0; }      /* default text */
+
+    /* ── Progress bar ── */
+    #progress-bar {
+      height: 5px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #6366f1, #38bdf8);
+      transition: width linear;
+      transform-origin: left;
+    }
+
+    /* ── Option buttons ── */
+    .opt-btn {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      color: #1e293b;
+      border-radius: 0.6rem;
+      padding: 10px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      width: 100%;
+    }
+
+    .opt-btn:hover:not(:disabled) {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      transform: translateX(2px);
+    }
+
+    .opt-btn.correct {
+      background: #f0fdf4;
+      border-color: #4ade80;
+      color: #166534;
+    }
+
+    .opt-btn.wrong {
+      background: #fff1f2;
+      border-color: #f87171;
+      color: #9f1239;
+    }
+
+    .opt-btn.revealed {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #15803d;
+      font-weight: 600;
+    }
+
+    .opt-btn:disabled { cursor: default; }
+
+    /* Phase badge */
+    .phase-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+
+    .badge-memory {
+      background: #ede9fe;
+      color: #6d28d9;
+    }
+
+    .badge-quiz {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .badge-done {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    /* Score pill */
+    .score-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #64748b;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 99px;
+      padding: 3px 12px;
+    }
+
+    /* Question card */
+    .q-card {
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+
+    .q-number {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+    }
+
+    .q-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1e293b;
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+
+    /* Next mission button */
+    #next-btn {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      border-radius: 0.65rem;
+      padding: 12px 28px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+
+    #next-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    #next-btn:active { transform: translateY(0); }
+
+    /* Feedback badge under answered question */
+    .feedback-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin-top: 8px;
+    }
+    .feedback-correct { background: #dcfce7; color: #166534; }
+    .feedback-wrong   { background: #fee2e2; color: #991b1b; }
+
+    /* Pyscript loading overlay */
+    #py-loading {
+      position: fixed; inset: 0;
+      background: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      gap: 16px;
+      transition: opacity 0.4s;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    py-terminal { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="py-loading">
+  <div class="spinner"></div>
+  <p style="color:#64748b;font-size:14px;font-family:'Inter',sans-serif;">Initialising PyScript runtime…</p>
+</div>
+
+<!-- ═══════════════════════════════════════ MAIN APP ═══════════════════════════ -->
+<div class="min-h-screen flex flex-col items-center justify-start py-10 px-4">
+
+  <!-- Card -->
+  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden" style="box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 20px 60px -10px rgba(0,0,0,0.12);">
+
+    <!-- ── Header ── -->
+    <div class="px-7 pt-6 pb-5 border-b border-slate-100">
+
+      <div class="flex items-center justify-between mb-1">
+        <h1 class="text-lg font-bold text-slate-800 tracking-tight">🏆 Code Memory: The Scouting Report</h1>
+        <span id="score-display" class="score-pill">Score: 0 / 0</span>
+      </div>
+
+      <div class="flex items-center gap-3 mt-3">
+        <span id="phase-badge" class="phase-badge badge-memory">Memory Phase</span>
+        <span id="mission-label" class="text-xs text-slate-400 font-medium">Mission 1 of 3</span>
+        <span id="timer-label" class="ml-auto font-mono text-xs font-semibold text-slate-500">8s</span>
+      </div>
+
+      <!-- Progress bar track -->
+      <div class="mt-2 w-full bg-slate-100 rounded-full" style="height:5px;">
+        <div id="progress-bar" style="width:100%;"></div>
+      </div>
+    </div>
+
+    <!-- ── Terminal canvas ── -->
+    <div class="px-6 pt-5">
+      <div class="terminal-wrap">
+        <!-- Title bar -->
+        <div class="terminal-titlebar">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+          <span class="terminal-filename" id="terminal-filename">mission_01.py</span>
+        </div>
+        <!-- Code body -->
+        <div class="terminal-body scanning" id="terminal-body">
+          <div class="scan-line-sweep" id="scan-sweep"></div>
+          <div class="code-block" id="code-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Quiz area ── -->
+    <div id="quiz-area" class="px-6 pt-5 pb-7" style="display:none;">
+      <div class="flex items-center gap-2 mb-4">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Architectural Quiz</span>
+      </div>
+      <div id="questions-container"></div>
+      <div id="next-btn-wrap" style="display:none; margin-top:18px;">
+        <button id="next-btn">Next Mission →</button>
+      </div>
+    </div>
+
+    <!-- ── Completion screen ── -->
+    <div id="complete-screen" class="px-6 py-10 text-center" style="display:none;">
+      <div class="text-5xl mb-4">🎯</div>
+      <h2 class="text-2xl font-bold text-slate-800 mb-2">Debrief Complete</h2>
+      <p class="text-slate-500 mb-1" id="final-msg"></p>
+      <p class="font-mono text-3xl font-bold text-indigo-600 mt-4" id="final-score"></p>
+      <button id="restart-btn" onclick="location.reload()"
+        class="mt-8 px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition">
+        Run Again
+      </button>
+    </div>
+
+  </div><!-- /card -->
+
+  <p class="mt-6 text-xs text-slate-400">Study the code. The terminal goes dark. Answer from memory.</p>
+</div><!-- /wrapper -->
+
+<!-- ═══════════════════════════════════════ PYSCRIPT ═══════════════════════════ -->
+<script type="py">
+import asyncio
+from pyscript import document
+
+# ─────────────────────────────────────────────────────────
+#  MISSION DATA  (3 levels, Python dicts)
+# ─────────────────────────────────────────────────────────
+
+MISSIONS = [
+    {
+        "filename": "api_endpoint.py",
+        "lines": [
+            ('kw','import'), (' ', 'asyncio'),
+            None,
+            ('kw','from'), (' fastapi ', 'df'), ('kw','import'), (' ', 'df'), ('cn','FastAPI'), (', APIRouter', 'op'),
+            ('kw','from'), (' typing ', 'df'), ('kw','import'), (' ', 'df'), ('cn','Optional'), (', List', 'op'),
+            None,
+            ('cn','router'), (' = APIRouter()', 'op'),
+            ('cn','_cache'), (': ', 'op'), ('cn','dict'), (' = ', 'op'), ('kw', '{}'),
+            None,
+            ('kw','class'), (' ', 'df'), ('cn','RecordProcessor'), (':', 'op'),
+            ('    ', 'df'), ('kw','def'), (' ', 'df'), ('fn','__init__'), ('(self, db_url: ', 'op'), ('cn','str'), (')', 'op'), (' -> ', 'op'), ('kw','None'), (':', 'op'),
+            ('        self.db_url', 'df'), (' = ', 'op'), ('st', 'db_url'),
+            ('        self._cache', 'df'), (': ', 'op'), ('cn','dict'), (' = ', 'op'), ('kw', '{}'),
+            ('        self._errors', 'df'), (': ', 'op'), ('cn','list'), (' = ', 'op'), ('op', '[]'),
+            None,
+            ('    ', 'df'), ('kw','async'), (' ', 'df'), ('kw','def'), (' ', 'df'), ('fn','process'), ('(self, records: ', 'op'), ('cn','List'), ('[', 'op'), ('cn','dict'), ('])', 'op'), (':', 'op'),
+            ('        ', 'df'), ('kw','for'), (' ', 'df'), ('df','record'), (' ', 'op'), ('kw','in'), (' ', 'op'), ('df','records'), (':', 'op'),
+            ('            key', 'df'), (' = ', 'op'), ('df','record'), ('.get(', 'op'), ('st', '"id"'), (')', 'op'),
+            ('            ', 'df'), ('kw','if'), (' key ', 'kw'), ('kw','not'), (' ', 'kw'), ('kw','in'), (' self._cache:', 'df'),
+            ('                self._cache[key]', 'df'), (' = ', 'op'), ('df','record'),
+            ('        ', 'df'), ('kw','return'), (' ', 'df'), ('cn','len'), ('(self._cache)', 'op'),
+        ],
+        "questions": [
+            {
+                "text": 'What data structure was used to initialise <code class="bg-slate-100 px-1 rounded text-indigo-700">self._cache</code> on line 9?',
+                "options": ["List  →  []", "Dictionary  →  {}", "Set  →  set()", "None  →  None"],
+                "answer": 1,
+            },
+            {
+                "text": 'On line 14, how did the <code class="bg-slate-100 px-1 rounded text-indigo-700">process</code> method iterate through records?',
+                "options": [
+                    "for i, record in enumerate(records):",
+                    "while i < len(records):",
+                    "for record in records:",
+                    "records.forEach(record => ...)",
+                ],
+                "answer": 2,
+            },
+            {
+                "text": 'What was the return type annotation of <code class="bg-slate-100 px-1 rounded text-indigo-700">__init__</code>?',
+                "options": ["None", "dict", "str", "bool"],
+                "answer": 0,
+            },
+        ],
+    },
+
+    {
+        "filename": "data_pipeline.py",
+        "lines": [
+            ('kw','from'), (' dataclasses ', 'df'), ('kw','import'), (' dataclass, field', 'op'),
+            ('kw','from'), (' pathlib ', 'df'), ('kw','import'), (' ', 'df'), ('cn','Path'),
+            ('kw','import'), (' json', 'df'),
+            None,
+            ('kw','@dataclass'),
+            ('kw','class'), (' ', 'df'), ('cn','PipelineConfig'), (':', 'op'),
+            ('    source_dir', 'df'), (': ', 'op'), ('cn','Path'),
+            ('    output_dir', 'df'), (': ', 'op'), ('cn','Path'),
+            ('    batch_size', 'df'), (': ', 'op'), ('cn','int'), (' = ', 'op'), ('num','256'),
+            ('    tags', 'df'), (': ', 'op'), ('cn','list'), (' = field(default_factory=', 'op'), ('cn','list'), (')', 'op'),
+            None,
+            ('kw','def'), (' ', 'df'), ('fn','run_pipeline'), ('(cfg: ', 'op'), ('cn','PipelineConfig'), (') -> ', 'op'), ('cn','dict'), (':', 'op'),
+            ('    results', 'df'), (': ', 'op'), ('cn','dict'), (' = ', 'op'), ('kw', '{}'),
+            ('    files', 'df'), (' = ', 'op'), ('cn','list'), ('(cfg.source_dir.glob(', 'op'), ('st','"*.json"'), ('))', 'op'),
+            None,
+            ('    ', 'df'), ('kw','for'), (' i, path ', 'df'), ('kw','in'), (' ', 'op'), ('fn','enumerate'), ('(files):', 'op'),
+            ('        ', 'df'), ('kw','with'), (' ', 'df'), ('fn','open'), ('(path) ', 'df'), ('kw','as'), (' f:', 'df'),
+            ('            data', 'df'), (' = json.', 'op'), ('fn','load'), ('(f)', 'op'),
+            ('        results[i]', 'df'), (' = data', 'op'),
+            None,
+            ('    ', 'df'), ('kw','return'), (' results', 'df'),
+        ],
+        "questions": [
+            {
+                "text": 'What decorator was applied to the <code class="bg-slate-100 px-1 rounded text-indigo-700">PipelineConfig</code> class?',
+                "options": ["@staticmethod", "@property", "@dataclass", "@classmethod"],
+                "answer": 2,
+            },
+            {
+                "text": 'How did <code class="bg-slate-100 px-1 rounded text-indigo-700">run_pipeline</code> iterate through the file list?',
+                "options": [
+                    "for path in files:",
+                    "for i, path in enumerate(files):",
+                    "while len(files) > 0:",
+                    "files.map(lambda path: ...)",
+                ],
+                "answer": 1,
+            },
+            {
+                "text": 'What was the default value of <code class="bg-slate-100 px-1 rounded text-indigo-700">batch_size</code> in the dataclass?',
+                "options": ["128", "512", "64", "256"],
+                "answer": 3,
+            },
+        ],
+    },
+
+    {
+        "filename": "cache_manager.py",
+        "lines": [
+            ('kw','import'), (' time', 'df'),
+            ('kw','from'), (' collections ', 'df'), ('kw','import'), (' ', 'df'), ('cn','OrderedDict'),
+            ('kw','from'), (' typing ', 'df'), ('kw','import'), (' ', 'df'), ('cn','Any'), (', Tuple', 'op'),
+            None,
+            ('cn','TTL_DEFAULT', 'df'), (' = ', 'op'), ('num','300'),   # 300
+            None,
+            ('kw','class'), (' ', 'df'), ('cn','LRUCache'), (':', 'op'),
+            ('    ', 'df'), ('kw','def'), (' ', 'df'), ('fn','__init__'), ('(self, capacity: ', 'op'), ('cn','int'), (' = ', 'op'), ('num','128'), (') -> ', 'op'), ('kw','None'), (':', 'op'),
+            ('        self.capacity', 'df'), (' = capacity', 'op'),
+            ('        self._store', 'df'), (': ', 'op'), ('cn','OrderedDict'), (' = ', 'op'), ('cn','OrderedDict'), ('()', 'op'),
+            ('        self._hits', 'df'), (': ', 'op'), ('cn','int'), (' = ', 'op'), ('num','0'),
+            None,
+            ('    ', 'df'), ('kw','def'), (' ', 'df'), ('fn','get'), ('(self, key: ', 'op'), ('cn','str'), (') -> ', 'op'), ('cn','Any'), (':', 'op'),
+            ('        ', 'df'), ('kw','if'), (' key ', 'kw'), ('kw','not'), (' ', 'kw'), ('kw','in'), (' self._store:', 'df'),
+            ('            ', 'df'), ('kw','return'), (' ', 'df'), ('kw','None'),
+            ('        self._store.move_to_end(key)', 'df'),
+            ('        self._hits', 'df'), (' += ', 'op'), ('num','1'),
+            ('        ', 'df'), ('kw','return'), (' self._store[key]', 'df'),
+            None,
+            ('    ', 'df'), ('kw','def'), (' ', 'df'), ('fn','put'), ('(self, key: ', 'op'), ('cn','str'), (', value: ', 'op'), ('cn','Any'), (') -> ', 'op'), ('kw','None'), (':', 'op'),
+            ('        ', 'df'), ('kw','if'), (' ', 'df'), ('cn','len'), ('(self._store) >= self.capacity:', 'df'),
+            ('            self._store.popitem(last=', 'df'), ('kw','False'), (')', 'op'),
+            ('        self._store[key]', 'df'), (' = value', 'op'),
+        ],
+        "questions": [
+            {
+                "text": 'What data structure backed the internal store in <code class="bg-slate-100 px-1 rounded text-indigo-700">LRUCache</code>?',
+                "options": ["dict", "list", "OrderedDict", "defaultdict"],
+                "answer": 2,
+            },
+            {
+                "text": 'What was the default capacity of <code class="bg-slate-100 px-1 rounded text-indigo-700">LRUCache.__init__</code>?',
+                "options": ["256", "64", "512", "128"],
+                "answer": 3,
+            },
+            {
+                "text": 'What was the module-level constant defined for TTL, and what was its value?',
+                "options": ["TTL_MAX = 600", "TTL_DEFAULT = 300", "CACHE_TTL = 120", "DEFAULT_TTL = 60"],
+                "answer": 1,
+            },
+        ],
+    },
+]
+
+# ─────────────────────────────────────────────────────────
+#  STATE
+# ─────────────────────────────────────────────────────────
+state = {
+    "mission_idx": 0,
+    "phase": "memory",          # "memory" | "quiz" | "done"
+    "answers": {},              # q_idx -> bool
+    "score": 0,
+    "total_questions": 0,
+    "timer_running": False,
+}
+
+TIMER_DURATION = 8  # seconds
+
+# ─────────────────────────────────────────────────────────
+#  HELPERS – DOM shortcuts
+# ─────────────────────────────────────────────────────────
+def el(id_): return document.getElementById(id_)
+def qs(sel): return document.querySelector(sel)
+
+def set_text(id_, txt):   el(id_).textContent = txt
+def set_html(id_, html):  el(id_).innerHTML = html
+
+# ─────────────────────────────────────────────────────────
+#  RENDER CODE BLOCK
+# ─────────────────────────────────────────────────────────
+def render_code(mission):
+    lines = mission["lines"]
+    # Group tokens into screen lines, splitting on None sentinels
+    html_lines = []
+    current_line = []
+    line_num = 1
+
+    for token in lines:
+        if token is None:
+            html_lines.append((line_num, current_line))
+            line_num += 1
+            current_line = []
+        else:
+            current_line.append(token)
+
+    if current_line:
+        html_lines.append((line_num, current_line))
+
+    html = ""
+    for (ln, tokens) in html_lines:
+        html += f'<div><span class="ln">{ln}</span>'
+        for (cls, txt) in tokens:
+            safe = txt.replace('<', '&lt;').replace('>', '&gt;')
+            html += f'<span class="{cls}">{safe}</span>'
+        html += '</div>'
+
+    el("code-display").innerHTML = html
+    el("terminal-filename").textContent = mission["filename"]
+
+# ─────────────────────────────────────────────────────────
+#  RENDER QUESTIONS
+# ─────────────────────────────────────────────────────────
+def render_questions(mission):
+    state["answers"] = {}
+    container = el("questions-container")
+    container.innerHTML = ""
+
+    for q_idx, q in enumerate(mission["questions"]):
+        card = document.createElement("div")
+        card.className = "q-card"
+        card.id = f"qcard-{q_idx}"
+
+        # question number + text
+        inner = f'<div class="q-number">Question {q_idx + 1}</div>'
+        inner += f'<div class="q-text">{q["text"]}</div>'
+        inner += f'<div class="flex flex-col gap-2" id="opts-{q_idx}">'
+
+        for o_idx, opt in enumerate(q["options"]):
+            safe_opt = opt.replace('"', '&quot;')
+            inner += (
+                f'<button class="opt-btn" id="opt-{q_idx}-{o_idx}" '
+                f'onclick="pyAnswerClick({q_idx}, {o_idx})">'
+                f'{opt}</button>'
+            )
+
+        inner += '</div><div id="feedback-{q_idx}"></div>'
+        card.innerHTML = inner
+        container.appendChild(card)
+
+# ─────────────────────────────────────────────────────────
+#  ANSWER HANDLER  (called from inline onclick via JS bridge)
+# ─────────────────────────────────────────────────────────
+def answer_click(q_idx, o_idx):
+    if q_idx in state["answers"]:
+        return  # already answered
+
+    mission = MISSIONS[state["mission_idx"]]
+    q = mission["questions"][q_idx]
+    correct = q["answer"]
+    is_correct = (o_idx == correct)
+
+    state["answers"][q_idx] = is_correct
+    if is_correct:
+        state["score"] += 1
+    state["total_questions"] += 1
+    update_score_display()
+
+    # Style buttons
+    for i in range(len(q["options"])):
+        btn = el(f"opt-{q_idx}-{i}")
+        btn.disabled = True
+        if i == o_idx and is_correct:
+            btn.className = "opt-btn correct"
+        elif i == o_idx and not is_correct:
+            btn.className = "opt-btn wrong"
+        if i == correct and not is_correct:
+            btn.className = "opt-btn revealed"
+
+    # Feedback tag
+    fb_div = el(f"qcard-{q_idx}").querySelector(f"#feedback-{q_idx}")
+    if fb_div is None:
+        # Fallback: append to card
+        fb_div = document.createElement("div")
+        fb_div.id = f"feedback-{q_idx}"
+        el(f"qcard-{q_idx}").appendChild(fb_div)
+
+    if is_correct:
+        fb_div.innerHTML = '<span class="feedback-tag feedback-correct">✓ Correct — sharp recall</span>'
+    else:
+        correct_text = q["options"][correct]
+        fb_div.innerHTML = f'<span class="feedback-tag feedback-wrong">✗ The correct answer was: <strong>{correct_text}</strong></span>'
+
+    # Check if all questions answered
+    if len(state["answers"]) == len(mission["questions"]):
+        el("next-btn-wrap").style.display = "block"
+
+# ─────────────────────────────────────────────────────────
+#  SCORE DISPLAY
+# ─────────────────────────────────────────────────────────
+def update_score_display():
+    s = state["score"]
+    t = state["total_questions"]
+    el("score-display").textContent = f"Score: {s} / {t}"
+
+# ─────────────────────────────────────────────────────────
+#  PHASE BADGE
+# ─────────────────────────────────────────────────────────
+def set_phase_badge(phase):
+    badge = el("phase-badge")
+    if phase == "memory":
+        badge.textContent = "Memory Phase"
+        badge.className = "phase-badge badge-memory"
+    elif phase == "quiz":
+        badge.textContent = "Quiz Phase"
+        badge.className = "phase-badge badge-quiz"
+    else:
+        badge.textContent = "Complete"
+        badge.className = "phase-badge badge-done"
+
+# ─────────────────────────────────────────────────────────
+#  APPLY CODE BLUR
+# ─────────────────────────────────────────────────────────
+def apply_blur():
+    body = el("terminal-body")
+    body.classList.remove("scanning")
+    body.classList.add("code-blurred")
+    # stop scan sweep
+    el("scan-sweep").style.display = "none"
+
+def remove_blur():
+    body = el("terminal-body")
+    body.classList.remove("code-blurred")
+    body.classList.add("scanning")
+    el("scan-sweep").style.display = "block"
+
+# ─────────────────────────────────────────────────────────
+#  TIMER  (asyncio coroutine)
+# ─────────────────────────────────────────────────────────
+async def run_timer():
+    state["timer_running"] = True
+    bar = el("progress-bar")
+    label = el("timer-label")
+
+    total = TIMER_DURATION
+    steps = total * 20  # update every 50ms
+    for i in range(steps + 1):
+        if not state["timer_running"]:
+            return
+        pct = 100.0 * (steps - i) / steps
+        remaining = max(0, total - (i / 20))
+
+        bar.style.width = f"{pct}%"
+        bar.style.transition = "width 50ms linear"
+
+        # colour shift: indigo → amber → red
+        if pct > 50:
+            bar.style.background = "linear-gradient(90deg, #6366f1, #38bdf8)"
+        elif pct > 20:
+            bar.style.background = "linear-gradient(90deg, #f59e0b, #fbbf24)"
+        else:
+            bar.style.background = "linear-gradient(90deg, #ef4444, #f97316)"
+
+        label.textContent = f"{remaining:.0f}s"
+        await asyncio.sleep(0.05)
+
+    state["timer_running"] = False
+    await transition_to_quiz()
+
+# ─────────────────────────────────────────────────────────
+#  PHASE TRANSITIONS
+# ─────────────────────────────────────────────────────────
+async def transition_to_quiz():
+    state["phase"] = "quiz"
+    set_phase_badge("quiz")
+    apply_blur()
+
+    el("timer-label").textContent = "—"
+
+    mission = MISSIONS[state["mission_idx"]]
+    render_questions(mission)
+    el("quiz-area").style.display = "block"
+
+
+def start_next_mission(event=None):
+    state["mission_idx"] += 1
+    idx = state["mission_idx"]
+
+    if idx >= len(MISSIONS):
+        show_complete_screen()
+        return
+
+    # Reset UI
+    el("next-btn-wrap").style.display = "none"
+    el("quiz-area").style.display = "none"
+    el("questions-container").innerHTML = ""
+    remove_blur()
+
+    mission = MISSIONS[idx]
+    render_code(mission)
+    set_phase_badge("memory")
+    state["phase"] = "memory"
+    el("mission-label").textContent = f"Mission {idx + 1} of {len(MISSIONS)}"
+    el("progress-bar").style.width = "100%"
+    el("timer-label").textContent = f"{TIMER_DURATION}s"
+
+    asyncio.ensure_future(run_timer())
+
+# ─────────────────────────────────────────────────────────
+#  COMPLETION SCREEN
+# ─────────────────────────────────────────────────────────
+def show_complete_screen():
+    el("quiz-area").style.display = "none"
+    el("complete-screen").style.display = "block"
+    set_phase_badge("done")
+
+    s = state["score"]
+    t = state["total_questions"]
+    pct = round(100 * s / t) if t else 0
+
+    if pct >= 85:
+        msg = "Outstanding recall. You read code like a map."
+    elif pct >= 60:
+        msg = "Solid architectural memory. A few blind spots to patch."
+    else:
+        msg = "The code was sneaky. Keep training."
+
+    el("final-msg").textContent = msg
+    el("final-score").textContent = f"{s} / {t} correct  ({pct}%)"
+
+# ─────────────────────────────────────────────────────────
+#  BOOT
+# ─────────────────────────────────────────────────────────
+async def boot():
+    # Hide loading overlay
+    loading = el("py-loading")
+    loading.style.opacity = "0"
+    await asyncio.sleep(0.4)
+    loading.style.display = "none"
+
+    # Wire up next button
+    el("next-btn").onclick = start_next_mission
+
+    # Load first mission
+    mission = MISSIONS[0]
+    render_code(mission)
+    el("mission-label").textContent = f"Mission 1 of {len(MISSIONS)}"
+
+    # Start timer
+    await run_timer()
+
+# ─────────────────────────────────────────────────────────
+#  JS BRIDGE  — expose answer handler to inline onclick=""
+# ─────────────────────────────────────────────────────────
+import js
+js.pyAnswerClick = answer_click
+
+asyncio.ensure_future(boot())
+</script>
+
+</body>
+</html>

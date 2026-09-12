@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% block content %}
+<main class="lms-hub">
+    <!-- Hero -->
+    <section class="lms-hero bg-neutral-950 text-white py-20 px-6">
+        <div class="max-w-5xl mx-auto">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">{{ page.title }}</h1>
+            {% if page.intro %}
+                <p class="text-lg text-neutral-300 max-w-2xl">{{ page.intro }}</p>
+            {% endif %}
+
+            <!-- Quick Stats -->
+            <div class="flex flex-wrap gap-6 mt-8 text-sm text-neutral-400">
+                <div>
+                    <span class="text-2xl font-bold text-white block">{{ all_topics_count }}</span>
+                    Topics
+                </div>
+                <div>
+                    <span class="text-2xl font-bold text-white block">{{ all_courses_count }}</span>
+                    Courses
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Topics Grid -->
+    <section class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-2xl font-bold mb-8">Browse by Topic</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {% for topic in topics %}
+                    <a href="{{ topic.url }}"
+                       class="group p-5 rounded-xl border border-neutral-200 hover:border-neutral-400 hover:shadow-md transition-all">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-lg"
+                             style="background: {{ topic.color|default:'#f5f5f5' }}; color: white;">
+                            {% if topic.icon %}
+                                <i data-lucide="{{ topic.icon }}"></i>
+                            {% else %}
+                                <i data-lucide="book-open"></i>
+                            {% endif %}
+                        </div>
+                        <h3 class="font-semibold group-hover:underline">{{ topic.title }}</h3>
+                        <p class="text-sm text-neutral-500 mt-1">
+                            {{ topic.coursepage_set.live.count }} courses
+                        </p>
+                    </a>
+                {% empty %}
+                    <p class="text-neutral-500 col-span-full">No topics yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Courses -->
+    {% if featured_courses %}
+    <section class="py-16 px-6 bg-neutral-50">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-2xl font-bold mb-8">{{ page.featured_courses_heading }}</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for course in featured_courses %}
+                    {% include "lms/components/course_card.html" with course=course %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

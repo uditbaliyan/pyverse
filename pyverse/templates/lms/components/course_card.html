@@ -1,0 +1,52 @@
+{% load wagtailcore_tags wagtailimages_tags %}
+
+<a
+  href="{{ course.url }}"
+  class="group block border border-neutral-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-neutral-300 transition-all"
+>
+  {% if course.hero_image %}
+  <div class="aspect-video overflow-hidden bg-neutral-100">
+    {% image course.hero_image width-600 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" %}
+  </div>
+  {% else %}
+  <div class="aspect-video bg-neutral-100 flex items-center justify-center">
+    <i data-lucide="book-open" class="w-8 h-8 text-neutral-300"></i>
+  </div>
+  {% endif %}
+
+  <div class="p-4">
+    <div class="flex flex-wrap gap-1.5 mb-2">
+      <span
+        class="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide rounded bg-neutral-100 text-neutral-600"
+      >
+        {{ course.get_course_type_display }}
+      </span>
+      <span
+        class="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide rounded bg-neutral-100 text-neutral-600"
+      >
+        {{ course.get_difficulty_display }}
+      </span>
+      {% if course.is_free %}
+      <span
+        class="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide rounded bg-green-50 text-green-700"
+      >
+        Free
+      </span>
+      {% endif %}
+    </div>
+
+    <h3 class="font-semibold group-hover:underline line-clamp-2">{{ course.title }}</h3>
+
+    {% if course.summary %}
+    <p class="text-sm text-neutral-500 mt-1.5 line-clamp-2">{{ course.summary }}</p>
+    {% endif %}
+
+    <div class="flex items-center gap-3 mt-3 text-xs text-neutral-400">
+      {% if course.language %}
+      <span>{{ course.language }}</span>
+      {% endif %}
+      <span>{{ course.lesson_count }} lessons</span>
+      <span>{{ course.estimated_hours }}h</span>
+    </div>
+  </div>
+</a>

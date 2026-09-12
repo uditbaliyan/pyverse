@@ -1,0 +1,10 @@
+{% load wagtailcore_tags %}
+<div class="pe-quiz-block pe-quiz-block--complexity">
+  <pre class="pe-quiz-code"><code>{{ value.code_snippet }}</code></pre>
+  <p class="pe-quiz-prompt">What is the time complexity of the snippet above?</p>
+  <details class="pe-quiz-reveal">
+    <summary>Reveal answer</summary>
+    <p><strong>{{ value.correct_complexity }}</strong></p>
+    {% if value.explanation %}{{ value.explanation|richtext }}{% endif %}
+  </details>
+</div>

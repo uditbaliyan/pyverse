@@ -1,0 +1,21 @@
+{% extends "home/base_.html" %} {% load wagtailcore_tags wagtailimages_tags %} {% block content %}
+<section class="max-w-[1180px] mx-auto px-7 py-16">
+  {% if page.header_image %} {% image page.header_image width-1180 as hdr %}
+  <div class="mb-8 border-[3px] border-ink overflow-hidden">
+    <img src="{{ hdr.url }}" alt="{{ page.title }}" class="w-full block" />
+  </div>
+  {% endif %}
+
+  <h1 class="font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
+    {{ page.title }}
+  </h1>
+
+  {% if page.subtitle %}
+  <p class="mt-3 font-mono text-[13px] text-muted tracking-wide">{{ page.subtitle }}</p>
+  {% endif %}
+
+  <div class="mt-8 max-w-[65ch] text-body-txt leading-relaxed rich-text">
+    {{ page.body|richtext }}
+  </div>
+</section>
+{% endblock %}

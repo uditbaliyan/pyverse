@@ -1,0 +1,128 @@
+{% extends "base.html" %}{% load wagtailcore_tags wagtailimages_tags %} {% block content %}
+
+<body class="bg-bg text-ink font-sans text-base leading-relaxed antialiased">
+  <div class="max-w-[1100px] mx-auto px-6 py-12">
+    <!-- Clean, Minimal Header -->
+    <header class="border-b-[2px] border-ink pb-10 mb-12">
+      <div class="flex justify-between items-end flex-wrap gap-4">
+        <div>
+          <span class="font-mono text-xs tracking-[3px] text-red uppercase block mb-3">
+            ARCHIVE DIRECTORY
+          </span>
+          <h1
+            class="font-black text-4xl md:text-6xl tracking-tight text-ink uppercase leading-none"
+          >
+            {{ page.title }}<span class="text-red">.</span>
+          </h1>
+        </div>
+        {% if page.hero_text %}
+        <p
+          class="max-w-[48ch] text-body-txt text-[15px] md:text-[16px] leading-relaxed font-medium"
+        >
+          {{ page.hero_text }}
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- Optional Hero CTA Link -->
+      {% if page.hero_cta_link %}
+      <div class="mt-6">
+        <a
+          href="{% pageurl page.hero_cta_link %}"
+          class="inline-block font-mono font-bold text-xs tracking-wider no-underline px-5 py-3 border-[2px] border-ink bg-red text-[#F5EEDA] hover:bg-ink hover:text-bg transition-colors"
+        >
+          {% firstof page.hero_cta page.hero_cta_link.title|upper %} &rarr;
+        </a>
+      </div>
+      {% endif %}
+    </header>
+
+    <!-- Optional Body Text Section -->
+    {% if page.body %}
+    <section
+      class="max-w-[760px] mb-16 text-body-txt text-base md:text-lg border-l-2 border-red pl-6 py-1"
+    >
+      {{ page.body|richtext }}
+    </section>
+    {% endif %}
+
+    <!-- Micro Elegant Separation Ribbon -->
+    <div class="h-[4px] flex w-full mb-12 opacity-80">
+      <div class="flex-1 bg-s1"></div>
+      <div class="flex-1 bg-s2"></div>
+      <div class="flex-1 bg-s3"></div>
+      <div class="flex-1 bg-s4"></div>
+      <div class="flex-1 bg-s5"></div>
+      <div class="flex-1 bg-s6"></div>
+    </div>
+
+    <!-- Section Divider & Counter -->
+    <div class="mb-8 flex justify-between items-center border-b border-ink/10 pb-4">
+      <h2 class="font-black text-xl tracking-tight uppercase text-ink">Published Entries</h2>
+      <span class="font-mono text-xs text-muted">
+        {% with live_children=self.get_children.live %} TOTAL: {{
+        live_children.count|stringformat:"02d" }} {% endwith %}
+      </span>
+    </div>
+
+    <!-- Redesigned Minimal Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for child in self.get_children.specific %} {% if child.live %}
+      <a
+        href="{% pageurl child %}"
+        class="group block bg-bg-2 border-[1.5px] border-ink p-6 transition-all duration-200 relative hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#b23a2e]"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <span class="font-mono text-[10px] tracking-widest text-muted uppercase">
+            ENTRY // 0{{ forloop.counter }}
+          </span>
+          <span class="font-mono text-[11px] text-red font-bold">
+            {{ child.first_published_at|date:"d M Y"|upper }}
+          </span>
+        </div>
+
+        <h3
+          class="font-black text-lg text-ink group-hover:text-red transition-colors duration-200 mb-3 tracking-tight leading-snug"
+        >
+          {{ child.title }}
+        </h3>
+
+        {% if child.intro or child.excerpt %}
+        <p class="text-[13.5px] text-body-txt/90 line-clamp-3 mb-6 leading-relaxed">
+          {% firstof child.intro|striptags child.excerpt|striptags %}
+        </p>
+        {% endif %}
+
+        <!-- Clean Card Footer -->
+        <div class="pt-4 border-t border-ink/10 flex justify-between items-center mt-auto">
+          <span
+            class="font-mono text-[11px] tracking-wider text-ink font-bold group-hover:underline"
+          >
+            READ ARTICLE
+          </span>
+          <span class="text-ink transition-transform duration-200 group-hover:translate-x-1">
+            &rarr;
+          </span>
+        </div>
+      </a>
+      {% endif %} {% empty %}
+      <!-- Clean Empty State -->
+      <div class="col-span-full border border-dashed border-muted/50 py-16 text-center">
+        <p class="font-mono text-sm text-muted uppercase tracking-widest">
+          No entries found in this folder.
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Refined Footer -->
+    <footer
+      class="mt-20 border-t border-ink/10 pt-6 flex justify-between items-center flex-wrap gap-4 font-mono text-[10px] tracking-wider text-muted uppercase"
+    >
+      <span>{{ page.title }} © 2026</span>
+      <span>SYSTEM // LIVE INDEX</span>
+    </footer>
+  </div>
+</body>
+
+{% endblock content %}

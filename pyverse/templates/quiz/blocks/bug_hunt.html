@@ -1,0 +1,10 @@
+{% load wagtailcore_tags %}
+<div class="pe-quiz-block pe-quiz-block--bug-hunt">
+  <pre class="pe-quiz-code"><code>{{ value.buggy_code }}</code></pre>
+  <p class="pe-quiz-prompt">Find the bug. Which line is it on?</p>
+  <details class="pe-quiz-reveal">
+    <summary>Reveal answer</summary>
+    <p><strong>Line {{ value.bug_line_number }}</strong></p>
+    {% if value.fix_explanation %}{{ value.fix_explanation|richtext }}{% endif %}
+  </details>
+</div>

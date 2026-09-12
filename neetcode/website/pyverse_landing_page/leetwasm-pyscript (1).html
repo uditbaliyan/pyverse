@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeetWasm · Two Sum · PyScript</title>
+
+<!-- PyScript -->
+<link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+<script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+<!-- CodeMirror 5 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css">
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/hint/show-hint.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/hint/show-hint.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  /* olive-tinted "screen" surfaces: editor, terminal, code blocks — lightened for readability */
+  --bg0: #ECEAD3;
+  /* cream "chrome" surfaces: header, panels, tab bars */
+  --bg1: #F4EDD4;
+  /* card surfaces: examples, approach blocks, submissions */
+  --bg2: #ECE3C4;
+  /* chip / ghost-button surfaces */
+  --bg3: #E4DAB4;
+  /* hover / scrollbar */
+  --bg4: #D2C596;
+  --border: rgba(27,23,18,0.16);
+  --border-hi: rgba(27,23,18,0.32);
+  --text0: #15120D;
+  --text1: #423C2E;
+  --text2: #746C53;
+  --accent: #2E5A7A;
+  --accent-dim: rgba(46,90,122,0.13);
+  --green: #4C6633;
+  --green-dim: rgba(76,102,51,0.14);
+  --red: #A3352A;
+  --red-dim: rgba(163,53,42,0.12);
+  --amber: #90600F;
+  --amber-dim: rgba(144,96,15,0.14);
+  --blue: #2E5A7A;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+  --display: 'Archivo Black', sans-serif;
+}
+html, body { height: 100%; overflow: hidden; background: var(--bg1); color: var(--text0); font-family: var(--sans); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+.hidden { display: none !important; }
+
+/* six-swatch stripe, masthead accent */
+.shell::before {
+  content: ''; display: block; height: 4px; flex-shrink: 0;
+  background: linear-gradient(to right,
+    #C0392B 0 16.66%, #E08A3C 16.66% 33.33%, #E8C547 33.33% 50%,
+    #7A9B5C 50% 66.66%, #4A8B7C 66.66% 83.33%, #3D6B8C 83.33% 100%);
+}
+
+.shell { display: flex; flex-direction: column; height: 100vh; }
+
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 46px; padding: 0 18px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border); background: var(--bg1);
+}
+.logo { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 400; font-size: 14px; letter-spacing: -0.3px; }
+.logo-icon {
+  width: 24px; height: 24px; background: var(--red); border-radius: 3px;
+  display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: var(--display); color: #F5EEDA;
+}
+.logo-sep { color: var(--text2); font-weight: 400; font-size: 13px; margin: 0 2px; }
+.status-pill {
+  display: flex; align-items: center; gap: 7px; padding: 4px 12px;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--bg2);
+  font-family: var(--mono); font-size: 11px; color: var(--text1);
+}
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+.sdot.ready { background: var(--green); animation: none; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.22} }
+.sdot.loading { animation: blink 1.4s ease-in-out infinite; }
+
+.main { display: flex; flex: 1; min-height: 0; }
+
+.left { width: 42%; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--bg1); min-height: 0; }
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg1); flex-shrink: 0; }
+.tbtn {
+  padding: 9px 15px; font-family: var(--sans); font-size: 12px; font-weight: 500;
+  color: var(--text2); cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent; transition: color .14s, border-color .14s;
+}
+.tbtn:hover { color: var(--text1); }
+.tbtn.on { color: var(--text0); border-bottom-color: var(--accent); }
+.tcontent { flex: 1; overflow-y: auto; padding: 22px 20px; min-height: 0; }
+
+.ptitle { font-family: var(--display); font-size: 17px; font-weight: 400; letter-spacing: -0.3px; }
+.diff-badge {
+  display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; background: var(--green-dim); color: var(--green);
+  border: 1px solid rgba(76,102,51,.28); margin-left: 8px; vertical-align: middle;
+}
+.acr { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-left: 10px; }
+.ptext { font-size: 14.5px; line-height: 1.85; color: var(--text1); margin: 14px 0; }
+.ptext code, code.ic {
+  font-family: var(--mono); font-size: 11.5px; background: var(--bg3); color: var(--accent);
+  padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border);
+}
+.ex {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 9px;
+  padding: 12px 14px; margin-bottom: 10px; font-family: var(--mono); font-size: 12px;
+}
+.ex-lbl { font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; }
+.ex-row { line-height: 1.8; }
+.ek { color: var(--text2); }
+.ev { color: var(--text0); }
+.en { color: var(--text1); font-size: 11px; }
+.ctitle { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 8px; }
+.ci { font-family: var(--mono); font-size: 13px; color: var(--text1); line-height: 2.1; }
+.ci.hi { color: var(--amber); }
+
+.eapproach { padding: 13px 15px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg2); margin-bottom: 11px; }
+.eapproach.opt { border-color: rgba(46,90,122,.35); }
+.ename { font-size: 13.5px; font-weight: 600; color: var(--text0); margin-bottom: 5px; }
+.edesc { font-size: 13px; color: var(--text1); line-height: 1.65; margin-bottom: 8px; }
+.ctags { display: flex; gap: 8px; flex-wrap: wrap; }
+.ctag { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+.ctag.t { background: var(--amber-dim); color: var(--amber); border-color: rgba(144,96,15,.28); }
+.ctag.s { background: var(--accent-dim); color: var(--accent); border-color: rgba(46,90,122,.25); }
+.opt-pill {
+  font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(46,90,122,.25);
+  margin-left: 8px; vertical-align: middle;
+}
+.sol-block {
+  background: var(--bg0); border: 1px solid var(--border); border-radius: 9px;
+  padding: 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; overflow-x: auto; color: var(--text1);
+}
+.kw { color: #8A3B6B; } .fn { color: var(--green); } .cm-hl { color: var(--text2); font-style: italic; }
+
+.sub-empty { font-family: var(--mono); font-size: 12px; color: var(--text2); font-style: italic; }
+.sub-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); margin-bottom: 7px; }
+@keyframes drop-in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+.sub-item { animation: drop-in .18s ease; }
+.sbadge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; letter-spacing: .04em; }
+.sbadge.ac { background: var(--green-dim); color: var(--green); border: 1px solid rgba(76,102,51,.28); }
+.sbadge.wa { background: var(--red-dim); color: var(--red); border: 1px solid rgba(163,53,42,.28); }
+.sbadge.re { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(144,96,15,.28); }
+.stime { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+.slat { font-family: var(--mono); font-size: 12px; color: var(--text1); font-weight: 500; }
+.scnt {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 16px;
+  height: 16px; padding: 0 4px; border-radius: 999px; background: var(--accent);
+  color: #fff; font-size: 9px; font-weight: 700; font-family: var(--mono); margin-left: 5px;
+}
+
+.right { flex: 1; display: flex; flex-direction: column; background: var(--bg0); min-height: 0; }
+.editor-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px; height: 38px; border-bottom: 1px solid var(--border); background: var(--bg1); flex-shrink: 0;
+}
+.lang-tag { font-family: var(--mono); font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.ldot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.eactions { display: flex; align-items: center; gap: 7px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 6px;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; border: none;
+  transition: all .12s; user-select: none; white-space: nowrap;
+}
+.btn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+.btn:active:not(:disabled) { transform: scale(.96); }
+.btn-ghost { background: var(--bg3); color: var(--text1); border: 1px solid var(--border-hi); }
+.btn-ghost:hover { background: var(--bg4); color: var(--text0); }
+.btn-run { background: var(--bg3); color: var(--green); border: 1px solid rgba(76,102,51,.3); }
+.btn-run:hover { background: var(--green-dim); border-color: rgba(76,102,51,.45); }
+.btn-acc { background: var(--red); color: #F5EEDA; box-shadow: 0 0 0 1px rgba(27,23,18,0.25); }
+.btn-acc:hover { filter: brightness(1.1); }
+
+#editor-host { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.CodeMirror {
+  flex: 1; height: 100% !important; font-family: var(--mono) !important; font-size: 13px !important;
+  background: var(--bg0) !important; color: var(--text0) !important; line-height: 1.75 !important;
+}
+.CodeMirror-scroll { padding-bottom: 0 !important; }
+.CodeMirror-gutters { background: var(--bg0) !important; border-right: 1px solid var(--border) !important; }
+.CodeMirror-linenumber { color: var(--text2) !important; font-size: 11px !important; padding: 0 10px 0 8px !important; }
+.CodeMirror-activeline-background { background: rgba(27,23,18,0.045) !important; }
+.CodeMirror-activeline-gutter .CodeMirror-linenumber { color: var(--text1) !important; }
+.CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
+.CodeMirror-selected { background: rgba(46,90,122,0.22) !important; }
+.CodeMirror-focused .CodeMirror-selected { background: rgba(46,90,122,0.28) !important; }
+.CodeMirror-matchingbracket { color: var(--green) !important; background: rgba(76,102,51,0.18) !important; outline: 1px solid rgba(76,102,51,0.45) !important; }
+.cm-keyword   { color: #8A3B6B !important; }
+.cm-builtin   { color: #2E5C7A !important; }
+.cm-def       { color: var(--green) !important; }
+.cm-operator  { color: var(--text1) !important; }
+.cm-variable  { color: var(--text0) !important; }
+.cm-variable-2{ color: var(--blue) !important; }
+.cm-string    { color: #8C4A2E !important; }
+.cm-string-2  { color: #8C4A2E !important; }
+.cm-comment   { color: var(--text2) !important; font-style: italic !important; }
+.cm-number    { color: var(--amber) !important; }
+.cm-atom      { color: var(--amber) !important; }
+.cm-punctuation { color: var(--text1) !important; }
+.cm-meta      { color: var(--text2) !important; }
+
+.bottom {
+  height: 255px; flex-shrink: 0; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--bg1); min-height: 0;
+}
+.bot-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border); flex-shrink: 0; padding-right: 14px;
+}
+.bot-tabs { display: flex; }
+.btbtn {
+  padding: 8px 14px; font-family: var(--sans); font-size: 12px; font-weight: 500;
+  color: var(--text2); cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent; transition: color .13s, border-color .13s;
+}
+.btbtn:hover { color: var(--text1); }
+.btbtn.on { color: var(--text0); border-bottom-color: var(--green); }
+.bot-content { flex: 1; overflow-y: auto; padding: 13px 15px; min-height: 0; }
+
+.pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 10px; }
+.pgroup { display: flex; flex-direction: column; gap: 4px; }
+.plbl { font-family: var(--mono); font-size: 10px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: .07em; }
+.pinput {
+  background: var(--bg0); border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 10px; font-family: var(--mono); font-size: 12px; color: var(--amber);
+  outline: none; transition: border-color .13s; width: 100%;
+}
+.pinput:focus { border-color: var(--accent); }
+
+.terminal { font-family: var(--mono); font-size: 12px; color: var(--text1); line-height: 1.8; white-space: pre-wrap; user-select: text; word-break: break-word; }
+.tg { color: var(--green); } .tr { color: var(--red); }
+.ta { color: var(--amber); } .td { color: var(--text2); }
+
+.mrow { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
+.mcard { background: var(--bg0); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; }
+.mlbl { font-size: 10px; color: var(--text2); font-family: var(--mono); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+.mval { font-size: 17px; font-weight: 700; font-family: var(--mono); }
+.mval.g { color: var(--green); } .mval.p { color: var(--accent); }
+
+.rhandle { width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0; transition: background .13s; }
+.rhandle:hover, .rhandle.drag { background: var(--accent); }
+
+kbd {
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px;
+}
+
+/* Hide PyScript's default splash / loading banner */
+py-config, py-script { display: none !important; }
+
+/* ── Autocomplete dropdown ── */
+.CodeMirror-hints {
+  font-family: var(--mono); font-size: 12.5px; z-index: 20;
+  background: var(--bg1); border: 1px solid var(--border-hi); border-radius: 7px;
+  box-shadow: 0 10px 26px rgba(21,18,13,0.22); color: var(--text0); padding: 4px 0;
+}
+.CodeMirror-hint { padding: 4px 13px !important; }
+li.CodeMirror-hint-active { background: var(--accent) !important; color: #F5EEDA !important; }
+
+/* ── LeetCode-style judge flow ── */
+.judge-head { font-family: var(--mono); font-size: 11px; color: var(--text2); margin-bottom: 12px; }
+.judge-steps { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.step-row {
+  display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px;
+  padding: 7px 11px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg1);
+  transition: background .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text2); flex-shrink: 0; }
+.step-row .step-label { flex: 1; color: var(--text2); }
+.step-row .step-meta { color: var(--text2); font-size: 11px; }
+.step-row.pending .step-dot { background: var(--amber); animation: pulse-dot 1s ease-in-out infinite; }
+.step-row.pending .step-label { color: var(--text1); }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.step-row.pass { background: var(--green-dim); border-color: rgba(76,102,51,.4); }
+.step-row.pass .step-dot { background: var(--green); }
+.step-row.pass .step-label { color: var(--text0); }
+.step-row.pass .step-meta { color: var(--green); }
+.step-row.fail { background: var(--red-dim); border-color: rgba(163,53,42,.45); }
+.step-row.fail .step-dot { background: var(--red); }
+.step-row.fail .step-label { color: var(--text0); }
+.step-row.skip { opacity: .4; }
+.step-row.skip .step-dot { background: var(--text2); }
+
+.verdict-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px 16px; border-radius: 9px; margin-bottom: 12px; border: 1px solid var(--border);
+  animation: drop-in .2s ease;
+}
+.verdict-banner.ok  { background: var(--green-dim); border-color: rgba(76,102,51,.45); }
+.verdict-banner.bad { background: var(--red-dim); border-color: rgba(163,53,42,.5); }
+.verdict-title { font-family: var(--display); font-size: 18px; letter-spacing: -0.2px; }
+.verdict-banner.ok .verdict-title  { color: var(--green); }
+.verdict-banner.bad .verdict-title { color: var(--red); }
+.verdict-sub { font-family: var(--mono); font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+.fail-panel {
+  font-family: var(--mono); font-size: 12px; color: var(--text1); line-height: 2;
+  background: var(--bg1); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+}
+.fail-panel .fk { color: var(--text2); display: inline-block; min-width: 84px; }
+.fail-panel .fv.bad { color: var(--red); font-weight: 600; }
+.fail-panel .fv.exp { color: var(--green); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">L</div>
+    LeetWasm <span class="logo-sep">/ PyScript</span>
+  </div>
+  <div class="status-pill">
+    <span class="sdot loading" id="sdot"></span>
+    <span id="stxt">Loading PyScript runtime…</span>
+  </div>
+</header>
+
+<div class="main" id="main">
+
+  <!-- LEFT -->
+  <div class="left" id="left-panel">
+    <div class="tab-bar">
+      <button class="tbtn on" onclick="ltab('desc',this)">Description</button>
+      <button class="tbtn"    onclick="ltab('edit',this)">Editorial</button>
+      <button class="tbtn"    onclick="ltab('sol',this)">Solutions</button>
+      <button class="tbtn"    id="sub-tbtn" onclick="ltab('sub',this)">Submissions</button>
+    </div>
+
+    <div class="tcontent" id="tab-desc">
+      <div style="margin-bottom:12px">
+        <span class="ptitle">1. Two Sum</span>
+        <span class="diff-badge">Easy</span>
+        <span class="acr">AC 51.4%</span>
+      </div>
+      <div class="ptext">
+        Given an array of integers <code class="ic">nums</code> and an integer <code class="ic">target</code>,
+        return <em>indices of the two numbers such that they add up to <code class="ic">target</code></em>.
+      </div>
+      <div class="ptext">
+        You may assume each input has <strong>exactly one solution</strong> and you may not use the
+        <em>same</em> element twice. You can return the answer in any order.
+      </div>
+      <div class="ex">
+        <div class="ex-lbl">Example 1</div>
+        <div class="ex-row"><span class="ek">Input   </span><span class="ev">nums = [2,7,11,15], target = 9</span></div>
+        <div class="ex-row"><span class="ek">Output  </span><span class="ev">[0,1]</span></div>
+        <div class="en">Because nums[0] + nums[1] == 9, return [0, 1].</div>
+      </div>
+      <div class="ex">
+        <div class="ex-lbl">Example 2</div>
+        <div class="ex-row"><span class="ek">Input   </span><span class="ev">nums = [3,2,4], target = 6</span></div>
+        <div class="ex-row"><span class="ek">Output  </span><span class="ev">[1,2]</span></div>
+      </div>
+      <div class="ex">
+        <div class="ex-lbl">Example 3</div>
+        <div class="ex-row"><span class="ek">Input   </span><span class="ev">nums = [3,3], target = 6</span></div>
+        <div class="ex-row"><span class="ek">Output  </span><span class="ev">[0,1]</span></div>
+      </div>
+      <div class="ctitle">Constraints</div>
+      <div class="ci">2 ≤ nums.length ≤ 10<sup>4</sup></div>
+      <div class="ci">−10<sup>9</sup> ≤ nums[i] ≤ 10<sup>9</sup></div>
+      <div class="ci">−10<sup>9</sup> ≤ target ≤ 10<sup>9</sup></div>
+      <div class="ci hi">Only one valid answer exists.</div>
+    </div>
+
+    <div class="tcontent hidden" id="tab-edit">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px;">Editorial</div>
+      <div class="eapproach">
+        <div class="ename">Approach 1 — Brute Force</div>
+        <div class="edesc">For each element <code class="ic">x</code>, scan the rest of the array for the complement <code class="ic">target − x</code>.</div>
+        <div class="ctags"><span class="ctag t">O(n²) time</span><span class="ctag s">O(1) space</span></div>
+      </div>
+      <div class="eapproach opt">
+        <div class="ename">Approach 2 — Hash Map <span class="opt-pill">Optimal</span></div>
+        <div class="edesc">Iterate once. For each element, check if its complement already exists in the hash map. If yes — return both indices. If no — store current value → index and continue.</div>
+        <div class="ctags"><span class="ctag t">O(n) time</span><span class="ctag s">O(n) space</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text1);line-height:1.7;padding:13px;background:var(--bg2);border-radius:9px;border:1px solid var(--border);margin-top:4px;">
+        <strong style="color:var(--text0)">Key insight:</strong> Checking "have I seen the complement?" is O(1) with a dict.
+        Doing complement-check <em>before</em> insertion elegantly handles the edge case where a number is exactly half of <code class="ic">target</code>.
+      </div>
+    </div>
+
+    <div class="tcontent hidden" id="tab-sol">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Top Solution</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:14px;font-family:var(--mono)">One-pass hash map · Python 3</div>
+      <div class="sol-block"><span class="cm-hl"># O(n) time, O(n) space — single pass</span>
+<span class="kw">def</span> <span class="fn">twoSum</span>(nums: list[int], target: int) -> list[int]:
+    seen = {}
+    <span class="kw">for</span> idx, num <span class="kw">in</span> <span class="fn">enumerate</span>(nums):
+        complement = target - num
+        <span class="kw">if</span> complement <span class="kw">in</span> seen:
+            <span class="kw">return</span> [seen[complement], idx]
+        seen[num] = idx
+    <span class="kw">return</span> []</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:12px;font-family:var(--mono);line-height:1.75">
+        <code class="ic">seen</code> maps value → index. Complement check before insertion means
+        a number that is exactly half of target won't return <code class="ic">[i, i]</code>.
+      </div>
+    </div>
+
+    <div class="tcontent hidden" id="tab-sub">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:16px;font-weight:700;">Submissions</div>
+        <button class="btn btn-ghost" onclick="clearSubs()" style="font-size:11px;padding:4px 10px;">Clear</button>
+      </div>
+      <div id="sub-list"><div class="sub-empty">No submissions yet.</div></div>
+    </div>
+  </div>
+
+  <!-- RESIZE HANDLE -->
+  <div class="rhandle" id="rh"></div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="editor-header">
+      <div class="lang-tag"><div class="ldot"></div>Python 3 · PyScript WASM</div>
+      <div class="eactions">
+        <button class="btn btn-ghost" onclick="resetCode()">↺ Reset</button>
+        <button class="btn btn-run" id="run-btn" disabled onclick="triggerExec(false)">▶ Run &nbsp;<kbd>Ctrl+↵</kbd></button>
+        <button class="btn btn-acc" id="sub-btn" disabled onclick="triggerExec(true)">Submit ↑</button>
+      </div>
+    </div>
+
+    <div id="editor-host">
+      <textarea id="editor-ta"></textarea>
+    </div>
+
+    <div class="bottom">
+      <div class="bot-bar">
+        <div class="bot-tabs">
+          <button class="btbtn on" onclick="btab('tc',this)">Testcase</button>
+          <button class="btbtn"   onclick="btab('out',this)">Output</button>
+        </div>
+        <div id="verdict" style="font-family:var(--mono);font-size:11px;"></div>
+      </div>
+      <div class="bot-content">
+
+        <div id="tab-tc">
+          <div class="pgrid">
+            <div class="pgroup">
+              <label class="plbl">nums</label>
+              <input class="pinput" id="p-nums" type="text" value="[2, 7, 11, 15]" spellcheck="false">
+            </div>
+            <div class="pgroup">
+              <label class="plbl">target</label>
+              <input class="pinput" id="p-target" type="text" value="9" spellcheck="false">
+            </div>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.6;">
+            Edit above, then <kbd>Ctrl+Enter</kbd> to run · <kbd>Ctrl+Shift+Enter</kbd> to submit all cases
+          </div>
+        </div>
+
+        <div id="tab-out" class="hidden">
+          <div id="out-area" class="terminal"><span class="td">Waiting for execution…</span></div>
+          <div id="metrics" class="mrow hidden">
+            <div class="mcard"><div class="mlbl">Runtime</div><div class="mval g" id="m-rt">—</div></div>
+            <div class="mcard"><div class="mlbl">Percentile (est.)</div><div class="mval p" id="m-pct">—</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── PyScript config ── -->
+<py-config>
+packages = []
+</py-config>
+
+<!-- ── PyScript: harness + bridge ── -->
+<script type="py">
+import sys, io, time, json
+from js import document, window
+
+CASES = [
+    {"nums": [2, 7, 11, 15], "target": 9,     "expected": [0, 1]},
+    {"nums": [3, 2, 4],       "target": 6,     "expected": [1, 2]},
+    {"nums": [3, 3],          "target": 6,     "expected": [0, 1]},
+    {"nums": [1, 5, 5, 9],    "target": 10,    "expected": [1, 2]},
+    {"nums": list(range(1, 10001)), "target": 19999, "expected": [9998, 9999]},
+]
+
+# ── user solution namespace ──────────────────────────────────────────────────
+_user_ns = {}
+
+def _safe(v):
+    try:
+        json.dumps(v)
+        return v
+    except Exception:
+        return str(v)
+
+def run_harness(is_submit: bool, custom_json: str = "{}"):
+    buf = io.StringIO()
+    sys.stdout = buf
+    result = {"status": "ERROR", "mode": "RUN", "latency": 0.0, "passed_all": False}
+
+    try:
+        twoSum = _user_ns.get("twoSum")
+        if twoSum is None:
+            raise NameError("twoSum is not defined — check your code.")
+
+        if not is_submit:
+            inp = json.loads(custom_json)
+            t0 = time.perf_counter()
+            out = twoSum(inp["nums"], inp["target"])
+            ms = (time.perf_counter() - t0) * 1000
+            print(f"Input   : nums={inp['nums']}, target={inp['target']}")
+            print(f"Output  : {out}")
+            result = {"status": "SUCCESS", "mode": "RUN", "latency": ms, "passed_all": True}
+        else:
+            n = len(CASES)
+            total_ms = 0.0
+            cases_out = []
+            fail = None
+            for i, c in enumerate(CASES):
+                big = len(c["nums"]) > 20
+                disp = f"[{c['nums'][0]}, ..., {c['nums'][-1]}]  n={len(c['nums'])}" if big else str(c["nums"])
+                t0 = time.perf_counter()
+                ans = twoSum(c["nums"], c["target"])
+                ms = (time.perf_counter() - t0) * 1000
+                total_ms += ms
+                ok = isinstance(ans, list) and sorted(ans) == sorted(c["expected"])
+                print(f"  [{'pass' if ok else 'FAIL'}]  case {i+1}/{n}  nums={disp}  target={c['target']}")
+                cases_out.append({
+                    "i": i + 1, "ok": ok, "nums_display": disp,
+                    "target": c["target"], "ms": round(ms, 3),
+                })
+                if not ok:
+                    print(f"           expected {c['expected']}, got {ans}")
+                    fail = {
+                        "i": i + 1, "nums_display": disp, "target": c["target"],
+                        "expected": _safe(c["expected"]), "got": _safe(ans),
+                    }
+                    break
+            passed_count = sum(1 for c in cases_out if c["ok"])
+            if fail is None:
+                print(f"\n  All {n} cases passed.")
+                result = {
+                    "status": "ACCEPTED", "mode": "SUBMIT", "latency": total_ms, "passed_all": True,
+                    "total_cases": n, "passed_count": passed_count, "cases": cases_out, "fail": None,
+                }
+            else:
+                result = {
+                    "status": "WRONG_ANSWER", "mode": "SUBMIT", "latency": total_ms, "passed_all": False,
+                    "total_cases": n, "passed_count": passed_count, "cases": cases_out, "fail": fail,
+                }
+
+    except Exception as e:
+        print(f"RuntimeError: {type(e).__name__}: {e}")
+        result = {"status": "RUNTIME_ERROR", "mode": "ERROR", "latency": 0.0, "passed_all": False}
+    finally:
+        sys.stdout = sys.__stdout__
+
+    return json.dumps(result), buf.getvalue()
+
+
+def exec_solution(is_submit: bool, custom_json: str):
+    """Called from JS. Compile user code, then run harness."""
+    _user_ns.clear()
+    user_code = window._pendingCode  # JS sets this before calling
+    try:
+        exec(compile(user_code, "<editor>", "exec"), _user_ns)
+    except SyntaxError as e:
+        err_json = json.dumps({"status": "RUNTIME_ERROR", "mode": "ERROR", "latency": 0.0, "passed_all": False})
+        return err_json, f"SyntaxError: {e}"
+
+    rj, log = run_harness(is_submit, custom_json)
+    return rj, log
+
+
+# expose to JS
+import js
+js.window._pyExec = exec_solution
+
+# Signal ready
+def _mark_ready():
+    dot = document.getElementById("sdot")
+    txt = document.getElementById("stxt")
+    dot.className = "sdot ready"
+    txt.textContent = "PyScript ready"
+    document.getElementById("run-btn").disabled = False
+    document.getElementById("sub-btn").disabled = False
+
+_mark_ready()
+</script>
+
+<script>
+// ─── Starter code ─────────────────────────────────────────────────────────────
+const STARTER = `def twoSum(nums: list[int], target: int) -> list[int]:
+    # Write your solution here
+    pass
+`;
+
+let cmEditor = null;
+let subCount = 0;
+
+// ─── Python autocomplete ────────────────────────────────────────────────────
+const PY_WORDS = [
+  'False','None','True','and','as','assert','async','await','break','class','continue',
+  'def','del','elif','else','except','finally','for','from','global','if','import','in',
+  'is','lambda','nonlocal','not','or','pass','raise','return','try','while','with','yield',
+  'abs','all','any','bin','bool','bytearray','bytes','callable','chr','classmethod','complex',
+  'dict','dir','divmod','enumerate','eval','filter','float','format','frozenset','getattr',
+  'globals','hasattr','hash','hex','id','input','int','isinstance','issubclass','iter','len',
+  'list','map','max','min','next','object','oct','open','ord','pow','print','property','range',
+  'repr','reversed','round','set','setattr','slice','sorted','staticmethod','str','sum','super',
+  'tuple','type','vars','zip','self','append','sort','items','keys','values','join','split',
+  'lower','upper','strip','replace',
+];
+
+CodeMirror.registerHelper('hint', 'python', function (cm) {
+  const cur = cm.getCursor();
+  const line = cm.getLine(cur.line);
+  let start = cur.ch, end = cur.ch;
+  while (start && /\w/.test(line.charAt(start - 1))) start--;
+  while (end < line.length && /\w/.test(line.charAt(end))) end++;
+  const word = line.slice(start, end);
+  if (!word) return null;
+
+  const docWords = new Set();
+  cm.getValue().split(/[^\w]+/).forEach(w => { if (w.length > 1) docWords.add(w); });
+
+  const pool = new Set([...PY_WORDS, ...docWords]);
+  const list = [...pool]
+    .filter(w => w.startsWith(word) && w !== word)
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))
+    .slice(0, 12);
+
+  if (!list.length) return null;
+  return { list, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
+});
+
+// ─── CodeMirror 5 ─────────────────────────────────────────────────────────────
+function initEditor() {
+  const ta = document.getElementById('editor-ta');
+  ta.value = STARTER;
+  cmEditor = CodeMirror.fromTextArea(ta, {
+    mode: 'python', theme: 'default', lineNumbers: true,
+    indentUnit: 4, tabSize: 4, indentWithTabs: false,
+    smartIndent: true, autofocus: true, lineWrapping: false,
+    autoCloseBrackets: true, matchBrackets: true, styleActiveLine: true,
+    hintOptions: { hint: CodeMirror.hint.python, completeSingle: false },
+    extraKeys: {
+      Tab: cm => cm.somethingSelected() ? cm.indentSelection('add') : cm.replaceSelection('    ', 'end'),
+      'Shift-Tab': cm => cm.indentSelection('subtract'),
+      'Ctrl-Space': cm => CodeMirror.commands.autocomplete(cm, null, { hint: CodeMirror.hint.python, completeSingle: false }),
+      'Ctrl-Enter':       () => { if (!document.getElementById('run-btn').disabled) triggerExec(false); },
+      'Ctrl-Shift-Enter': () => { if (!document.getElementById('sub-btn').disabled) triggerExec(true); },
+      'Cmd-Enter':        () => { if (!document.getElementById('run-btn').disabled) triggerExec(false); },
+      'Cmd-Shift-Enter':  () => { if (!document.getElementById('sub-btn').disabled) triggerExec(true); },
+      'Ctrl-/': 'toggleComment', 'Cmd-/': 'toggleComment',
+    },
+  });
+  cmEditor.setSize('100%', '100%');
+
+  // auto-trigger while typing word characters, skip inside strings/comments
+  cmEditor.on('inputRead', (cm, change) => {
+    if (cm.state.completionActive) return;
+    if (!change.text || !change.text[0] || !/^\w$/.test(change.text[0])) return;
+    const tok = cm.getTokenAt(cm.getCursor());
+    if (tok.type === 'comment' || tok.type === 'string') return;
+    CodeMirror.commands.autocomplete(cm, null, { hint: CodeMirror.hint.python, completeSingle: false });
+  });
+}
+
+function getCode()   { return cmEditor ? cmEditor.getValue() : ''; }
+function resetCode() { if (cmEditor) cmEditor.setValue(STARTER); }
+
+// ─── Execution bridge ────────────────────────────────────────────────────────
+// PyScript exposes window._pyExec after the py block runs.
+// We pass the user code via window._pendingCode to avoid any serialisation issues.
+const wait = ms => new Promise(res => setTimeout(res, ms));
+
+function triggerExec(isSubmit) {
+  isSubmit ? submitFlow() : runFlow();
+}
+
+function runFlow() {
+  const runBtn = document.getElementById('run-btn');
+  const subBtn = document.getElementById('sub-btn');
+  const outEl  = document.getElementById('out-area');
+  const mEl    = document.getElementById('metrics');
+  const vEl    = document.getElementById('verdict');
+
+  btab('out', document.querySelectorAll('.btbtn')[1]);
+  runBtn.disabled = true; subBtn.disabled = true;
+  mEl.classList.add('hidden'); vEl.innerHTML = '';
+  outEl.innerHTML = '<span class="ta">⚡ Running…</span>';
+
+  let customJson = '{}';
+  try {
+    const nums = JSON.parse(document.getElementById('p-nums').value.trim());
+    if (!Array.isArray(nums)) throw new Error('nums must be an array like [2,7,11]');
+    const target = Number(document.getElementById('p-target').value.trim());
+    if (isNaN(target)) throw new Error('target must be a number');
+    customJson = JSON.stringify({ nums, target });
+  } catch (e) {
+    outEl.innerHTML = `<span class="tr">✗ Input error: ${e.message}</span>`;
+    runBtn.disabled = false; subBtn.disabled = false; return;
+  }
+
+  window._pendingCode = getCode();
+
+  setTimeout(() => {
+    try {
+      const result = window._pyExec(false, customJson);
+      const res = JSON.parse(result[0]);
+      const log = result[1];
+      const ts  = new Date().toLocaleTimeString();
+      const esc = log.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/RuntimeError:.+/g, m => `<span class="tr">${m}</span>`);
+      outEl.innerHTML = `<span class="td">Run · ${ts}</span>\n\n` + esc;
+
+      if (res.status !== 'RUNTIME_ERROR') {
+        document.getElementById('m-rt').textContent = `${res.latency.toFixed(2)} ms`;
+        document.getElementById('m-pct').textContent = '—';
+        mEl.classList.remove('hidden');
+      }
+      const vMap = {
+        SUCCESS:       `<span style="color:var(--green)">✓ Output generated</span>`,
+        RUNTIME_ERROR: `<span style="color:var(--amber);font-weight:700">⚠ Runtime Error</span>`,
+      };
+      vEl.innerHTML = vMap[res.status] || res.status;
+    } catch (e) {
+      const msg = String(e).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+      outEl.innerHTML = `<span class="tr">Execution error:</span>\n\n<span class="td" style="font-size:11px">${msg}</span>`;
+    }
+    runBtn.disabled = false; subBtn.disabled = false;
+  }, 20);
+}
+
+// LeetCode-style staged judge: reveal each case with a short delay, then the verdict.
+async function submitFlow() {
+  const runBtn = document.getElementById('run-btn');
+  const subBtn = document.getElementById('sub-btn');
+  const outEl  = document.getElementById('out-area');
+  const mEl    = document.getElementById('metrics');
+  const vEl    = document.getElementById('verdict');
+
+  btab('out', document.querySelectorAll('.btbtn')[1]);
+  runBtn.disabled = true; subBtn.disabled = true;
+  mEl.classList.add('hidden'); vEl.innerHTML = '';
+  outEl.innerHTML = `<span class="ta">⚡ Compiling…</span>`;
+
+  window._pendingCode = getCode();
+  await wait(260);
+
+  let res, log;
+  try {
+    const result = window._pyExec(true, '{}');
+    res = JSON.parse(result[0]);
+    log = result[1];
+  } catch (e) {
+    const msg = String(e).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    outEl.innerHTML = `<span class="tr">Execution error:</span>\n\n<span class="td" style="font-size:11px">${msg}</span>`;
+    runBtn.disabled = false; subBtn.disabled = false; return;
+  }
+
+  if (res.status === 'RUNTIME_ERROR') {
+    const esc = log.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/RuntimeError:.+/g, m => `<span class="tr">${m}</span>`);
+    outEl.innerHTML = `<span class="ta">Runtime error — no cases ran</span>\n\n` + esc;
+    vEl.innerHTML = `<span style="color:var(--amber);font-weight:700">⚠ Runtime Error</span>`;
+    addSub(res.status, 0);
+    runBtn.disabled = false; subBtn.disabled = false; return;
+  }
+
+  // Build the stepper with every case pending, then reveal as we "judge" them.
+  const total = res.total_cases;
+  const stepsHtml = Array.from({ length: total }, (_, i) => `
+    <div class="step-row pending" id="step-${i + 1}">
+      <span class="step-dot"></span>
+      <span class="step-label">Case ${i + 1} / ${total}</span>
+      <span class="step-meta"></span>
+    </div>`).join('');
+  outEl.innerHTML = `<div class="judge-head">Judging…</div><div class="judge-steps">${stepsHtml}</div><div id="judge-result"></div>`;
+
+  for (const c of res.cases) {
+    await wait(240);
+    const row = document.getElementById(`step-${c.i}`);
+    row.classList.remove('pending');
+    row.classList.add(c.ok ? 'pass' : 'fail');
+    row.querySelector('.step-label').textContent = `Case ${c.i} / ${total}  ·  nums=${c.nums_display}  target=${c.target}`;
+    row.querySelector('.step-meta').textContent = c.ok ? `✓ ${c.ms.toFixed(2)} ms` : '✗ failed';
+  }
+  // any case after an early failure never ran — mark it skipped
+  for (let i = res.cases.length + 1; i <= total; i++) {
+    const row = document.getElementById(`step-${i}`);
+    row.classList.remove('pending'); row.classList.add('skip');
+    row.querySelector('.step-meta').textContent = 'not run';
+  }
+
+  await wait(200);
+  const resultEl = document.getElementById('judge-result');
+
+  if (res.status === 'ACCEPTED') {
+    document.getElementById('m-rt').textContent = `${res.latency.toFixed(2)} ms`;
+    const pct = Math.min(99.8, Math.max(42, 97.5 - res.latency * 10)).toFixed(1);
+    document.getElementById('m-pct').textContent = `Beats ${pct}%`;
+    mEl.classList.remove('hidden');
+    resultEl.innerHTML = `
+      <div class="verdict-banner ok">
+        <div>
+          <div class="verdict-title">✓ Accepted</div>
+          <div class="verdict-sub">${res.passed_count} / ${total} cases passed</div>
+        </div>
+        <div class="verdict-sub">${res.latency.toFixed(2)} ms total</div>
+      </div>`;
+  } else {
+    document.getElementById('m-rt').textContent = `${res.latency.toFixed(2)} ms`;
+    document.getElementById('m-pct').textContent = '—';
+    mEl.classList.remove('hidden');
+    const f = res.fail;
+    resultEl.innerHTML = `
+      <div class="verdict-banner bad">
+        <div>
+          <div class="verdict-title">✗ Wrong Answer</div>
+          <div class="verdict-sub">failed on case ${f.i} of ${total}</div>
+        </div>
+        <div class="verdict-sub">${res.latency.toFixed(2)} ms total</div>
+      </div>
+      <div class="fail-panel">
+        <div><span class="fk">nums</span>${f.nums_display}</div>
+        <div><span class="fk">target</span>${f.target}</div>
+        <div><span class="fk">expected</span><span class="fv exp">${JSON.stringify(f.expected)}</span></div>
+        <div><span class="fk">got</span><span class="fv bad">${JSON.stringify(f.got)}</span></div>
+      </div>`;
+  }
+
+  const vMap = {
+    ACCEPTED:     `<span style="color:var(--green);font-weight:700">✓ Accepted</span>`,
+    WRONG_ANSWER: `<span style="color:var(--red);font-weight:700">✗ Wrong Answer</span>`,
+  };
+  vEl.innerHTML = vMap[res.status] || res.status;
+
+  addSub(res.status, res.latency);
+  runBtn.disabled = false; subBtn.disabled = false;
+}
+
+// ─── Submission log ───────────────────────────────────────────────────────────
+function addSub(status, ms) {
+  subCount++;
+  const list = document.getElementById('sub-list');
+  if (subCount === 1) list.innerHTML = '';
+  const btn = document.getElementById('sub-tbtn');
+  const badge = btn.querySelector('.scnt');
+  if (badge) badge.textContent = subCount;
+  else btn.insertAdjacentHTML('beforeend', `<span class="scnt">${subCount}</span>`);
+  const cls = { ACCEPTED:'ac', WRONG_ANSWER:'wa', RUNTIME_ERROR:'re' }[status] || 're';
+  const el = document.createElement('div');
+  el.className = 'sub-item';
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:9px">
+      <span class="sbadge ${cls}">${status.replace(/_/g,' ')}</span>
+      <span class="stime">${new Date().toLocaleTimeString()}</span>
+    </div>
+    <span class="slat">${ms > 0 ? ms.toFixed(2)+' ms' : '—'}</span>`;
+  list.insertBefore(el, list.firstChild);
+}
+
+function clearSubs() {
+  document.getElementById('sub-list').innerHTML = '<div class="sub-empty">No submissions yet.</div>';
+  const b = document.querySelector('.scnt'); if (b) b.remove();
+  subCount = 0;
+}
+
+// ─── Tab routing ──────────────────────────────────────────────────────────────
+function ltab(id, btn) {
+  document.querySelectorAll('.left .tcontent').forEach(e => e.classList.add('hidden'));
+  document.querySelectorAll('.tbtn').forEach(e => e.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.remove('hidden');
+  btn.classList.add('on');
+}
+function btab(id, btn) {
+  document.querySelectorAll('.bot-content > div').forEach(e => e.classList.add('hidden'));
+  document.querySelectorAll('.btbtn').forEach(e => e.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.remove('hidden');
+  if (btn) btn.classList.add('on');
+}
+
+// ─── Resizable split ──────────────────────────────────────────────────────────
+const rh = document.getElementById('rh');
+const lp = document.getElementById('left-panel');
+let dragging = false, sx = 0, sw = 0;
+rh.addEventListener('mousedown', e => {
+  dragging = true; sx = e.clientX; sw = lp.getBoundingClientRect().width;
+  rh.classList.add('drag');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const mw = document.getElementById('main').getBoundingClientRect().width;
+  const nw = Math.min(Math.max(sw + e.clientX - sx, 260), mw - 300);
+  lp.style.width = nw + 'px';
+  if (cmEditor) cmEditor.refresh();
+});
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false; rh.classList.remove('drag');
+  document.body.style.cursor = ''; document.body.style.userSelect = '';
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', initEditor);
+</script>
+</body>
+</html>

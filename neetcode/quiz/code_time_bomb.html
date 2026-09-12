@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Time Bomb</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #f8f9fa; color: #1a1a2e; min-height: 100vh; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Code line styling */
+  .code-line {
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+  }
+  .code-line:hover { background: #e8f4fd; border-color: #90caf9; }
+  .code-line.selected { background: #fff3cd; border-color: #ffc107; }
+  .code-line.correct { background: #d4edda; border-color: #28a745; animation: correctPulse 0.4s ease; }
+  .code-line.wrong { background: #f8d7da; border-color: #dc3545; animation: shake 0.3s ease; }
+
+  .line-num {
+    color: #adb5bd;
+    min-width: 28px;
+    text-align: right;
+    user-select: none;
+    font-size: 12px;
+  }
+
+  /* Timer ring */
+  .timer-ring circle {
+    transition: stroke-dashoffset 1s linear;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  /* Bomb pulse */
+  @keyframes bombPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  .bomb-pulse { animation: bombPulse 1s ease-in-out infinite; }
+  .bomb-fast { animation: bombPulse 0.35s ease-in-out infinite; }
+
+  /* Explosion */
+  @keyframes explode {
+    0% { transform: scale(0.5); opacity: 1; }
+    60% { transform: scale(1.4); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  @keyframes shakeScreen {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-10px) rotate(-1deg); }
+    40% { transform: translateX(10px) rotate(1deg); }
+    60% { transform: translateX(-8px); }
+    80% { transform: translateX(8px); }
+  }
+  .exploding { animation: shakeScreen 0.6s ease forwards; }
+  .explosion-ring {
+    animation: explode 0.8s ease-out forwards;
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Success */
+  @keyframes correctPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in-up { animation: fadeInUp 0.4s ease forwards; }
+
+  /* Fix input */
+  .fix-input {
+    background: #fff;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    width: 100%;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .fix-input:focus { border-color: #4a90e2; box-shadow: 0 0 0 3px rgba(74,144,226,0.15); }
+  .fix-input.correct { border-color: #28a745; background: #d4edda; }
+  .fix-input.wrong { border-color: #dc3545; background: #f8d7da; animation: shake 0.3s ease; }
+
+  /* Progress bar */
+  .progress-bar { transition: width 1s linear; }
+
+  /* Overlay */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(248,249,250,0.95);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Scrolling code animation */
+  @keyframes scrollUp {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  .scroll-code { animation: scrollUp linear; animation-fill-mode: forwards; }
+
+  .hint-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff8e1; border: 1px solid #ffe082;
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 12px; color: #7c6200;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .hint-chip:hover { background: #fff3cd; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.03em;
+  }
+  .tag-syntax { background: #fce4ec; color: #880e4f; }
+  .tag-logic { background: #e8f5e9; color: #1b5e20; }
+  .tag-runtime { background: #e3f2fd; color: #0d47a1; }
+</style>
+</head>
+<body>
+
+<!-- Game container -->
+<div id="app" class="min-h-screen flex flex-col">
+
+  <!-- SPLASH SCREEN -->
+  <div id="splash" class="overlay flex-col gap-6 text-center px-6">
+    <div class="relative inline-flex items-center justify-center mb-2">
+      <div id="splash-bomb" class="text-7xl bomb-pulse select-none">💣</div>
+    </div>
+    <div>
+      <h1 class="text-3xl font-semibold tracking-tight text-gray-800 mb-1">Code Time Bomb</h1>
+      <p class="text-gray-500 text-sm max-w-xs mx-auto">Find the bug before the timer explodes. Click the broken line, then type the fix.</p>
+    </div>
+    <div class="grid grid-cols-3 gap-3 max-w-xs mx-auto w-full text-xs text-gray-600">
+      <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
+        <div class="text-lg mb-1">🔍</div>
+        <div>Spot the error</div>
+      </div>
+      <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
+        <div class="text-lg mb-1">🖱️</div>
+        <div>Click the line</div>
+      </div>
+      <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
+        <div class="text-lg mb-1">⌨️</div>
+        <div>Type the fix</div>
+      </div>
+    </div>
+    <button onclick="startGame()" class="bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded-xl transition-colors text-sm tracking-wide shadow-sm">
+      Start Game
+    </button>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div id="gameover" class="overlay flex-col gap-5 text-center px-6" style="display:none!important">
+    <div id="go-emoji" class="text-6xl select-none">💥</div>
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800 mb-1" id="go-title">Boom! You got blown up.</h2>
+      <p class="text-gray-500 text-sm" id="go-subtitle">The timer ran out.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 max-w-xs w-full mx-auto">
+      <div class="grid grid-cols-2 gap-4 text-center">
+        <div>
+          <div class="text-2xl font-semibold text-gray-800" id="go-score">0</div>
+          <div class="text-xs text-gray-400 mt-0.5">Score</div>
+        </div>
+        <div>
+          <div class="text-2xl font-semibold text-gray-800" id="go-level">1</div>
+          <div class="text-xs text-gray-400 mt-0.5">Level Reached</div>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="restartGame()" class="bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-xl transition-colors text-sm flex-1">
+        Play Again
+      </button>
+    </div>
+  </div>
+
+  <!-- WIN SCREEN (between levels) -->
+  <div id="levelwin" class="overlay flex-col gap-4 text-center px-6" style="display:none!important">
+    <div class="text-5xl select-none">✅</div>
+    <div>
+      <h2 class="text-xl font-semibold text-gray-800 mb-1">Nice catch!</h2>
+      <p class="text-gray-500 text-sm" id="win-msg">Bug squashed. Moving to level 2...</p>
+    </div>
+    <div class="text-3xl font-semibold text-gray-800" id="win-points">+100</div>
+    <button onclick="nextLevel()" class="bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-xl transition-colors text-sm">
+      Next Level →
+    </button>
+  </div>
+
+  <!-- MAIN GAME UI -->
+  <div id="gameui" class="flex flex-col min-h-screen" style="display:none!important">
+    <!-- Top bar -->
+    <header class="border-b border-gray-200 bg-white px-5 py-3 flex items-center justify-between sticky top-0 z-10">
+      <div class="flex items-center gap-3">
+        <span class="text-xl select-none" id="header-bomb">💣</span>
+        <div>
+          <span class="font-semibold text-gray-800 text-sm">Level <span id="ui-level">1</span></span>
+          <span class="text-gray-400 text-xs ml-2" id="ui-bug-type"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-right">
+          <div class="text-xs text-gray-400">Score</div>
+          <div class="font-semibold text-gray-800 text-sm" id="ui-score">0</div>
+        </div>
+        <!-- Timer ring -->
+        <div class="relative flex items-center justify-center">
+          <svg class="timer-ring" width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#e9ecef" stroke-width="4"/>
+            <circle id="timer-circle" cx="26" cy="26" r="22" fill="none" stroke="#4a90e2" stroke-width="4"
+              stroke-dasharray="138.2" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <span id="timer-text" class="absolute text-sm font-semibold text-gray-700 mono">30</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hint bar -->
+    <div class="bg-amber-50 border-b border-amber-100 px-5 py-2 flex items-center justify-between">
+      <p class="text-xs text-amber-800" id="hint-text">Find and click the buggy line, then type the fix below.</p>
+      <button onclick="revealHint()" class="hint-chip" id="hint-btn">
+        <span>💡</span><span>Hint</span>
+      </button>
+    </div>
+
+    <!-- Code panel -->
+    <main class="flex-1 bg-gray-50 overflow-hidden relative">
+      <div class="max-w-2xl mx-auto pt-6 pb-4 px-4">
+        <!-- Code block -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <!-- Code header -->
+          <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
+            <div class="w-3 h-3 rounded-full bg-red-300"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-300"></div>
+            <div class="w-3 h-3 rounded-full bg-green-300"></div>
+            <span class="ml-2 text-xs text-gray-400 mono" id="file-name">puzzle.py</span>
+            <span class="ml-auto" id="error-tag"></span>
+          </div>
+          <!-- Code lines -->
+          <div class="py-3 overflow-auto" id="code-container" style="max-height: 380px;">
+            <div id="code-lines" class="mono text-sm"></div>
+          </div>
+        </div>
+
+        <!-- Fix input -->
+        <div class="mt-4 fade-in-up">
+          <label class="text-xs font-medium text-gray-500 mb-2 block" id="fix-label">
+            <span id="selected-hint">← Select a line first</span>
+          </label>
+          <div class="flex gap-2">
+            <input type="text" id="fix-input" class="fix-input" placeholder="Type the corrected line here…"
+              oninput="checkTypingFix()" onkeydown="handleFixKey(event)" disabled/>
+            <button onclick="submitFix()" id="submit-btn"
+              class="bg-gray-800 hover:bg-gray-700 disabled:bg-gray-300 text-white font-medium px-5 rounded-xl text-sm transition-colors shrink-0 disabled:cursor-not-allowed"
+              disabled>Fix →</button>
+          </div>
+          <p class="text-xs text-gray-400 mt-2" id="fix-feedback"></p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Progress bar -->
+    <div class="h-1 bg-gray-200">
+      <div id="progress-bar" class="progress-bar h-full bg-blue-400" style="width:100%"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── PUZZLE DATA ───────────────────────────────────────────────────────────
+const PUZZLES = [
+  {
+    title: "Sum of List",
+    file: "sum_list.py",
+    type: "syntax",
+    timeLimit: 35,
+    code: [
+      "def calculate_sum(numbers):",
+      "    total = 0",
+      "    for num in numbers",
+      "        total += num",
+      "    return total",
+      "",
+      "result = calculate_sum([1, 2, 3, 4, 5])",
+      "print(result)"
+    ],
+    bugLine: 2,
+    fix: "    for num in numbers:",
+    hint: "Python loops need a specific punctuation mark at the end.",
+    explanation: "Missing colon `:` at the end of the `for` statement."
+  },
+  {
+    title: "Factorial Recursion",
+    file: "factorial.py",
+    type: "logic",
+    timeLimit: 30,
+    code: [
+      "def factorial(n):",
+      "    if n == 0:",
+      "        return 1",
+      "    return n * factorial(n - 2)",
+      "",
+      "print(factorial(5))   # Expected: 120"
+    ],
+    bugLine: 3,
+    fix: "    return n * factorial(n - 1)",
+    hint: "Recursion must reduce the problem by exactly one step.",
+    explanation: "Should decrement by 1, not 2 — causes infinite recursion or wrong answer."
+  },
+  {
+    title: "Find Max Value",
+    file: "find_max.py",
+    type: "logic",
+    timeLimit: 30,
+    code: [
+      "def find_max(lst):",
+      "    max_val = 0",
+      "    for item in lst:",
+      "        if item > max_val:",
+      "            max_val = item",
+      "    return max_val",
+      "",
+      "print(find_max([-3, -1, -7]))  # Expected: -1"
+    ],
+    bugLine: 1,
+    fix: "    max_val = lst[0]",
+    hint: "Initialising with 0 breaks when all values are negative.",
+    explanation: "Should initialise `max_val` to `lst[0]`, not `0`."
+  },
+  {
+    title: "String Repeat",
+    file: "repeat.py",
+    type: "runtime",
+    timeLimit: 28,
+    code: [
+      "def repeat_string(s, times):",
+      "    result = ''",
+      "    for i in range(times):",
+      "        result = result + s",
+      "    return result",
+      "",
+      "output = repeat_string(42, 3)",
+      "print(output)"
+    ],
+    bugLine: 6,
+    fix: 'output = repeat_string("42", 3)',
+    hint: "The function expects a string, but it is receiving a number.",
+    explanation: "Passing integer `42` instead of string `\"42\"` causes a TypeError."
+  },
+  {
+    title: "Count Vowels",
+    file: "vowels.py",
+    type: "logic",
+    timeLimit: 26,
+    code: [
+      "def count_vowels(text):",
+      '    vowels = "aeiou"',
+      "    count = 0",
+      "    for ch in text:",
+      "        if ch in vowels:",
+      "            count += 1",
+      "    return count",
+      "",
+      'result = count_vowels("Hello World")',
+      "print(result)  # Expected: 3"
+    ],
+    bugLine: 1,
+    fix: '    vowels = "aeiouAEIOU"',
+    hint: "The function misses something about letter casing.",
+    explanation: "Should include uppercase vowels `AEIOU` to count 'e' in 'Hello' and 'o' twice."
+  },
+  {
+    title: "Safe Division",
+    file: "divide.py",
+    type: "runtime",
+    timeLimit: 25,
+    code: [
+      "def safe_divide(a, b):",
+      "    if b = 0:",
+      "        return None",
+      "    return a / b",
+      "",
+      "print(safe_divide(10, 0))",
+      "print(safe_divide(9, 3))"
+    ],
+    bugLine: 1,
+    fix: "    if b == 0:",
+    hint: "Comparison uses a different operator than assignment.",
+    explanation: "Used `=` (assignment) instead of `==` (equality check)."
+  },
+  {
+    title: "List Flattener",
+    file: "flatten.py",
+    type: "logic",
+    timeLimit: 22,
+    code: [
+      "def flatten(nested):",
+      "    result = []",
+      "    for sublist in nested:",
+      "        for item in sublist:",
+      "            result.append(item)",
+      "    return nested",
+      "",
+      "print(flatten([[1,2],[3,4],[5]]))"
+    ],
+    bugLine: 5,
+    fix: "    return result",
+    hint: "Check what value the function is actually giving back.",
+    explanation: "Should `return result` (the built list), not `return nested` (the original)."
+  },
+  {
+    title: "Palindrome Check",
+    file: "palindrome.py",
+    type: "logic",
+    timeLimit: 20,
+    code: [
+      "def is_palindrome(s):",
+      '    s = s.lower().replace(" ", "")',
+      "    return s == s[::-1]",
+      "",
+      'words = ["racecar", "hello", "madam"]',
+      "for w in words:",
+      '    print(f"{w}: {is_palindrome(word)}")'
+    ],
+    bugLine: 6,
+    fix: '    print(f"{w}: {is_palindrome(w)}")',
+    hint: "The loop variable and the function argument don't match.",
+    explanation: "Uses undefined `word` instead of loop variable `w`."
+  },
+  {
+    title: "Binary Search",
+    file: "bsearch.py",
+    type: "logic",
+    timeLimit: 20,
+    code: [
+      "def binary_search(arr, target):",
+      "    left, right = 0, len(arr) - 1",
+      "    while left <= right:",
+      "        mid = (left + right) // 2",
+      "        if arr[mid] == target:",
+      "            return mid",
+      "        elif arr[mid] < target:",
+      "            left = mid + 1",
+      "        else:",
+      "            right = mid + 1",
+      "    return -1"
+    ],
+    bugLine: 9,
+    fix: "            right = mid - 1",
+    hint: "When the target is smaller, the search window must shrink correctly.",
+    explanation: "Should be `mid - 1` not `mid + 1` — otherwise the right boundary never closes."
+  },
+  {
+    title: "FizzBuzz",
+    file: "fizzbuzz.py",
+    type: "logic",
+    timeLimit: 18,
+    code: [
+      "def fizzbuzz(n):",
+      "    results = []",
+      "    for i in range(1, n + 1):",
+      "        if i % 3 == 0 and i % 5 == 0:",
+      '            results.append("FizzBuzz")',
+      "        elif i % 3 == 0:",
+      '            results.append("Fizz")',
+      "        elif i % 5 == 0:",
+      '            results.append("Buzz")',
+      "        else:",
+      "            results.append(i)",
+      "    return results",
+      "",
+      "print(fizzbuzz(15))"
+    ],
+    bugLine: 10,
+    fix: "            results.append(str(i))",
+    hint: "Mixing types in a list that should be all strings causes issues.",
+    explanation: "Should append `str(i)` not `i` to keep the list uniformly strings."
+  }
+];
+
+// ─── GAME STATE ────────────────────────────────────────────────────────────
+let state = {
+  level: 0,
+  score: 0,
+  selectedLine: null,
+  timer: null,
+  timeLeft: 0,
+  totalTime: 0,
+  hintUsed: false,
+  puzzle: null,
+  wrongAttempts: 0,
+  gameActive: false
+};
+
+// ─── DISPLAY HELPERS ───────────────────────────────────────────────────────
+function showScreen(id) {
+  ['splash','gameover','levelwin','gameui'].forEach(s => {
+    const el = document.getElementById(s);
+    if (s === id) {
+      el.style.removeProperty('display');
+      el.style.display = (s === 'gameui') ? 'flex' : 'flex';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+}
+
+// ─── TIMER ─────────────────────────────────────────────────────────────────
+function startTimer() {
+  state.timeLeft = state.puzzle.timeLimit;
+  state.totalTime = state.puzzle.timeLimit;
+  updateTimerUI();
+
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerUI();
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      triggerExplosion();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const t = state.timeLeft;
+  const total = state.totalTime;
+  const circumference = 138.2;
+  const offset = circumference * (1 - t / total);
+
+  const circle = document.getElementById('timer-circle');
+  const text = document.getElementById('timer-text');
+  const bar = document.getElementById('progress-bar');
+  const bomb = document.getElementById('header-bomb');
+
+  circle.style.strokeDashoffset = offset;
+  text.textContent = t;
+
+  const pct = t / total;
+  bar.style.width = (pct * 100) + '%';
+
+  if (pct > 0.5) {
+    circle.style.stroke = '#4a90e2';
+    bar.style.background = '#60a5fa';
+    bomb.textContent = '💣';
+    bomb.className = 'text-xl select-none bomb-pulse';
+  } else if (pct > 0.25) {
+    circle.style.stroke = '#f59e0b';
+    bar.style.background = '#fbbf24';
+    bomb.textContent = '💣';
+    bomb.className = 'text-xl select-none bomb-fast';
+  } else {
+    circle.style.stroke = '#ef4444';
+    bar.style.background = '#ef4444';
+    bomb.textContent = '💣';
+    bomb.className = 'text-xl select-none bomb-fast';
+  }
+}
+
+// ─── RENDER CODE ───────────────────────────────────────────────────────────
+function renderCode() {
+  const puzzle = state.puzzle;
+  const container = document.getElementById('code-lines');
+  container.innerHTML = '';
+
+  puzzle.code.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 'code-line';
+    div.id = 'line-' + i;
+    div.onclick = () => selectLine(i);
+
+    const lineNum = document.createElement('span');
+    lineNum.className = 'line-num';
+    lineNum.textContent = i + 1;
+
+    const lineCode = document.createElement('span');
+    lineCode.className = 'flex-1 whitespace-pre';
+    lineCode.textContent = line || ' ';
+
+    div.appendChild(lineNum);
+    div.appendChild(lineCode);
+    container.appendChild(div);
+  });
+
+  // file name and tag
+  document.getElementById('file-name').textContent = puzzle.file;
+  const tagEl = document.getElementById('error-tag');
+  const tagClass = { syntax: 'tag-syntax', logic: 'tag-logic', runtime: 'tag-runtime' }[puzzle.type];
+  tagEl.innerHTML = `<span class="tag ${tagClass}">${puzzle.type} bug</span>`;
+}
+
+// ─── SELECT LINE ───────────────────────────────────────────────────────────
+function selectLine(i) {
+  if (!state.gameActive) return;
+
+  // Deselect previous
+  if (state.selectedLine !== null) {
+    const prev = document.getElementById('line-' + state.selectedLine);
+    if (prev) prev.className = 'code-line';
+  }
+
+  state.selectedLine = i;
+  const el = document.getElementById('line-' + i);
+  if (el) el.className = 'code-line selected';
+
+  const fixInput = document.getElementById('fix-input');
+  const submitBtn = document.getElementById('submit-btn');
+  fixInput.disabled = false;
+  fixInput.value = state.puzzle.code[i] || '';
+  fixInput.focus();
+  submitBtn.disabled = false;
+
+  document.getElementById('selected-hint').textContent =
+    `Line ${i + 1} selected — type your fix:`;
+  document.getElementById('fix-feedback').textContent = '';
+  fixInput.className = 'fix-input';
+}
+
+// ─── FIX LOGIC ─────────────────────────────────────────────────────────────
+function checkTypingFix() {
+  document.getElementById('fix-input').className = 'fix-input';
+  document.getElementById('fix-feedback').textContent = '';
+}
+
+function handleFixKey(e) {
+  if (e.key === 'Enter') submitFix();
+}
+
+function submitFix() {
+  if (state.selectedLine === null || !state.gameActive) return;
+
+  const puzzle = state.puzzle;
+  const inputEl = document.getElementById('fix-input');
+  const typed = inputEl.value;
+  const lineEl = document.getElementById('line-' + state.selectedLine);
+
+  if (state.selectedLine !== puzzle.bugLine) {
+    // Wrong line
+    lineEl.className = 'code-line wrong';
+    setTimeout(() => { lineEl.className = 'code-line'; }, 600);
+    state.wrongAttempts++;
+    state.timeLeft = Math.max(1, state.timeLeft - 3);
+    document.getElementById('fix-feedback').textContent =
+      '✗ That line looks fine. Try another. (-3s)';
+    inputEl.className = 'fix-input wrong';
+    state.selectedLine = null;
+    inputEl.disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('selected-hint').textContent = '← Select a line first';
+    return;
+  }
+
+  // Correct line — check fix
+  const trimTyped = typed.trim();
+  const trimFix = puzzle.fix.trim();
+  if (trimTyped === trimFix) {
+    lineEl.className = 'code-line correct';
+    inputEl.className = 'fix-input correct';
+    clearInterval(state.timer);
+    state.gameActive = false;
+
+    // Score: time bonus + hint penalty
+    const timeBonus = state.timeLeft * 5;
+    const hintPenalty = state.hintUsed ? 20 : 0;
+    const wrongPenalty = state.wrongAttempts * 10;
+    const gained = Math.max(10, 100 + timeBonus - hintPenalty - wrongPenalty);
+    state.score += gained;
+
+    setTimeout(() => showWin(gained), 500);
+  } else {
+    inputEl.className = 'fix-input wrong';
+    state.wrongAttempts++;
+    state.timeLeft = Math.max(1, state.timeLeft - 4);
+    document.getElementById('fix-feedback').textContent =
+      '✗ Close, but not quite right. (-4s)';
+    setTimeout(() => {
+      if (inputEl.className === 'fix-input wrong')
+        inputEl.className = 'fix-input';
+    }, 800);
+  }
+}
+
+// ─── HINT ──────────────────────────────────────────────────────────────────
+function revealHint() {
+  if (state.hintUsed) return;
+  state.hintUsed = true;
+  document.getElementById('hint-text').textContent =
+    '💡 ' + state.puzzle.hint;
+  document.getElementById('hint-btn').style.opacity = '0.4';
+  document.getElementById('hint-btn').style.pointerEvents = 'none';
+  state.timeLeft = Math.max(1, state.timeLeft - 5);
+}
+
+// ─── EXPLOSION ─────────────────────────────────────────────────────────────
+function triggerExplosion() {
+  state.gameActive = false;
+  const app = document.getElementById('app');
+  app.classList.add('exploding');
+
+  // Flash red
+  document.body.style.background = '#fee2e2';
+  setTimeout(() => { document.body.style.background = '#f8f9fa'; }, 300);
+  setTimeout(() => { document.body.style.background = '#fee2e2'; }, 600);
+  setTimeout(() => { document.body.style.background = '#f8f9fa'; }, 900);
+
+  setTimeout(() => {
+    app.classList.remove('exploding');
+    document.getElementById('go-score').textContent = state.score;
+    document.getElementById('go-level').textContent = state.level + 1;
+    document.getElementById('go-title').textContent = 'Boom! You got blown up.';
+    document.getElementById('go-subtitle').textContent =
+      `The bug was on line ${state.puzzle.bugLine + 1}: ${state.puzzle.explanation}`;
+    showScreen('gameover');
+    document.getElementById('gameover').style.display = 'flex';
+  }, 1000);
+}
+
+// ─── WIN ───────────────────────────────────────────────────────────────────
+function showWin(points) {
+  document.getElementById('win-points').textContent = `+${points} pts`;
+  const nextLvl = state.level + 2;
+  document.getElementById('win-msg').textContent =
+    state.level + 1 >= PUZZLES.length
+      ? 'All bombs defused! You are a legend. 🎉'
+      : `Bug squashed! Moving to level ${nextLvl}…`;
+  showScreen('levelwin');
+  document.getElementById('levelwin').style.display = 'flex';
+}
+
+// ─── LOAD LEVEL ────────────────────────────────────────────────────────────
+function loadLevel() {
+  if (state.level >= PUZZLES.length) {
+    // All done
+    document.getElementById('go-emoji').textContent = '🏆';
+    document.getElementById('go-title').textContent = 'All Levels Complete!';
+    document.getElementById('go-subtitle').textContent = 'You defused every bomb. Legendary.';
+    document.getElementById('go-score').textContent = state.score;
+    document.getElementById('go-level').textContent = PUZZLES.length;
+    showScreen('gameover');
+    document.getElementById('gameover').style.display = 'flex';
+    return;
+  }
+
+  state.puzzle = PUZZLES[state.level];
+  state.selectedLine = null;
+  state.hintUsed = false;
+  state.wrongAttempts = 0;
+  state.gameActive = true;
+
+  // Reset UI
+  document.getElementById('ui-level').textContent = state.level + 1;
+  document.getElementById('ui-score').textContent = state.score;
+  document.getElementById('fix-input').value = '';
+  document.getElementById('fix-input').disabled = true;
+  document.getElementById('fix-input').className = 'fix-input';
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('fix-feedback').textContent = '';
+  document.getElementById('selected-hint').textContent = '← Select a line first';
+  document.getElementById('hint-text').textContent = 'Find and click the buggy line, then type the fix below.';
+  document.getElementById('hint-btn').style.opacity = '1';
+  document.getElementById('hint-btn').style.pointerEvents = 'auto';
+  document.getElementById('header-bomb').className = 'text-xl select-none bomb-pulse';
+
+  renderCode();
+  showScreen('gameui');
+  document.getElementById('gameui').style.display = 'flex';
+  startTimer();
+}
+
+// ─── FLOW CONTROLS ─────────────────────────────────────────────────────────
+function startGame() {
+  state.level = 0;
+  state.score = 0;
+  loadLevel();
+}
+
+function nextLevel() {
+  state.level++;
+  clearInterval(state.timer);
+  loadLevel();
+}
+
+function restartGame() {
+  clearInterval(state.timer);
+  document.body.style.background = '#f8f9fa';
+  showScreen('splash');
+  document.getElementById('splash').style.display = 'flex';
+}
+</script>
+</body>
+</html>

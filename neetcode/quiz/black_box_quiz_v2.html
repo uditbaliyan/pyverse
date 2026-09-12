@@ -1,0 +1,336 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{font-family:var(--font-sans);padding:1.25rem 1rem;max-width:700px}
+.btn{font-size:13px;padding:7px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;font-family:var(--font-sans);transition:background 0.12s,transform 0.1s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--color-background-secondary)}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.btn-primary:hover{opacity:0.83;background:var(--color-text-primary)}
+.btn-sm{font-size:12px;padding:5px 10px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1rem}
+.pill{display:inline-block;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px}
+.pill-easy{background:#EAF3DE;color:#27500A}
+.pill-medium{background:#FAEEDA;color:#633806}
+.pill-hard{background:#FCEBEB;color:#791F1F}
+.pill-pts{background:#EEEDFE;color:#3C3489}
+.sec-label{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--color-text-tertiary);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.code-area{width:100%;min-height:120px;padding:12px;font-family:var(--font-mono);font-size:13px;line-height:1.6;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);resize:vertical;outline:none}
+.code-area:focus{border-color:var(--color-border-primary);background:var(--color-background-primary)}
+.ledger-tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.ledger-tbl th{font-size:11px;color:var(--color-text-tertiary);text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);font-weight:500}
+.ledger-tbl td{padding:7px 8px;border-bottom:0.5px solid var(--color-border-tertiary);font-family:var(--font-mono);font-size:12px}
+.ledger-tbl tr:last-child td{border-bottom:none}
+.hint-strip{border-radius:var(--border-radius-md);padding:9px 12px;font-size:13px;margin-top:8px;display:flex;gap:8px;align-items:flex-start}
+.hint-1{background:#E6F1FB;color:#0C447C;border:0.5px solid #B5D4F4}
+.hint-2{background:#FAEEDA;color:#633806;border:0.5px solid #FAC775}
+.hint-3{background:#EAF3DE;color:#27500A;border:0.5px solid #C0DD97}
+.quick-chip{font-size:12px;padding:5px 11px;border-radius:99px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;font-family:var(--font-mono);transition:background 0.1s,color 0.1s}
+.quick-chip:hover{background:#E6F1FB;color:#0C447C;border-color:#B5D4F4}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1rem}
+.stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem 1rem}
+.stat-card .lbl{font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px}
+.stat-card .val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.prog-wrap{height:5px;background:var(--color-background-secondary);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.prog-bar{height:5px;border-radius:99px;transition:width .3s}
+.result-box{border-radius:var(--border-radius-md);padding:12px 14px;font-size:13px;margin-top:10px}
+.res-pass{background:#EAF3DE;border:0.5px solid #C0DD97;color:#27500A}
+.res-fail{background:#FCEBEB;border:0.5px solid #F7C1C1;color:#791F1F}
+.res-warn{background:#FAEEDA;border:0.5px solid #FAC775;color:#633806}
+.case-row{font-family:var(--font-mono);font-size:12px;padding:3px 0;display:flex;gap:6px}
+.dot-row{display:flex;gap:5px;align-items:center}
+.qdot{width:9px;height:9px;border-radius:50%;background:var(--color-border-secondary)}
+.qdot.cur{background:var(--color-text-primary)}
+.qdot.done{background:#639922}
+.qdot.fail{background:#E24B4A}
+.phase-tab{font-size:13px;padding:7px 16px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);transition:all .12s}
+.phase-tab.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.fade-in{animation:fi .25s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+
+<div class="app">
+<h2 style="position:absolute;left:-9999px" class="sr-only">Black-box quiz: probe the secret function and replicate it in Python</h2>
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1rem">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span id="q-title" style="font-size:17px;font-weight:500"></span>
+      <span id="q-diff" class="pill"></span>
+      <span id="q-pts" class="pill pill-pts"></span>
+    </div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px">Probe the black box, then write Python to replicate it.</div>
+  </div>
+  <div class="dot-row" id="qdots"></div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="lbl">Score</div><div class="val" id="s-score">0</div></div>
+  <div class="stat-card"><div class="lbl">Probes used</div><div class="val" id="s-probes">0</div></div>
+  <div class="stat-card"><div class="lbl">Hints taken</div><div class="val" id="s-hints">0</div></div>
+</div>
+
+<div style="display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap">
+  <button class="phase-tab active" id="tab-probe" onclick="switchTab('probe')"><i class="ti ti-radar" aria-hidden="true"></i> Probe station</button>
+  <button class="phase-tab" id="tab-code" onclick="switchTab('code')"><i class="ti ti-code" aria-hidden="true"></i> Code lab</button>
+  <div style="flex:1"></div>
+  <button class="btn btn-sm" onclick="prevQ()"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+  <button class="btn btn-sm" onclick="nextQ()"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+</div>
+
+<div id="panel-probe" class="fade-in">
+  <div class="card">
+    <div class="sec-label"><i class="ti ti-terminal" aria-hidden="true" style="font-size:14px"></i> Input format</div>
+    <div id="input-guide" style="font-size:13px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:12px"></div>
+    <div class="sec-label" style="margin-bottom:6px"><i class="ti ti-stars" aria-hidden="true" style="font-size:14px"></i> Try these inputs</div>
+    <div id="quick-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <input id="probe-in" type="text" placeholder="Type a custom input..." style="flex:1;padding:8px 12px;font-size:14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);outline:none"/>
+      <button class="btn btn-primary" onclick="probe()"><i class="ti ti-player-play" aria-hidden="true"></i> Probe</button>
+    </div>
+  </div>
+
+  <div id="hints-wrap"></div>
+
+  <div class="card" style="padding:.75rem 1.25rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="sec-label" style="margin-bottom:0"><i class="ti ti-list" aria-hidden="true" style="font-size:14px"></i> Probe log</div>
+      <button class="btn btn-sm" onclick="clearLog()"><i class="ti ti-trash" aria-hidden="true"></i> Clear</button>
+    </div>
+    <div id="log-empty" style="font-size:13px;color:var(--color-text-tertiary);padding:1rem 0;text-align:center"><i class="ti ti-search" aria-hidden="true" style="font-size:18px;display:block;margin-bottom:4px"></i>No probes yet</div>
+    <table class="ledger-tbl" id="log-tbl" style="display:none">
+      <thead><tr><th style="width:36px">#</th><th>Input</th><th>Output</th><th style="width:70px;text-align:right">Time</th></tr></thead>
+      <tbody id="log-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="panel-code" style="display:none" class="fade-in">
+  <div class="card">
+    <div class="sec-label" style="margin-bottom:6px"><i class="ti ti-info-circle" aria-hidden="true" style="font-size:14px"></i> What to implement</div>
+    <div id="task-desc" style="font-size:13px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:12px"></div>
+    <div style="font-size:12px;font-family:var(--font-mono);color:var(--color-text-tertiary);margin-bottom:4px">def secret_function(input_value):</div>
+    <textarea class="code-area" id="code-in" placeholder="    # your implementation here&#10;    pass" spellcheck="false"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="verify()"><i class="ti ti-check" aria-hidden="true"></i> Verify</button>
+      <button class="btn" onclick="document.getElementById('code-in').value='';document.getElementById('res-box').style.display='none'"><i class="ti ti-refresh" aria-hidden="true"></i> Reset</button>
+      <button class="btn" onclick="switchTab('probe')" style="margin-left:auto;color:var(--color-text-secondary)"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back to probing</button>
+    </div>
+    <div id="res-box" style="display:none"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const CH=[
+  {
+    title:"Secret formula alpha",
+    difficulty:"Easy",
+    points:100,
+    inputGuide:"This function accepts any <strong>string</strong>. Try words, sentences, single characters, or even an empty string.",
+    taskDesc:"Write a Python function that transforms a string. Probe a few examples — look carefully at what happens to the characters and their positions.",
+    quickInputs:["apple","hello","racecar","Python","ab",""],
+    hints:[
+      {level:1,cls:"hint-1",icon:"ti-bulb",text:"Try: <code>apple</code> → what do you notice about the output?"},
+      {level:2,cls:"hint-2",icon:"ti-bulb",text:"Look at the first and last characters. Now the second and second-to-last. Do you see a pattern?"},
+      {level:3,cls:"hint-3",icon:"ti-bulb",text:"In Python: <code>s[::-1]</code> is a common idiom. What does slicing with a step of -1 do?"}
+    ],
+    secret:function(v){return String(v).split('').reverse().join('')},
+    tests:[
+      {input:"apple",expected:"elppa"},{input:"hello",expected:"olleh"},
+      {input:"racecar",expected:"racecar"},{input:"",expected:""},
+      {input:"ab",expected:"ba"},{input:"Python",expected:"nohtyP"},
+      {input:"a",expected:"a"},{input:"12345",expected:"54321"}
+    ]
+  },
+  {
+    title:"Sequence decoder beta",
+    difficulty:"Medium",
+    points:200,
+    inputGuide:"This function takes a <strong>non-negative integer</strong> (0, 1, 2, 3 …). Negative values or text will not produce useful results.",
+    taskDesc:"The function maps a whole number to another number using a well-known mathematical sequence. Probe several small numbers in order and look for the pattern.",
+    quickInputs:["0","1","2","3","4","5","6","10"],
+    hints:[
+      {level:1,cls:"hint-1",icon:"ti-bulb",text:"Probe 0 through 7 in order. Write down each output. Do you recognise the sequence?"},
+      {level:2,cls:"hint-2",icon:"ti-bulb",text:"Each number is the sum of the two before it. You've seen this sequence before — it starts 0, 1, 1, 2, 3, 5 …"},
+      {level:3,cls:"hint-3",icon:"ti-bulb",text:"This is the Fibonacci sequence. In Python you can solve it iteratively: <code>a, b = 0, 1; for _ in range(n): a, b = b, a+b</code>"}
+    ],
+    secret:function(v){const n=parseInt(v);if(isNaN(n)||n<0)return"invalid";if(n<=1)return n;let a=0,b=1;for(let i=2;i<=n;i++){let t=a+b;a=b;b=t;}return b},
+    tests:[
+      {input:"0",expected:0},{input:"1",expected:1},{input:"2",expected:1},
+      {input:"5",expected:5},{input:"6",expected:8},{input:"10",expected:55},
+      {input:"12",expected:144},{input:"3",expected:2}
+    ]
+  },
+  {
+    title:"Cipher analysis gamma",
+    difficulty:"Hard",
+    points:300,
+    inputGuide:"This function takes a <strong>string</strong> and returns a number. Try words with different letter compositions — the count depends on specific characters.",
+    taskDesc:"The function counts something specific about the characters in the string. Probe various words and track which inputs produce higher or lower counts.",
+    quickInputs:["hello","rhythm","aeiou","Python","beautiful","xyz","HELLO","apple"],
+    hints:[
+      {level:1,cls:"hint-1",icon:"ti-bulb",text:'Try <code>aeiou</code> → it returns 5. Try <code>bcdfg</code> → it returns 0. What do a, e, i, o, u have in common?'},
+      {level:2,cls:"hint-2",icon:"ti-bulb",text:'The function counts vowels (a, e, i, o, u). Now try <code>HELLO</code> vs <code>hello</code> — does case matter?'},
+      {level:3,cls:"hint-3",icon:"ti-bulb",text:'Case-insensitive vowel count. In Python: <code>sum(1 for c in s if c.lower() in "aeiou")</code>'}
+    ],
+    secret:function(v){return String(v).split('').filter(c=>'aeiouAEIOU'.includes(c)).length},
+    tests:[
+      {input:"hello",expected:2},{input:"apple",expected:2},{input:"rhythm",expected:0},
+      {input:"aeiou",expected:5},{input:"HELLO",expected:2},{input:"",expected:0},
+      {input:"Python",expected:1},{input:"beautiful",expected:5}
+    ]
+  }
+];
+
+let cur=0,probeCount=0,hintsUsed=0,totalScore=0,log=[],cScore=[0,0,0],cDone=[false,false,false];
+const qScores=[...Array(3)].map(()=>0);
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function init(){
+  const c=CH[cur];
+  document.getElementById('q-title').textContent=c.title;
+  const db=document.getElementById('q-diff');
+  db.textContent=c.difficulty;db.className='pill pill-'+c.difficulty.toLowerCase();
+  document.getElementById('q-pts').textContent=c.points+' pts';
+  document.getElementById('input-guide').innerHTML=c.inputGuide;
+  document.getElementById('task-desc').textContent=c.taskDesc;
+  const chips=document.getElementById('quick-chips');
+  chips.innerHTML='';
+  c.quickInputs.forEach(v=>{
+    const s=document.createElement('span');
+    s.className='quick-chip';
+    s.textContent=v===''?'(empty string)':v;
+    s.onclick=()=>{document.getElementById('probe-in').value=v;probe()};
+    chips.appendChild(s);
+  });
+  const dots=document.getElementById('qdots');
+  dots.innerHTML='';
+  CH.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='qdot'+(i===cur?' cur':cDone[i]?' done':'');
+    dots.appendChild(d);
+  });
+  document.getElementById('hints-wrap').innerHTML='';
+  renderLog();
+  document.getElementById('res-box').style.display='none';
+  updateStats();
+}
+
+function switchTab(t){
+  document.getElementById('panel-probe').style.display=t==='probe'?'block':'none';
+  document.getElementById('panel-code').style.display=t==='code'?'block':'none';
+  document.getElementById('tab-probe').classList.toggle('active',t==='probe');
+  document.getElementById('tab-code').classList.toggle('active',t==='code');
+  if(t==='code'){document.getElementById('panel-code').className='fade-in';document.getElementById('panel-code').style.display='block';}
+}
+
+function probe(){
+  const inp=document.getElementById('probe-in').value;
+  const c=CH[cur];
+  let out;
+  try{out=c.secret(inp);}catch(e){out='[error]';}
+  const ts=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  log.unshift({n:log.length+1,input:inp,output:String(out),time:ts});
+  probeCount++;
+  document.getElementById('probe-in').value='';
+  renderLog();
+  maybeShowHints();
+  updateStats();
+}
+
+document.getElementById('probe-in').addEventListener('keydown',e=>{if(e.key==='Enter')probe()});
+
+function maybeShowHints(){
+  const c=CH[cur];
+  const wrap=document.getElementById('hints-wrap');
+  let show=probeCount>=3?1:0;
+  show=probeCount>=6?2:show;
+  show=probeCount>=9?3:show;
+  wrap.innerHTML='';
+  for(let i=0;i<show;i++){
+    const h=c.hints[i];
+    if(!h)continue;
+    const div=document.createElement('div');
+    div.className='hint-strip '+h.cls;
+    div.innerHTML=`<i class="ti ${h.icon}" aria-hidden="true" style="font-size:16px;flex-shrink:0;margin-top:1px"></i><div><strong style="font-size:11px;letter-spacing:.04em">Hint ${h.level}</strong><div style="margin-top:2px">${h.text}</div></div>`;
+    wrap.appendChild(div);
+    if(i===show-1&&!div.dataset.counted){div.dataset.counted='1';hintsUsed++;}
+  }
+}
+
+function renderLog(){
+  const empty=document.getElementById('log-empty');
+  const tbl=document.getElementById('log-tbl');
+  const body=document.getElementById('log-body');
+  if(log.length===0){empty.style.display='block';tbl.style.display='none';return;}
+  empty.style.display='none';tbl.style.display='table';
+  body.innerHTML='';
+  log.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--color-text-tertiary)">${r.n}</td><td style="color:var(--color-text-secondary)">${esc(r.input===''?'""':r.input)}</td><td style="color:#185FA5;font-weight:500">${esc(r.output)}</td><td style="color:var(--color-text-tertiary);text-align:right;font-size:11px">${r.time}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function clearLog(){log=[];probeCount=0;document.getElementById('hints-wrap').innerHTML='';renderLog();updateStats();}
+
+function updateStats(){
+  document.getElementById('s-score').textContent=totalScore;
+  document.getElementById('s-probes').textContent=probeCount;
+  document.getElementById('s-hints').textContent=hintsUsed;
+}
+
+function verify(){
+  const code=document.getElementById('code-in').value.trim();
+  const rb=document.getElementById('res-box');
+  if(!code){
+    rb.className='result-box res-warn';rb.style.display='block';
+    rb.innerHTML='<div style="font-weight:500;margin-bottom:4px"><i class="ti ti-alert-triangle" aria-hidden="true" style="margin-right:6px"></i>Nothing to verify</div>Write your function body above, then click Verify.';
+    return;
+  }
+  const c=CH[cur];
+  let passed=0;
+  const rows=c.tests.map(tc=>{
+    let got,ok=false;
+    try{
+      const fn=new Function('input_value',code+'\nreturn secret_function(input_value);');
+      got=fn(tc.input);
+      ok=String(got)===String(tc.expected);
+    }catch(e){got='Error: '+e.message;}
+    if(ok)passed++;
+    return{ok,input:tc.input,expected:tc.expected,got};
+  });
+  const pct=Math.round((passed/c.tests.length)*100);
+  const all=passed===c.tests.length;
+  if(all&&!cDone[cur]){
+    const bonus=Math.max(0,c.points-probeCount*5-hintsUsed*10);
+    totalScore+=bonus+c.points;
+    cDone[cur]=true;
+    init();
+  }
+  rb.style.display='block';
+  rb.className='result-box '+(all?'res-pass':passed>0?'res-warn':'res-fail');
+  let html=`<div style="font-weight:500;font-size:14px;margin-bottom:8px"><i class="ti ti-${all?'circle-check':'circle-x'}" aria-hidden="true" style="margin-right:6px"></i>${all?'All '+c.tests.length+' tests passed!':passed+' / '+c.tests.length+' tests passed'}</div>`;
+  html+=`<div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:${all?'#639922':pct>50?'#BA7517':'#E24B4A'}"></div></div>`;
+  html+=`<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px">${pct}% accuracy</div>`;
+  html+='<div>';
+  rows.forEach(r=>{
+    html+=`<div class="case-row"><span style="color:${r.ok?'#3B6D11':'#A32D2D'};flex-shrink:0"><i class="ti ti-${r.ok?'check':'x'}" aria-hidden="true"></i></span><span style="color:var(--color-text-tertiary)">in:</span> <span>${esc(r.input===''?'""':r.input)}</span> <span style="color:var(--color-text-tertiary)">→ exp:</span> <span>${esc(r.expected)}</span> <span style="color:var(--color-text-tertiary)">got:</span> <span style="color:${r.ok?'#185FA5':'#A32D2D'}">${esc(r.got)}</span></div>`;
+  });
+  html+='</div>';
+  if(all){
+    const bonus=Math.max(0,c.points-probeCount*5-hintsUsed*10);
+    html+=`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary);font-size:13px"><i class="ti ti-trophy" aria-hidden="true" style="margin-right:4px"></i>Challenge complete! Points earned: <strong>${c.points+bonus}</strong> (base ${c.points} + bonus ${bonus})</div>`;
+  }
+  rb.innerHTML=html;
+  updateStats();
+}
+
+function nextQ(){cur=(cur+1)%CH.length;log=[];probeCount=0;hintsUsed=0;document.getElementById('code-in').value='';switchTab('probe');init();}
+function prevQ(){cur=(cur-1+CH.length)%CH.length;log=[];probeCount=0;hintsUsed=0;document.getElementById('code-in').value='';switchTab('probe');init();}
+
+init();
+</script>

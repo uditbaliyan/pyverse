@@ -1,0 +1,206 @@
+{% extends "home/base_.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+
+
+  {# ════════════════════════════════════════════════════════ #}
+  {#  HERO                                                   #}
+  {# ════════════════════════════════════════════════════════ #}
+  <section class="mt-[26px] grid grid-cols-[60px_1fr_340px] gap-6 items-stretch max-[900px]:grid-cols-1"
+           aria-label="Hero">
+
+    {# ── vertical side text ──────────────────────────────── #}
+    {% if page.hero_side_text %}
+    <div class="max-[900px]:hidden [writing-mode:vertical-rl]
+                font-mono text-[12.5px] tracking-[2px] text-bg bg-ink
+                px-1.5 py-4 flex items-center justify-center select-none">
+      {{ page.hero_side_text }}
+    </div>
+    {% endif %}
+
+    {# ── headline + CTAs ─────────────────────────────────── #}
+    <div>
+      <h1 class="font-black text-[clamp(52px,9vw,108px)] leading-[0.86] tracking-tighter text-ink">
+        {{ page.hero_text|safe }}
+      </h1>
+
+      {% if page.hero_subtitle %}
+      <p class="mt-[22px] max-w-[46ch] text-body-txt">
+        {{ page.hero_subtitle }}
+      </p>
+      {% endif %}
+
+      <div class="mt-[26px] flex gap-3 flex-wrap">
+        {% if page.hero_primary_cta_text %}
+        <a href="{{ page.primary_cta_url }}"
+           class="font-mono font-bold text-[13px] no-underline px-5 py-3
+                  border-[3px] border-ink bg-red text-[#F5EEDA]
+                  hover:bg-[#963026] transition-colors">
+          {{ page.hero_primary_cta_text }}
+        </a>
+        {% endif %}
+
+        {% if page.hero_secondary_cta_text %}
+        <a href="{{ page.secondary_cta_url }}"
+           class="font-mono font-bold text-[13px] no-underline px-5 py-3
+                  border-[3px] border-ink text-ink
+                  hover:bg-ink hover:text-bg transition-colors">
+          {{ page.hero_secondary_cta_text }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── device mockup ───────────────────────────────────── #}
+    <div class="bg-device border-[3px] border-ink px-4 pt-[18px] pb-[22px]
+                flex flex-col gap-3.5 shadow-device">
+      <div class="flex justify-between font-mono text-[10px] text-muted">
+        <span>PYVERSE UNIT</span>
+        <span>{{ page.device_model_label|default:"MODEL // PV-01" }}</span>
+      </div>
+
+      <div class="bg-ink p-2.5 rounded-sm">
+        <div class="bg-screen text-[#1F2914] font-mono text-[11.5px] leading-normal
+                    px-3 py-3.5 min-h-[150px] border-2 border-screen-dk overflow-hidden"
+             id="device-screen">
+
+
+            <span class="text-[#26311A] font-bold">&gt;&gt;&gt; trace(fn)</span><br>
+            <span class="text-muted">// no code loaded</span>
+
+        </div>
+      </div>
+
+      <div class="font-black text-xl text-center tracking-tight">
+        PY<span class="text-red">VERSE</span>
+      </div>
+
+      <div class="flex justify-between items-center mt-1.5">
+        <div class="w-14 h-14 relative">
+          <div class="absolute w-14 h-[18px] bg-ink top-[19px] left-0"></div>
+          <div class="absolute w-[18px] h-14 bg-ink top-0 left-[19px]"></div>
+        </div>
+        <div class="flex gap-2.5">
+          <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"></div>
+          <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"></div>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-2.5 font-mono text-[9px] text-muted">
+        <div class="w-[34px] h-[9px] bg-ink rounded-full"></div>
+        <div class="w-[34px] h-[9px] bg-ink rounded-full"></div>
+      </div>
+    </div>
+
+  </section>
+
+
+  {# ════════════════════════════════════════════════════════ #}
+  {#  STRIPE DIVIDER                                         #}
+  {# ════════════════════════════════════════════════════════ #}
+  <div class="mt-10 h-[14px] flex" aria-hidden="true">
+    <div class="flex-1 bg-s1"></div>
+    <div class="flex-1 bg-s2"></div>
+    <div class="flex-1 bg-s3"></div>
+    <div class="flex-1 bg-s4"></div>
+    <div class="flex-1 bg-s5"></div>
+    <div class="flex-1 bg-s6"></div>
+  </div>
+
+
+  {# ════════════════════════════════════════════════════════ #}
+  {#  SOCIAL PROOF STRIP                                     #}
+  {# ════════════════════════════════════════════════════════ #}
+  {% if page.stats.all %}
+  <section class="mt-12 border-[3px] border-ink bg-ink text-bg px-6 py-5
+                  flex flex-wrap justify-around gap-6" aria-label="Statistics">
+    {% for stat in page.stats.all %}
+    <div class="text-center">
+      <div class="font-black text-[clamp(28px,4vw,42px)] tracking-tight leading-none">
+        {{ stat.number }}
+      </div>
+      <div class="font-mono text-[11px] text-bg/60 mt-1 uppercase tracking-[1.5px]">
+        {{ stat.label }}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+
+  {# ════════════════════════════════════════════════════════ #}
+  {#  MODULE GRID                                            #}
+  {# ════════════════════════════════════════════════════════ #}
+  <div class="mt-12 mb-5 flex items-baseline gap-3.5" id="modules">
+    <h2 class="font-black text-[28px] tracking-tight">Select a Module</h2>
+    <span class="font-mono text-[13px] text-muted">
+      {{ page.modules.all|length|stringformat:"02d" }} loaded
+    </span>
+  </div>
+
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
+    {% for module in page.modules.all %}
+      {% if module.url != "#" %}
+      <a href="{{ module.url }}"
+         class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card
+                hover:-translate-x-0.5 hover:-translate-y-0.5
+                hover:shadow-card-h transition-all duration-100 no-underline text-ink
+                block">
+      {% else %}
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card
+                  hover:-translate-x-0.5 hover:-translate-y-0.5
+                  hover:shadow-card-h transition-all duration-100">
+      {% endif %}
+
+        <div class="flex justify-between items-center mb-2.5 font-mono text-[11px]">
+          <span class="bg-ink text-bg px-[7px] py-[3px]">{{ module.num }}</span>
+          {% if module.diff %}
+          <span class="text-red">{{ module.diff }}</span>
+          {% endif %}
+        </div>
+
+        <h3 class="font-black text-[19px] mb-2 tracking-tight">{{ module.title }}</h3>
+        <p class="text-[13.5px] text-body-txt mb-3">{{ module.desc }}</p>
+
+        <div class="font-mono text-[10.5px] text-screen-dk bg-screen/20
+                    border border-screen-dk px-2 py-1.5 break-words">
+          src: {{ module.src }}
+        </div>
+
+      {% if module.url != "#" %}
+      </a>
+      {% else %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+
+{# ════════════════════════════════════════════════════════════ #}
+{#  DEVICE TYPING ANIMATION                                   #}
+{# ════════════════════════════════════════════════════════════ #}
+{% block extra_js %}
+<script>
+(function(){
+  var lines = document.querySelectorAll('.code-line');
+  if(!lines.length) return;
+
+  function animate(){
+    lines.forEach(function(l){ l.style.opacity = '0'; });
+    lines.forEach(function(line, i){
+      setTimeout(function(){
+        line.style.opacity = '1';
+      }, i * 450);
+    });
+  }
+
+  animate();
+  setInterval(animate, lines.length * 450 + 3500);
+})();
+</script>
+{% endblock %}

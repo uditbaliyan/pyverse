@@ -1,0 +1,1339 @@
+<div
+  style="display: flex; justify-content: center; padding: 1.5rem 0; font-family: var(--font-sans)"
+>
+  <h2 class="sr-only">
+    A detailed retro handheld console illustration playing a Python concepts learning runner game,
+    controlled by clickable buttons or arrow keys.
+  </h2>
+
+  <div
+    style="
+      width: 320px;
+      background: linear-gradient(155deg, #f0ecd8 0%, #d6d2ba 55%, #c2bea2 100%);
+      border-radius: 16px 16px 70px 16px;
+      padding: 22px 20px 30px;
+      box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.18);
+      position: relative;
+    "
+  >
+    <div
+      style="
+        position: absolute;
+        top: 10px;
+        right: 26px;
+        width: 34px;
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(180deg, #faf7ea, #cdc9b4);
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.8),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+      "
+    ></div>
+
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 8px;
+        padding: 0 2px;
+      "
+    >
+      <span
+        style="
+          font-size: 15px;
+          font-style: italic;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          color: #2d2d55;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+        "
+        >PyPocket</span
+      >
+      <span style="font-size: 7px; color: #5a5a4d; text-align: right; line-height: 1.3"
+        >LEARN BY DODGING<br />BUGS &amp; COLLECTING CODE</span
+      >
+    </div>
+
+    <div
+      style="
+        background: linear-gradient(160deg, #6d7658, #4d5540);
+        border-radius: 10px 10px 30px 10px;
+        padding: 16px 14px 12px;
+        box-shadow:
+          inset 0 2px 8px rgba(0, 0, 0, 0.55),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+      "
+    >
+      <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px">
+        <div
+          id="powerLed"
+          style="
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ff3b3b;
+            box-shadow: 0 0 5px 1.5px rgba(255, 59, 59, 0.9);
+          "
+        ></div>
+        <span style="font-size: 6px; color: #e2ded0; letter-spacing: 1px">POWER</span>
+      </div>
+      <div
+        style="
+          background: #000;
+          border-radius: 3px;
+          padding: 6px;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+          position: relative;
+        "
+      >
+        <div style="width: 100%; aspect-ratio: 160/144; position: relative">
+          <canvas
+            id="gbScreen"
+            width="160"
+            height="144"
+            style="
+              position: absolute;
+              inset: 0;
+              width: 100%;
+              height: 100%;
+              image-rendering: pixelated;
+              image-rendering: crisp-edges;
+              background: #7fc242;
+              border-radius: 1px;
+            "
+          ></canvas>
+          <div
+            style="
+              position: absolute;
+              inset: 0;
+              background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 1px,
+                rgba(0, 0, 0, 0.06) 1px,
+                rgba(0, 0, 0, 0.06) 2px
+              );
+              pointer-events: none;
+              border-radius: 1px;
+            "
+          ></div>
+          <div
+            style="
+              position: absolute;
+              inset: 0;
+              background: radial-gradient(
+                ellipse at center,
+                transparent 55%,
+                rgba(0, 0, 0, 0.18) 100%
+              );
+              pointer-events: none;
+              border-radius: 1px;
+            "
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="lastConcept"
+      style="
+        text-align: center;
+        font-size: 9px;
+        color: #3a3a2f;
+        margin-top: 8px;
+        height: 12px;
+        font-weight: 500;
+        transition: opacity 0.3s;
+      "
+    ></div>
+
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 16px 6px 6px;
+      "
+    >
+      <div style="position: relative; width: 78px; height: 78px">
+        <div
+          style="
+            position: absolute;
+            left: 27px;
+            top: 0;
+            width: 24px;
+            height: 78px;
+            background: linear-gradient(90deg, #232321, #3b3a36, #232321);
+            border-radius: 5px;
+            box-shadow:
+              inset 0 1px 1px rgba(255, 255, 255, 0.18),
+              0 2px 3px rgba(0, 0, 0, 0.3);
+          "
+        ></div>
+        <div
+          style="
+            position: absolute;
+            left: 0;
+            top: 27px;
+            width: 78px;
+            height: 24px;
+            background: linear-gradient(180deg, #232321, #3b3a36, #232321);
+            border-radius: 5px;
+            box-shadow:
+              inset 0 1px 1px rgba(255, 255, 255, 0.18),
+              0 2px 3px rgba(0, 0, 0, 0.3);
+          "
+        ></div>
+        <button
+          id="btnUp"
+          aria-label="up, jump"
+          style="
+            position: absolute;
+            left: 27px;
+            top: 0;
+            width: 24px;
+            height: 27px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+          "
+        ></button>
+        <button
+          id="btnDown"
+          aria-label="down, duck"
+          style="
+            position: absolute;
+            left: 27px;
+            bottom: 0;
+            width: 24px;
+            height: 27px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+          "
+        ></button>
+        <button
+          id="btnLeft"
+          aria-label="left, debug slow-mo"
+          style="
+            position: absolute;
+            left: 0;
+            top: 27px;
+            width: 27px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+          "
+        ></button>
+        <button
+          id="btnRight"
+          aria-label="right, try except shield"
+          style="
+            position: absolute;
+            right: 0;
+            top: 27px;
+            width: 27px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+          "
+        ></button>
+        <div
+          style="
+            position: absolute;
+            left: 31px;
+            top: 31px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #57564f, #161614);
+            pointer-events: none;
+            box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.6);
+          "
+        ></div>
+      </div>
+
+      <div style="display: flex; gap: 12px; transform: rotate(-22deg); margin-top: 2px">
+        <button
+          id="btnB"
+          aria-label="B button, jump"
+          style="
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: none;
+            background: radial-gradient(circle at 32% 26%, #e0577e 0%, #a83b5c 45%, #6e1c37 100%);
+            color: #ffd8e4;
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow:
+              0 4px 0 #45142a,
+              0 6px 8px rgba(0, 0, 0, 0.35),
+              inset 0 2px 2px rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition:
+              transform 0.06s,
+              box-shadow 0.06s;
+          "
+        >
+          B
+        </button>
+        <button
+          id="btnA"
+          aria-label="A button, jump"
+          style="
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: none;
+            background: radial-gradient(circle at 32% 26%, #e0577e 0%, #a83b5c 45%, #6e1c37 100%);
+            color: #ffd8e4;
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow:
+              0 4px 0 #45142a,
+              0 6px 8px rgba(0, 0, 0, 0.35),
+              inset 0 2px 2px rgba(255, 255, 255, 0.4);
+            margin-top: -18px;
+            cursor: pointer;
+            transition:
+              transform 0.06s,
+              box-shadow 0.06s;
+          "
+        >
+          A
+        </button>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 6px">
+      <div style="text-align: center">
+        <div
+          id="debugLed"
+          style="
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4a4a3f;
+            margin: 0 auto 3px;
+            transition:
+              background 0.15s,
+              box-shadow 0.15s;
+          "
+        ></div>
+        <span style="font-size: 6px; color: #5a5a4d; letter-spacing: 0.5px">DEBUG ←</span>
+      </div>
+      <div style="text-align: center">
+        <div
+          id="shieldLed"
+          style="
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4a4a3f;
+            margin: 0 auto 3px;
+            transition:
+              background 0.15s,
+              box-shadow 0.15s;
+          "
+        ></div>
+        <span style="font-size: 6px; color: #5a5a4d; letter-spacing: 0.5px">SHIELD →</span>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 16px; margin-top: 14px">
+      <div style="text-align: center">
+        <button
+          id="btnSelect"
+          style="
+            width: 38px;
+            height: 11px;
+            border-radius: 6px;
+            border: none;
+            background: linear-gradient(180deg, #9a9a90, #63635a);
+            transform: rotate(-22deg);
+            box-shadow:
+              inset 0 1px 1px rgba(255, 255, 255, 0.25),
+              0 2px 2px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+          "
+        ></button>
+        <div style="font-size: 7px; color: #5a5a4d; margin-top: 4px; letter-spacing: 0.5px">
+          SELECT
+        </div>
+      </div>
+      <div style="text-align: center">
+        <button
+          id="btnStart"
+          style="
+            width: 38px;
+            height: 11px;
+            border-radius: 6px;
+            border: none;
+            background: linear-gradient(180deg, #9a9a90, #63635a);
+            transform: rotate(-22deg);
+            box-shadow:
+              inset 0 1px 1px rgba(255, 255, 255, 0.25),
+              0 2px 2px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+          "
+        ></button>
+        <div style="font-size: 7px; color: #5a5a4d; margin-top: 4px; letter-spacing: 0.5px">
+          START
+        </div>
+      </div>
+    </div>
+
+    <div
+      style="
+        position: absolute;
+        bottom: 16px;
+        right: 18px;
+        width: 44px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        transform: rotate(-22deg);
+      "
+    >
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+      <div
+        style="
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a8a596;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+        "
+      ></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 14px; font-size: 9px; color: #4a4a3f">
+      ↑/A jump · hold ↓ duck · ← debug · → shield
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const cv = document.getElementById("gbScreen");
+    const ctx = cv.getContext("2d");
+    const W = 160,
+      H = 144;
+    const pal = {
+      dark: "#0b3d0b",
+      mid2: "#1f6b1f",
+      mid1: "#5aa62c",
+      light: "#8bd346",
+      bug: "#9a3030",
+      bugDark: "#5a1818",
+      bugEye: "#ffffff",
+      coin: "#e8b400",
+      coinDark: "#a67800",
+      coinShine: "#ffe066",
+      player: "#141414",
+      shield: "#3fa9f5",
+      textDark: "#0b3d0b",
+      textMid: "#5aa62c",
+    };
+    const groundY = 120;
+    const concepts = [
+      "var",
+      "loop",
+      "func",
+      "list",
+      "dict",
+      "class",
+      "API",
+      "OOP",
+      "\u03BB",
+      "git",
+    ];
+    const conceptNames = {
+      var: "variables",
+      loop: "loops",
+      func: "functions",
+      list: "lists",
+      dict: "dictionaries",
+      class: "classes",
+      API: "APIs",
+      OOP: "OOP",
+      "\u03BB": "lambdas",
+      git: "git",
+    };
+
+    /* ── Audio ── */
+    let audioCtx = null;
+    function beep(freq, dur, type, vol) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator(),
+          g = audioCtx.createGain();
+        o.type = type || "square";
+        o.frequency.value = freq;
+        g.gain.value = vol || 0.04;
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        o.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+    function sfxJump() {
+      beep(520, 0.07, "square");
+      setTimeout(() => beep(680, 0.05, "square"), 35);
+    }
+    function sfxCoin() {
+      beep(880, 0.06, "square");
+      setTimeout(() => beep(1180, 0.08, "square"), 45);
+    }
+    function sfxDie() {
+      beep(200, 0.15, "sawtooth");
+      setTimeout(() => beep(100, 0.3, "sawtooth"), 90);
+    }
+    function sfxShield() {
+      beep(700, 0.1, "sine");
+      setTimeout(() => beep(950, 0.08, "sine"), 55);
+    }
+    function sfxDebug() {
+      beep(320, 0.12, "triangle");
+      setTimeout(() => beep(200, 0.15, "triangle"), 70);
+    }
+    function sfxBlock() {
+      beep(440, 0.04, "sine");
+      beep(660, 0.06, "sine");
+    }
+
+    /* ── State ── */
+    let player, obstacles, coins, particles, scorePopups, hills, clouds;
+    let frame, score, best, running, speed, duck, started, nextSpawn;
+    let slomoTimer, slomoCooldown, shieldTimer, shieldCooldown;
+    let learned, combo, maxCombo, comboTimer;
+    let screenShake, screenFlash, screenFlashColor;
+    const lastConceptEl = document.getElementById("lastConcept");
+    const debugLed = document.getElementById("debugLed");
+    const shieldLed = document.getElementById("shieldLed");
+
+    function makeClouds() {
+      const c = [];
+      for (let i = 0; i < 4; i++)
+        c.push({
+          x: Math.random() * W,
+          y: 8 + Math.random() * 32,
+          w: 10 + Math.random() * 20,
+          h: 3 + Math.random() * 2,
+        });
+      return c;
+    }
+    function makeHills() {
+      return [
+        { x: 0, h: 10 },
+        { x: 70, h: 17 },
+        { x: 140, h: 8 },
+        { x: 210, h: 13 },
+      ];
+    }
+
+    function init() {
+      player = { x: 20, y: groundY, vy: 0, onGround: true, legFrame: 0 };
+      obstacles = [];
+      coins = [];
+      particles = [];
+      scorePopups = [];
+      hills = makeHills();
+      clouds = makeClouds();
+      frame = 0;
+      score = 0;
+      speed = 1.6;
+      duck = false;
+      running = true;
+      started = true;
+      slomoTimer = 0;
+      slomoCooldown = 0;
+      shieldTimer = 0;
+      shieldCooldown = 0;
+      learned = 0;
+      combo = 0;
+      maxCombo = 0;
+      comboTimer = 0;
+      screenShake = 0;
+      screenFlash = 0;
+      screenFlashColor = "";
+      nextSpawn = 70;
+      lastConceptEl.textContent = "";
+    }
+
+    best = 0;
+    running = false;
+    started = false;
+    hills = makeHills();
+    clouds = makeClouds();
+
+    /* ── Actions ── */
+    function jump() {
+      if (!started || !running) {
+        init();
+        return;
+      }
+      if (player.onGround && !duck) {
+        player.vy = -3.7;
+        player.onGround = false;
+        sfxJump();
+        spawnParticles(player.x + 4, player.y, pal.mid1, 3);
+      }
+    }
+    function triggerDebug() {
+      if (!started || !running) return;
+      if (slomoCooldown <= 0) {
+        slomoTimer = 90;
+        slomoCooldown = 240;
+        sfxDebug();
+        screenFlash = 0.15;
+        screenFlashColor = "rgba(90,209,255,1)";
+      }
+    }
+    function triggerShield() {
+      if (!started || !running) return;
+      if (shieldCooldown <= 0) {
+        shieldTimer = 90;
+        shieldCooldown = 240;
+        sfxShield();
+        screenFlash = 0.12;
+        screenFlashColor = "rgba(63,169,245,1)";
+      }
+    }
+
+    /* ── Particles & Popups ── */
+    function spawnParticles(x, y, color, n) {
+      for (let i = 0; i < n; i++)
+        particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 2.5,
+          vy: -Math.random() * 2.2 - 0.4,
+          life: 14 + Math.random() * 10,
+          color,
+          sz: 1 + Math.random(),
+        });
+    }
+    function addPopup(x, y, text, color) {
+      scorePopups.push({ x, y, text, color, life: 36 });
+    }
+
+    /* ── Spawning ── */
+    function spawnStuff() {
+      const r = Math.random();
+      if (r < 0.42) {
+        obstacles.push({
+          x: W + 4,
+          w: 7 + Math.random() * 5,
+          h: 10 + Math.random() * 10,
+          type: "ground",
+          ph: Math.random() * 6.28,
+        });
+      } else if (r < 0.65) {
+        obstacles.push({
+          x: W + 4,
+          w: 9,
+          h: 6,
+          type: "fly",
+          fy: groundY - 18 - Math.random() * 8,
+          ph: Math.random() * 6.28,
+        });
+      } else if (r < 0.78) {
+        obstacles.push({ x: W + 4, w: 6, h: 8, type: "ground", ph: Math.random() * 6.28 });
+        obstacles.push({ x: W + 22, w: 6, h: 13, type: "ground", ph: Math.random() * 6.28 });
+      } else {
+        const label = concepts[Math.floor(Math.random() * concepts.length)];
+        coins.push({
+          x: W + 4,
+          y: groundY - 14 - Math.random() * 16,
+          r: 4,
+          taken: false,
+          label,
+          bp: Math.random() * 6.28,
+        });
+      }
+    }
+
+    /* ── Drawing helpers ── */
+    function drawPixelChar(px, py, crouch, leg, shielded) {
+      const h = crouch ? 8 : 12;
+      const yt = py - h;
+      // Shadow
+      ctx.fillStyle = "rgba(0,0,0,0.1)";
+      ctx.fillRect(px, groundY, 9, 2);
+      // Shield bubble
+      if (shielded) {
+        const a = shieldTimer < 20 ? (shieldTimer / 20) * 0.35 : 0.35;
+        ctx.strokeStyle = "rgba(63,169,245," + a + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px + 4.5, yt + h / 2 - 1, 9, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(63,169,245," + a * 0.15 + ")";
+        ctx.beginPath();
+        ctx.arc(px + 4.5, yt + h / 2 - 1, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Hat
+      ctx.fillStyle = shielded ? "#6cc4ff" : "#3a3a3a";
+      ctx.fillRect(px + 1, yt - 5, 5, 2);
+      ctx.fillRect(px + 2, yt - 6, 3, 1);
+      // Head
+      ctx.fillStyle = shielded ? pal.shield : pal.player;
+      ctx.fillRect(px + 1, yt - 3, 7, 3);
+      // Eye
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(px + 6, yt - 2, 2, 2);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(px + 7, yt - 1, 1, 1);
+      // Body
+      ctx.fillStyle = shielded ? pal.shield : pal.player;
+      ctx.fillRect(px, yt, 9, 8);
+      // Belt detail
+      ctx.fillStyle = shielded ? "#2888cc" : "#333";
+      ctx.fillRect(px, yt + 6, 9, 1);
+      // Legs
+      if (!crouch) {
+        if (leg) {
+          ctx.fillRect(px + 1, yt + 8, 3, 4);
+          ctx.fillRect(px + 5, yt + 8, 3, 3);
+        } else {
+          ctx.fillRect(px + 1, yt + 8, 3, 3);
+          ctx.fillRect(px + 5, yt + 8, 3, 4);
+        }
+      } else {
+        ctx.fillRect(px, yt + 8, 9, 3);
+      }
+    }
+
+    function drawBug(o) {
+      const wb = Math.sin(frame * 0.15 + o.ph) * (o.type === "fly" ? 2 : 0.5);
+      if (o.type === "ground") {
+        const bx = o.x,
+          by = groundY - o.h + wb;
+        ctx.fillStyle = pal.bug;
+        ctx.fillRect(bx, by, o.w, o.h);
+        ctx.fillStyle = pal.bugDark;
+        ctx.fillRect(bx, by + o.h - 3, o.w, 3);
+        // Eyes
+        ctx.fillStyle = pal.bugEye;
+        ctx.fillRect(bx + 1, by + 1, 2, 2);
+        ctx.fillRect(bx + o.w - 3, by + 1, 2, 2);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(bx + 2, by + 2, 1, 1);
+        ctx.fillRect(bx + o.w - 2, by + 2, 1, 1);
+        // Legs
+        ctx.fillStyle = pal.bugDark;
+        ctx.fillRect(bx - 1, groundY - 3, 1, 3);
+        ctx.fillRect(bx + o.w, groundY - 3, 1, 3);
+        if (o.w > 8) ctx.fillRect(bx + Math.floor(o.w / 2), groundY - 2, 1, 2);
+        // Antennae
+        const aw = Math.sin(frame * 0.2 + o.ph) * 1;
+        ctx.fillRect(bx + 1 + aw, by - 2, 1, 2);
+        ctx.fillRect(bx + o.w - 2 - aw, by - 2, 1, 2);
+      } else {
+        const bx = o.x,
+          by = o.fy - o.h / 2 + wb;
+        const wf = Math.sin(frame * 0.4 + o.ph) * 2;
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.fillRect(bx - 3, by - 2 + wf, 4, 2);
+        ctx.fillRect(bx + o.w - 1, by - 2 - wf, 4, 2);
+        ctx.fillStyle = pal.bug;
+        ctx.fillRect(bx, by, o.w, o.h);
+        ctx.fillStyle = pal.bugEye;
+        ctx.fillRect(bx + 1, by + 1, 2, 1);
+        ctx.fillRect(bx + o.w - 3, by + 1, 2, 1);
+        ctx.fillStyle = pal.bugDark;
+        ctx.fillRect(bx + Math.floor(o.w / 2), by + o.h, 1, 2);
+      }
+    }
+
+    function drawCoin(c) {
+      if (c.taken) return;
+      const bob = Math.sin(frame * 0.06 + c.bp) * 1.5;
+      const cy = c.y + bob;
+      const spin = Math.abs(Math.sin(frame * 0.07 + c.x * 0.05));
+      const w = Math.max(1, c.r * 2 * spin);
+      // Glow
+      ctx.fillStyle = "rgba(232,180,0,0.12)";
+      ctx.beginPath();
+      ctx.arc(c.x, cy, c.r + 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Body
+      ctx.fillStyle = pal.coin;
+      ctx.fillRect(Math.floor(c.x - w / 2), Math.floor(cy - c.r), Math.ceil(w), c.r * 2);
+      // Highlight
+      if (spin > 0.4) {
+        ctx.fillStyle = pal.coinShine;
+        ctx.fillRect(
+          Math.floor(c.x - w / 4),
+          Math.floor(cy - c.r + 1),
+          Math.max(1, Math.floor(w / 3)),
+          1,
+        );
+      }
+      // Label preview
+      if (started && running && c.x > 5 && c.x < W - 5) {
+        const dx = Math.abs(c.x - (player.x + 4));
+        if (dx < 28) {
+          ctx.fillStyle = pal.coinDark;
+          ctx.font = "5px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(c.label, Math.floor(c.x), Math.floor(cy - c.r - 3));
+          ctx.textAlign = "left";
+        }
+      }
+    }
+
+    function drawClouds() {
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      clouds.forEach((c) => {
+        ctx.fillRect(Math.floor(c.x), Math.floor(c.y), Math.floor(c.w), Math.floor(c.h));
+        ctx.fillRect(
+          Math.floor(c.x + 2),
+          Math.floor(c.y - 1),
+          Math.floor(c.w - 4),
+          Math.max(1, Math.floor(c.h * 0.5)),
+        );
+      });
+    }
+
+    function drawGround() {
+      ctx.fillStyle = pal.dark;
+      ctx.fillRect(-2, groundY, W + 4, H - groundY + 4);
+      for (let i = 0; i < W + 16; i += 8) {
+        ctx.fillStyle = pal.mid2;
+        ctx.fillRect(
+          ((((i - Math.floor(frame * speed * 0.5)) % 16) + 16) % 16) + i - (i % 8),
+          groundY,
+          4,
+          2,
+        );
+      }
+      // Grass tufts
+      ctx.fillStyle = pal.mid2;
+      for (let i = 0; i < W + 10; i += 5) {
+        const gx = ((((i - Math.floor(frame * speed * 0.5)) % (W + 10)) + (W + 10)) % (W + 10)) - 5;
+        ctx.fillRect(Math.floor(gx), groundY - 1, 1, 1);
+        if (i % 10 < 5) ctx.fillRect(Math.floor(gx + 2), groundY - 2, 1, 2);
+      }
+    }
+
+    function drawSlowMo() {
+      if (slomoTimer <= 0) return;
+      ctx.fillStyle = "rgba(90,209,255,0.04)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(90,209,255,0.08)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const ly = (frame * 0.3 + i * 50) % H;
+        ctx.beginPath();
+        ctx.moveTo(0, ly);
+        ctx.lineTo(W, ly);
+        ctx.stroke();
+      }
+    }
+
+    function drawFlash() {
+      if (screenFlash <= 0) return;
+      ctx.globalAlpha = Math.min(1, screenFlash);
+      ctx.fillStyle = screenFlashColor;
+      ctx.fillRect(-2, -2, W + 4, H + 4);
+      ctx.globalAlpha = 1;
+      screenFlash = Math.max(0, screenFlash - 0.035);
+    }
+
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.1;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+    function drawParticles() {
+      particles.forEach((p) => {
+        ctx.globalAlpha = Math.min(1, p.life / 7);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.floor(p.x), Math.floor(p.y), Math.ceil(p.sz), Math.ceil(p.sz));
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function updatePopups() {
+      for (let i = scorePopups.length - 1; i >= 0; i--) {
+        scorePopups[i].y -= 0.4;
+        scorePopups[i].life--;
+        if (scorePopups[i].life <= 0) scorePopups.splice(i, 1);
+      }
+    }
+    function drawPopups() {
+      ctx.font = "5px monospace";
+      scorePopups.forEach((p) => {
+        ctx.globalAlpha = Math.min(1, p.life / 12);
+        ctx.fillStyle = p.color;
+        ctx.fillText(p.text, Math.floor(p.x), Math.floor(p.y));
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawTitle() {
+      const b = Math.sin(frame * 0.05) * 2;
+      ctx.textAlign = "center";
+      ctx.fillStyle = pal.textDark;
+      ctx.font = "bold 9px monospace";
+      ctx.fillText("PYTHON", W / 2, 30 + b);
+      ctx.fillText("RUNNER", W / 2, 42 + b);
+      // Animated snake
+      ctx.fillStyle = pal.mid2;
+      for (let i = 0; i < 10; i++) {
+        const sx = ((frame * 1.5 - i * 4) % (W + 20)) - 10;
+        const sy = 55 + Math.sin(frame * 0.12 + i * 0.7) * 3;
+        if (sx > -4 && sx < W + 4) ctx.fillRect(Math.floor(sx), Math.floor(sy), 3, 3);
+      }
+      ctx.font = "6px monospace";
+      ctx.fillStyle = pal.textDark;
+      ctx.fillText("PRESS A TO START", W / 2, 80);
+      ctx.font = "5px monospace";
+      ctx.fillStyle = pal.textMid;
+      ctx.fillText("DODGE BUGS  COLLECT CODE", W / 2, 94);
+      ctx.fillText("LEARN PYTHON CONCEPTS", W / 2, 104);
+      if (Math.floor(frame / 25) % 2 === 0) {
+        ctx.fillStyle = pal.textDark;
+        ctx.font = "5px monospace";
+        ctx.fillText("\u2191/A JUMP   \u2193 DUCK", W / 2, 122);
+        ctx.fillText("\u2190 DEBUG   \u2192 SHIELD", W / 2, 131);
+      }
+      ctx.textAlign = "left";
+    }
+
+    function drawGameOver() {
+      ctx.fillStyle = "rgba(11,61,11,0.55)";
+      ctx.fillRect(-2, -2, W + 4, H + 4);
+      ctx.textAlign = "center";
+      ctx.fillStyle = pal.textDark;
+      ctx.font = "bold 9px monospace";
+      ctx.fillText("GAME OVER", W / 2, 38);
+      ctx.font = "6px monospace";
+      ctx.fillText("SCORE  " + Math.floor(score), W / 2, 54);
+      ctx.fillText("BEST   " + best, W / 2, 64);
+      ctx.fillText("LEARNED  " + learned + " CONCEPTS", W / 2, 76);
+      if (maxCombo > 1) {
+        ctx.fillStyle = pal.coinDark;
+        ctx.fillText("BEST COMBO  x" + maxCombo, W / 2, 86);
+      }
+      if (Math.floor(frame / 20) % 2 === 0) {
+        ctx.fillStyle = pal.textMid;
+        ctx.font = "6px monospace";
+        ctx.fillText("PRESS A OR START", W / 2, 104);
+      }
+      ctx.textAlign = "left";
+    }
+
+    /* ── Main Loop ── */
+    function loop() {
+      frame++;
+
+      // Background always animates
+      const bgSpeed = running ? speed : 0.6;
+      clouds.forEach((c) => {
+        c.x -= bgSpeed * 0.12;
+        if (c.x < -22) {
+          c.x = W + 5;
+          c.y = 8 + Math.random() * 32;
+          c.w = 10 + Math.random() * 20;
+        }
+      });
+      hills.forEach((h) => {
+        h.x -= bgSpeed * 0.25;
+        if (h.x < -42) h.x = W + 10 + Math.random() * 30;
+      });
+
+      // Shake
+      let sx = 0,
+        sy = 0;
+      if (screenShake > 0) {
+        sx = (Math.random() - 0.5) * screenShake * 2;
+        sy = (Math.random() - 0.5) * screenShake * 2;
+        screenShake = Math.max(0, screenShake - 0.25);
+      }
+      ctx.save();
+      ctx.translate(Math.floor(sx), Math.floor(sy));
+
+      // Sky
+      ctx.fillStyle = pal.light;
+      ctx.fillRect(-2, -2, W + 4, H + 4);
+      drawClouds();
+      // Hills
+      ctx.fillStyle = pal.mid1;
+      hills.forEach((h) => {
+        ctx.fillRect(Math.floor(h.x), groundY - h.h, 42, h.h);
+        ctx.fillStyle = pal.mid2;
+        ctx.fillRect(Math.floor(h.x) + 5, groundY - h.h + 3, 32, h.h - 3);
+        ctx.fillStyle = pal.mid1;
+      });
+
+      if (running) {
+        duck = document.getElementById("btnDown")._held === true;
+        const slow = slomoTimer > 0;
+        const eff = slow ? speed * 0.4 : speed;
+
+        // Physics
+        player.vy += 0.22;
+        player.y += player.vy;
+        if (player.y >= groundY) {
+          player.y = groundY;
+          player.vy = 0;
+          player.onGround = true;
+        }
+
+        // Spawn
+        nextSpawn--;
+        if (nextSpawn <= 0) {
+          spawnStuff();
+          nextSpawn = Math.max(32, 58 - score * 0.015) + Math.random() * 25;
+        }
+        speed = 1.6 + Math.min(score * 0.005, 2.2);
+
+        // Move
+        obstacles.forEach((o) => (o.x -= eff));
+        obstacles = obstacles.filter((o) => o.x > -20);
+        coins.forEach((c) => (c.x -= eff));
+        coins = coins.filter((c) => c.x > -20 && !c.taken);
+
+        // Collision
+        const pw = 9,
+          ph = duck ? 10 : 15;
+        const px1 = player.x + 1,
+          px2 = player.x + pw - 1;
+        const py2 = player.y,
+          py1 = player.y - ph;
+        const shielded = shieldTimer > 0;
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const o = obstacles[i];
+          let oy1, oy2;
+          if (o.type === "ground") {
+            oy2 = groundY;
+            oy1 = groundY - o.h;
+          } else {
+            const wb = Math.sin(frame * 0.15 + o.ph) * 2;
+            oy1 = o.fy - o.h / 2 + wb - 1;
+            oy2 = o.fy + o.h / 2 + wb + 1;
+          }
+          if (px2 > o.x && px1 < o.x + o.w && py2 > oy1 && py1 < oy2) {
+            if (shielded) {
+              spawnParticles(o.x + o.w / 2, (oy1 + oy2) / 2, pal.shield, 7);
+              addPopup(o.x, oy1 - 5, "BLOCKED!", pal.shield);
+              obstacles.splice(i, 1);
+              sfxBlock();
+            } else {
+              running = false;
+              best = Math.max(best, Math.floor(score));
+              screenShake = 5;
+              screenFlash = 0.35;
+              screenFlashColor = "rgba(255,50,50,1)";
+              spawnParticles(player.x + 4, player.y - 6, pal.bug, 12);
+              spawnParticles(player.x + 4, player.y - 6, "#fff", 4);
+              sfxDie();
+            }
+          }
+        }
+
+        // Coin pickup
+        coins.forEach((c) => {
+          if (c.taken) return;
+          const bob = Math.sin(frame * 0.06 + c.bp) * 1.5;
+          const cy = c.y + bob;
+          if (px2 > c.x - c.r && px1 < c.x + c.r && py2 > cy - c.r && py1 < cy + c.r) {
+            c.taken = true;
+            comboTimer = 70;
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+            const bonus = 15 * Math.min(combo, 5);
+            score += bonus;
+            learned++;
+            lastConceptEl.textContent = "learned: " + conceptNames[c.label];
+            spawnParticles(c.x, cy, pal.coin, 6);
+            spawnParticles(c.x, cy, pal.coinShine, 3);
+            addPopup(c.x - 8, cy - 8, "+" + bonus + (combo > 1 ? " x" + combo : ""), pal.coinDark);
+            sfxCoin();
+            screenFlash = 0.07;
+            screenFlashColor = "rgba(232,180,0,1)";
+          }
+        });
+
+        if (comboTimer > 0) comboTimer--;
+        if (comboTimer <= 0 && combo > 0) combo = 0;
+
+        score += 0.12;
+        player.legFrame = Math.floor(frame / 6) % 2;
+
+        if (slomoTimer > 0) slomoTimer--;
+        if (slomoCooldown > 0) slomoCooldown--;
+        if (shieldTimer > 0) shieldTimer--;
+        if (shieldCooldown > 0) shieldCooldown--;
+
+        debugLed.style.background =
+          slomoTimer > 0 ? "#5ad1ff" : slomoCooldown > 0 ? "#7a5a20" : "#4a4a3f";
+        debugLed.style.boxShadow = slomoTimer > 0 ? "0 0 5px 1.5px #5ad1ff" : "none";
+        shieldLed.style.background =
+          shieldTimer > 0 ? "#5ad1ff" : shieldCooldown > 0 ? "#7a5a20" : "#4a4a3f";
+        shieldLed.style.boxShadow = shieldTimer > 0 ? "0 0 5px 1.5px #5ad1ff" : "none";
+      }
+
+      // Render world
+      drawGround();
+      obstacles.forEach(drawBug);
+      coins.forEach(drawCoin);
+
+      // Player
+      if (started) {
+        if (running) {
+          drawPixelChar(player.x, player.y, duck, player.legFrame, shieldTimer > 0);
+        } else {
+          // Dead: flat on ground
+          ctx.fillStyle = pal.player;
+          ctx.fillRect(player.x - 1, groundY - 3, 12, 3);
+          ctx.fillRect(player.x + 9, groundY - 5, 2, 2);
+          ctx.fillStyle = pal.bug;
+          ctx.fillRect(player.x + 9, groundY - 4, 1, 1);
+          ctx.fillRect(player.x + 10, groundY - 5, 1, 1);
+        }
+      }
+
+      // Effects
+      drawSlowMo();
+      updateParticles();
+      drawParticles();
+      updatePopups();
+      drawPopups();
+      drawFlash();
+
+      // HUD
+      ctx.fillStyle = pal.textDark;
+      ctx.font = "7px monospace";
+      ctx.textAlign = "left";
+      ctx.fillText((started ? Math.floor(score) : 0).toString().padStart(5, "0"), 3, 9);
+      ctx.textAlign = "right";
+      ctx.fillText("HI" + best.toString().padStart(5, "0"), W - 3, 9);
+
+      if (combo > 1 && running) {
+        ctx.fillStyle = pal.coinDark;
+        ctx.font = "6px monospace";
+        ctx.fillText("x" + combo, W - 3, 18);
+      }
+
+      // Cooldown bars
+      if (started && running) {
+        if (slomoCooldown > 0) {
+          const p = 1 - slomoCooldown / 240;
+          ctx.fillStyle = "rgba(90,209,255,0.25)";
+          ctx.fillRect(3, 12, 20, 2);
+          ctx.fillStyle = "rgba(90,209,255,0.7)";
+          ctx.fillRect(3, 12, Math.floor(20 * p), 2);
+        }
+        if (shieldCooldown > 0) {
+          const p = 1 - shieldCooldown / 240;
+          ctx.fillStyle = "rgba(63,169,245,0.25)";
+          ctx.fillRect(3, 16, 20, 2);
+          ctx.fillStyle = "rgba(63,169,245,0.7)";
+          ctx.fillRect(3, 16, Math.floor(20 * p), 2);
+        }
+      }
+      ctx.textAlign = "left";
+
+      // Screens
+      if (!started) drawTitle();
+      else if (!running) drawGameOver();
+
+      ctx.restore();
+      requestAnimationFrame(loop);
+    }
+
+    /* ── Button feedback ── */
+    function pressFx(btn) {
+      const isRound = btn.id === "btnA" || btn.id === "btnB";
+      if (isRound) {
+        btn.style.boxShadow =
+          "0 2px 0 #45142a,0 3px 4px rgba(0,0,0,0.35),inset 0 1px 2px rgba(255,255,255,0.3)";
+        btn.style.transform = "translateY(2px)";
+        setTimeout(() => {
+          btn.style.boxShadow = "";
+          btn.style.transform = "";
+        }, 80);
+      } else {
+        btn.style.opacity = "0.6";
+        setTimeout(() => {
+          btn.style.opacity = "";
+        }, 80);
+      }
+    }
+
+    /* ── Events ── */
+    const btnA = document.getElementById("btnA");
+    const btnB = document.getElementById("btnB");
+    const btnUp = document.getElementById("btnUp");
+    const btnDown = document.getElementById("btnDown");
+    const btnLeft = document.getElementById("btnLeft");
+    const btnRight = document.getElementById("btnRight");
+    const btnStart = document.getElementById("btnStart");
+
+    btnA.addEventListener("click", () => {
+      jump();
+      pressFx(btnA);
+    });
+    btnB.addEventListener("click", () => {
+      jump();
+      pressFx(btnB);
+    });
+    btnUp.addEventListener("click", () => {
+      jump();
+      pressFx(btnUp);
+    });
+    btnStart.addEventListener("click", () => {
+      init();
+      pressFx(btnStart);
+    });
+    btnLeft.addEventListener("click", () => {
+      triggerDebug();
+      pressFx(btnLeft);
+    });
+    btnRight.addEventListener("click", () => {
+      triggerShield();
+      pressFx(btnRight);
+    });
+
+    btnDown._held = false;
+    btnDown.addEventListener("mousedown", () => {
+      btnDown._held = true;
+    });
+    btnDown.addEventListener("mouseup", () => {
+      btnDown._held = false;
+    });
+    btnDown.addEventListener("mouseleave", () => {
+      btnDown._held = false;
+    });
+    btnDown.addEventListener(
+      "touchstart",
+      (e) => {
+        e.preventDefault();
+        btnDown._held = true;
+      },
+      { passive: false },
+    );
+    btnDown.addEventListener(
+      "touchend",
+      (e) => {
+        e.preventDefault();
+        btnDown._held = false;
+      },
+      { passive: false },
+    );
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyZ") {
+        e.preventDefault();
+        jump();
+      }
+      if (e.code === "ArrowDown") btnDown._held = true;
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        triggerDebug();
+      }
+      if (e.code === "ArrowRight") {
+        e.preventDefault();
+        triggerShield();
+      }
+      if (e.code === "Enter" || e.code === "KeyX") init();
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "ArrowDown") btnDown._held = false;
+    });
+
+    cv.addEventListener(
+      "touchstart",
+      (e) => {
+        e.preventDefault();
+        jump();
+      },
+      { passive: false },
+    );
+
+    loop();
+  })();
+</script>
+

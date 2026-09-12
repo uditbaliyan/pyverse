@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyVerse — Master Python, One Challenge at a Time</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            void:    '#0A0A0F',
+            surface: '#12121A',
+            panel:   '#1A1A26',
+            border:  '#252535',
+            indigo:  { DEFAULT: '#6366F1', light: '#818CF8', dim: '#3730A3' },
+            phosphor:'#39D353',
+            slate:   { cool: '#94A3B8', dim: '#475569' },
+            glass:   '#F8FAFC',
+          },
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            body:    ['Inter', 'sans-serif'],
+            mono:    ['JetBrains Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { background: #0A0A0F; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A0A0F;
+      color: #F8FAFC;
+      overflow-x: hidden;
+    }
+
+    /* ── Grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Grid background ── */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(99,102,241,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── Glow blobs ── */
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(120px); pointer-events: none; z-index: 0;
+    }
+
+    /* ── Glowing border card ── */
+    .glow-card {
+      position: relative;
+      background: #12121A;
+      border: 1px solid #252535;
+      border-radius: 16px;
+      transition: border-color .3s, transform .3s, box-shadow .3s;
+      overflow: hidden;
+    }
+    .glow-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(600px circle at var(--mx,50%) var(--my,50%), rgba(99,102,241,.08), transparent 60%);
+      opacity: 0; transition: opacity .4s;
+    }
+    .glow-card:hover::before { opacity: 1; }
+    .glow-card:hover {
+      border-color: rgba(99,102,241,.5);
+      transform: translateY(-3px);
+      box-shadow: 0 24px 60px rgba(99,102,241,.12);
+    }
+
+    /* ── Typewriter ── */
+    .typewriter-cursor::after {
+      content: '|';
+      animation: blink .7s infinite;
+      color: #6366F1;
+      font-weight: 300;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── Phosphor dot pulse ── */
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #39D353;
+      animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+      0%,100%{ box-shadow: 0 0 0 0 rgba(57,211,83,.4); }
+      50%{ box-shadow: 0 0 0 8px rgba(57,211,83,0); }
+    }
+
+    /* ── Pill badge ── */
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .7rem; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .pill-indigo { background: rgba(99,102,241,.12); color: #818CF8; border: 1px solid rgba(99,102,241,.25); }
+    .pill-green  { background: rgba(57,211,83,.1);   color: #39D353;  border: 1px solid rgba(57,211,83,.2); }
+    .pill-amber  { background: rgba(251,191,36,.08); color: #FCD34D;  border: 1px solid rgba(251,191,36,.2);}
+    .pill-red    { background: rgba(239,68,68,.08);  color: #F87171;  border: 1px solid rgba(239,68,68,.2); }
+    .pill-slate  { background: rgba(148,163,184,.08);color: #94A3B8;  border: 1px solid rgba(148,163,184,.2);}
+
+    /* ── Code block ── */
+    .code-block {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .82rem; line-height: 1.7;
+      background: #0D0D15; border: 1px solid #252535;
+      border-radius: 12px; padding: 20px 24px;
+      position: relative; overflow: hidden;
+    }
+    .code-block .ln { color: #2D2D45; user-select: none; width: 1.6em; display: inline-block; }
+    .kw  { color: #818CF8; }
+    .fn  { color: #60A5FA; }
+    .str { color: #4ADE80; }
+    .cm  { color: #475569; font-style: italic; }
+    .nm  { color: #FDBA74; }
+    .op  { color: #94A3B8; }
+    .err-line { background: rgba(239,68,68,.08); border-left: 2px solid #EF4444; margin: 0 -24px; padding: 0 24px 0 22px; }
+
+    /* ── Nav ── */
+    .nav-link {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .9rem; font-weight: 500;
+      color: #94A3B8;
+      transition: color .2s;
+      position: relative;
+    }
+    .nav-link::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
+      height: 1px; background: #6366F1;
+      transform: scaleX(0); transition: transform .2s;
+    }
+    .nav-link:hover { color: #F8FAFC; }
+    .nav-link:hover::after { transform: scaleX(1); }
+
+    /* ── CTA buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #6366F1; color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600; font-size: .95rem;
+      padding: 12px 28px; border-radius: 10px;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 0 0 0 rgba(99,102,241,0);
+    }
+    .btn-primary:hover {
+      background: #818CF8;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(99,102,241,.4);
+    }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: #94A3B8;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500; font-size: .95rem;
+      padding: 12px 24px; border-radius: 10px;
+      border: 1px solid #252535;
+      transition: color .2s, border-color .2s, transform .15s;
+    }
+    .btn-ghost:hover {
+      color: #F8FAFC; border-color: #475569;
+      transform: translateY(-1px);
+    }
+
+    /* ── Floating nav scroll effect ── */
+    #navbar { transition: background .3s, border-color .3s, backdrop-filter .3s; }
+    #navbar.scrolled {
+      background: rgba(10,10,15,.85);
+      border-color: #252535;
+      backdrop-filter: blur(16px);
+    }
+
+    /* ── Reveal on scroll ── */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Drag demo ── */
+    .drag-chip {
+      font-family: 'JetBrains Mono', monospace; font-size: .82rem;
+      background: #1A1A26; border: 1px solid #252535;
+      border-radius: 8px; padding: 6px 14px;
+      cursor: grab; user-select: none;
+      transition: border-color .2s, transform .15s, box-shadow .15s;
+      color: #FDBA74;
+    }
+    .drag-chip:hover {
+      border-color: #6366F1; transform: scale(1.05);
+      box-shadow: 0 4px 20px rgba(99,102,241,.2);
+    }
+    .drag-chip.dragging {
+      opacity: .5; cursor: grabbing;
+    }
+    .drop-zone {
+      font-family: 'JetBrains Mono', monospace; font-size: .82rem;
+      background: rgba(99,102,241,.06); border: 1.5px dashed #3730A3;
+      border-radius: 8px; padding: 6px 18px; min-width: 100px;
+      text-align: center; color: #475569;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone.over {
+      border-color: #6366F1; background: rgba(99,102,241,.14);
+      color: #818CF8;
+    }
+    .drop-zone.filled {
+      border-style: solid; border-color: #6366F1;
+      color: #FDBA74; background: rgba(99,102,241,.08);
+    }
+
+    /* ── Progress bar ── */
+    .xp-bar {
+      height: 4px; border-radius: 4px;
+      background: #1A1A26;
+      overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, #6366F1, #39D353);
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Separator ── */
+    .section-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #252535 30%, #252535 70%, transparent);
+    }
+
+    /* ── Coming soon lock ── */
+    .lock-overlay {
+      position: absolute; inset: 0; border-radius: inherit;
+      background: rgba(10,10,15,.75);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10;
+    }
+
+    /* ── Scroll indicator ── */
+    @keyframes scroll-bounce {
+      0%,100%{ transform: translateY(0); }
+      50%{ transform: translateY(6px); }
+    }
+    .scroll-bounce { animation: scroll-bounce 1.8s infinite; }
+
+    /* ── Mobile menu ── */
+    #mobile-menu { transition: max-height .3s ease, opacity .3s ease; }
+
+    /* ── Float animation for hero art ── */
+    @keyframes float {
+      0%,100%{ transform: translateY(0px); }
+      50%{ transform: translateY(-12px); }
+    }
+    .float-anim { animation: float 5s ease-in-out infinite; }
+
+    /* ── Gradient text ── */
+    .grad-text {
+      background: linear-gradient(135deg, #818CF8 0%, #6366F1 40%, #39D353 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Shimmer for coming soon ── */
+    @keyframes shimmer {
+      0%{ background-position: -200% center; }
+      100%{ background-position: 200% center; }
+    }
+    .shimmer-text {
+      background: linear-gradient(90deg, #475569 25%, #94A3B8 50%, #475569 75%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 2.5s linear infinite;
+    }
+
+    /* ── Tooltip ── */
+    [data-tip] { position: relative; cursor: default; }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: #1A1A26; border: 1px solid #252535;
+      color: #94A3B8; font-size: .75rem;
+      font-family: 'Space Grotesk', sans-serif;
+      padding: 4px 10px; border-radius: 6px;
+      white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      z-index: 99;
+    }
+    [data-tip]:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="relative">
+
+<!-- ════════════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════════ -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 border-b border-transparent">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2 group">
+        <div class="w-8 h-8 rounded-lg bg-indigo flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105">
+          <span class="font-mono font-bold text-sm text-white">Py</span>
+        </div>
+        <span class="font-display font-700 text-lg text-glass tracking-tight">
+          Py<span class="text-indigo-light">Verse</span>
+        </span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#why" class="nav-link">Why PyVerse</a>
+        <a href="#labs"    class="nav-link">Labs</a>
+        <a href="#courses" class="nav-link">Courses</a>
+        <a href="#visualizer" class="nav-link">Visualizer</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+      </div>
+
+      <!-- CTA -->
+      <div class="hidden md:flex items-center gap-3">
+        <a href="#" class="btn-ghost py-2 px-4 text-sm">Log in</a>
+        <a href="#" class="btn-primary py-2 px-5 text-sm">Start for free →</a>
+      </div>
+
+      <!-- Hamburger -->
+      <button id="hamburger" class="md:hidden p-2 rounded-lg border border-border text-slate-cool hover:text-glass transition-colors" aria-label="Open menu">
+        <svg id="ham-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="md:hidden overflow-hidden max-h-0 opacity-0">
+      <div class="pb-4 flex flex-col gap-2 border-t border-border pt-4 mt-0">
+        <a href="#why"        class="nav-link py-2">Why PyVerse</a>
+        <a href="#labs"       class="nav-link py-2">Labs</a>
+        <a href="#courses"    class="nav-link py-2">Courses</a>
+        <a href="#visualizer" class="nav-link py-2">Visualizer</a>
+        <a href="#pricing"    class="nav-link py-2">Pricing</a>
+        <div class="flex gap-3 pt-2">
+          <a href="#" class="btn-ghost py-2 px-4 text-sm flex-1 justify-center">Log in</a>
+          <a href="#" class="btn-primary py-2 px-4 text-sm flex-1 justify-center">Start free</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════ -->
+<section class="relative min-h-screen flex items-center grid-bg pt-16 overflow-hidden">
+  <!-- Blobs -->
+  <div class="blob w-[600px] h-[600px] top-[-200px] left-[-200px]" style="background:rgba(99,102,241,.15)"></div>
+  <div class="blob w-[400px] h-[400px] bottom-[-100px] right-[-100px]" style="background:rgba(57,211,83,.08)"></div>
+
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 py-24 relative z-10">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+      <!-- Left: Copy -->
+      <div>
+        <div class="flex items-center gap-2 mb-6">
+          <div class="status-dot"></div>
+          <span class="font-mono text-xs text-phosphor tracking-widest uppercase">v1.0 — Open Beta</span>
+        </div>
+
+        <h1 class="font-display font-700 text-5xl lg:text-6xl leading-[1.05] tracking-tight mb-6">
+          Don't just read<br/>
+          Python.<br/>
+          <span class="grad-text">Feel it click.</span>
+        </h1>
+
+        <p class="text-slate-cool text-lg leading-relaxed max-w-md mb-8">
+          PyVerse is an interactive learning platform where you drag code, find bugs, trace memory, and build intuition — not just memorize syntax.
+        </p>
+
+        <div class="flex flex-wrap gap-2 mb-10">
+          <span class="pill pill-indigo">Drag &amp; Drop</span>
+          <span class="pill pill-red">Bug Hunt</span>
+          <span class="pill pill-green">I/O Challenges</span>
+          <span class="pill pill-amber">Memory Tracer</span>
+          <span class="pill pill-slate">Quizzes</span>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <a href="#labs" class="btn-primary">Explore Labs →</a>
+          <a href="#visualizer" class="btn-ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Watch it work
+          </a>
+        </div>
+
+        <!-- Social proof -->
+        <div class="flex items-center gap-4 mt-10 pt-8 border-t border-border">
+          <div class="flex -space-x-2">
+            <div class="w-8 h-8 rounded-full bg-indigo-dim border-2 border-void flex items-center justify-center text-xs font-mono text-indigo-light">A</div>
+            <div class="w-8 h-8 rounded-full bg-panel border-2 border-void flex items-center justify-center text-xs font-mono text-phosphor">R</div>
+            <div class="w-8 h-8 rounded-full bg-panel border-2 border-void flex items-center justify-center text-xs font-mono text-amber-400">S</div>
+            <div class="w-8 h-8 rounded-full bg-panel border-2 border-void flex items-center justify-center text-xs font-mono text-pink-400">K</div>
+          </div>
+          <p class="text-slate-cool text-sm">
+            <span class="text-glass font-600 font-display">1,200+</span> learners already practising
+          </p>
+        </div>
+      </div>
+
+      <!-- Right: Animated hero card -->
+      <div class="float-anim">
+        <div class="glow-card p-0 overflow-hidden">
+          <!-- Window chrome -->
+          <div class="flex items-center gap-2 px-5 py-3 border-b border-border bg-panel">
+            <div class="w-3 h-3 rounded-full bg-red-500 opacity-70"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-400 opacity-70"></div>
+            <div class="w-3 h-3 rounded-full bg-phosphor opacity-70"></div>
+            <span class="font-mono text-xs text-slate-dim ml-3">lab_challenge.py</span>
+            <div class="ml-auto pill pill-red" style="font-size:.65rem;padding:2px 8px;">BUG HUNT</div>
+          </div>
+
+          <div class="code-block rounded-none border-0" style="border-radius:0">
+            <div><span class="ln">1</span><span class="cm"># Fix the bug — what's wrong here?</span></div>
+            <div><span class="ln">2</span></div>
+            <div><span class="ln">3</span><span class="kw">def </span><span class="fn">find_max</span><span class="op">(</span>nums<span class="op">):</span></div>
+            <div><span class="ln">4</span>&nbsp;&nbsp;&nbsp;&nbsp;max_val <span class="op">= </span><span class="nm">0</span></div>
+            <div class="err-line"><span class="ln">5</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> n <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span>nums<span class="op">):</span></div>
+            <div><span class="ln">6</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> n <span class="op">&gt;</span> max_val<span class="op">:</span></div>
+            <div><span class="ln">7</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_val <span class="op">=</span> n</div>
+            <div><span class="ln">8</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> max_val</div>
+          </div>
+
+          <!-- Error callout -->
+          <div class="px-5 py-3 bg-panel border-t border-border flex items-start gap-3">
+            <div class="mt-0.5 w-5 h-5 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="3"><path d="M12 9v4m0 4h.01"/></svg>
+            </div>
+            <div>
+              <p class="font-mono text-xs text-red-400">TypeError on line 5</p>
+              <p class="text-slate-cool text-xs mt-0.5">Hint: <span class="text-glass">iterate <em>over</em> the list, not its length.</span></p>
+            </div>
+            <button id="hero-fix-btn" class="ml-auto pill pill-red cursor-pointer hover:bg-red-500/20 transition-colors" style="font-size:.65rem;padding:4px 10px;">Fix it →</button>
+          </div>
+
+          <!-- XP strip -->
+          <div class="px-5 py-3 border-t border-border flex items-center gap-3 bg-void/40">
+            <span class="font-mono text-xs text-slate-dim">XP</span>
+            <div class="xp-bar flex-1">
+              <div class="xp-fill" id="hero-xp" style="width:42%"></div>
+            </div>
+            <span class="font-mono text-xs text-indigo-light">420 / 1000</span>
+          </div>
+        </div>
+
+        <!-- Lab type switcher pills below card -->
+        <div class="flex flex-wrap gap-2 mt-4 justify-center" id="lab-switcher">
+          <button class="pill pill-red lab-type-btn active-type" data-type="bug">Bug Hunt</button>
+          <button class="pill pill-indigo lab-type-btn" data-type="drag">Drag &amp; Drop</button>
+          <button class="pill pill-green lab-type-btn" data-type="io">I/O Write</button>
+          <button class="pill pill-amber lab-type-btn" data-type="syntax">Syntax Fix</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 scroll-bounce">
+    <span class="text-slate-dim text-xs font-mono">scroll</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M12 5v14m-7-7 7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════
+     WHY PYVERSE
+════════════════════════════════════════════════ -->
+<section id="why" class="py-28 relative">
+  <div class="blob w-[500px] h-[300px] top-0 right-0 opacity-50" style="background:rgba(99,102,241,.07)"></div>
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+
+    <div class="reveal mb-16">
+      <span class="pill pill-indigo mb-4">Why PyVerse</span>
+      <h2 class="font-display font-700 text-4xl lg:text-5xl tracking-tight mt-3 max-w-2xl">
+        Reading tutorials doesn't<br/>build muscle memory.
+      </h2>
+      <p class="text-slate-cool text-lg mt-4 max-w-lg">
+        Most people learn Python passively. PyVerse forces active recall — the kind that actually wires new patterns into your brain.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Card 1 -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.1s">
+        <div class="w-10 h-10 rounded-xl bg-indigo/10 border border-indigo/20 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </div>
+        <h3 class="font-display font-600 text-xl mb-2">Active challenges, not passive reading</h3>
+        <p class="text-slate-cool text-sm leading-relaxed">Every concept is a puzzle — drag missing tokens, squash bugs, predict outputs. You engage, not just scroll.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.2s">
+        <div class="w-10 h-10 rounded-xl bg-phosphor/10 border border-phosphor/20 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/></svg>
+        </div>
+        <h3 class="font-display font-600 text-xl mb-2">Pythonic patterns from day one</h3>
+        <p class="text-slate-cool text-sm leading-relaxed">Stop thinking in C-style loops. PyVerse teaches list comps, generators, and idiomatic Python as the default way to think.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.3s">
+        <div class="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FCD34D" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <h3 class="font-display font-600 text-xl mb-2">Bite-sized. Fit any schedule.</h3>
+        <p class="text-slate-cool text-sm leading-relaxed">5-minute lab sessions. No context switching. Pick up where you left off. Python fits into your day — not the other way around.</p>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-2xl overflow-hidden reveal">
+      <div class="bg-surface px-8 py-8 text-center">
+        <div class="font-display font-700 text-4xl grad-text">850+</div>
+        <div class="text-slate-cool text-sm mt-1 font-body">Practice problems</div>
+      </div>
+      <div class="bg-surface px-8 py-8 text-center">
+        <div class="font-display font-700 text-4xl grad-text">6</div>
+        <div class="text-slate-cool text-sm mt-1 font-body">Lab types</div>
+      </div>
+      <div class="bg-surface px-8 py-8 text-center">
+        <div class="font-display font-700 text-4xl grad-text">∞</div>
+        <div class="text-slate-cool text-sm mt-1 font-body">Free forever tier</div>
+      </div>
+      <div class="bg-surface px-8 py-8 text-center">
+        <div class="font-display font-700 text-4xl grad-text">0</div>
+        <div class="text-slate-cool text-sm mt-1 font-body">Setup needed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep max-w-7xl mx-auto"></div>
+
+<!-- ════════════════════════════════════════════════
+     LAB TYPES
+════════════════════════════════════════════════ -->
+<section id="labs" class="py-28 relative">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+
+    <div class="reveal mb-16">
+      <span class="pill pill-indigo mb-4">Lab Types</span>
+      <h2 class="font-display font-700 text-4xl lg:text-5xl tracking-tight mt-3">
+        Six ways to get<br/><span class="grad-text">unstuck, fast.</span>
+      </h2>
+    </div>
+
+    <!-- Big lab showcase grid -->
+    <div class="grid lg:grid-cols-2 gap-8">
+
+      <!-- Lab 1: Drag & Drop -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.05s">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <span class="pill pill-indigo mb-2">Drag &amp; Drop</span>
+            <h3 class="font-display font-600 text-xl mt-2">Arrange the missing pieces</h3>
+            <p class="text-slate-cool text-sm mt-1">Snap code tokens into blanks. No typing — just reasoning.</p>
+          </div>
+        </div>
+
+        <!-- Mini drag demo -->
+        <div class="code-block mb-4">
+          <div><span class="ln">1</span><span class="kw">result</span> <span class="op">=</span> <span class="op">[</span></div>
+          <div><span class="ln">2</span>&nbsp;&nbsp;&nbsp;&nbsp;<drop-slot id="ds1" class="drop-zone inline-block mx-1">___</drop-slot>
+            <span class="kw"> for </span>x<span class="kw"> in </span>range<span class="op">(</span><span class="nm">10</span><span class="op">)</span></div>
+          <div><span class="ln">3</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> x <span class="op">%</span> <span class="nm">2</span> <span class="op">==</span> <drop-slot id="ds2" class="drop-zone inline-block mx-1">___</drop-slot><span class="op">]</span></div>
+        </div>
+
+        <div class="flex flex-wrap gap-2" id="drag-chips">
+          <div class="drag-chip" draggable="true" data-val="x**2">x**2</div>
+          <div class="drag-chip" draggable="true" data-val="0">0</div>
+          <div class="drag-chip" draggable="true" data-val="x+1">x+1</div>
+          <div class="drag-chip" draggable="true" data-val="1">1</div>
+        </div>
+        <p class="text-xs text-slate-dim font-mono mt-3">↑ Try dragging a chip into a blank above</p>
+      </div>
+
+      <!-- Lab 2: Find the Bug -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.1s">
+        <span class="pill pill-red mb-2">Bug Hunt</span>
+        <h3 class="font-display font-600 text-xl mt-2">One line is broken. Find it.</h3>
+        <p class="text-slate-cool text-sm mt-1">Click the offending line. Get instant feedback with a targeted hint.</p>
+        <div class="code-block mt-4">
+          <div id="bl1" class="bug-line cursor-pointer hover:bg-white/5 transition-colors rounded px-1 -mx-1"><span class="ln">1</span><span class="kw">def </span><span class="fn">greet</span><span class="op">(</span>name<span class="op">):</span></div>
+          <div id="bl2" class="bug-line cursor-pointer hover:bg-white/5 transition-colors rounded px-1 -mx-1"><span class="ln">2</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> <span class="str">"Hello, "</span> <span class="op">+</span> name <span class="op">+</span> <span class="str">"!"</span></div>
+          <div id="bl3" class="bug-line cursor-pointer hover:bg-white/5 transition-colors rounded px-1 -mx-1 err-line"><span class="ln">3</span></div>
+          <div id="bl4" class="bug-line cursor-pointer hover:bg-white/5 transition-colors rounded px-1 -mx-1 err-line"><span class="ln">4</span><span class="fn">print</span><span class="op">(</span>greet<span class="op">(</span><span class="nm">42</span><span class="op">))</span>&nbsp;&nbsp;<span class="cm"># ← click me</span></div>
+        </div>
+        <div id="bug-feedback" class="mt-3 rounded-lg p-3 bg-red-500/5 border border-red-500/20 hidden">
+          <p class="text-red-400 font-mono text-xs">✓ Correct! <span class="text-slate-cool">Line 4 passes an int — <code class="text-phosphor">greet(str(42))</code> fixes it.</span></p>
+        </div>
+      </div>
+
+      <!-- Lab 3: I/O Write -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.15s">
+        <span class="pill pill-green mb-2">I/O Write</span>
+        <h3 class="font-display font-600 text-xl mt-2">See the input. Write the code.</h3>
+        <p class="text-slate-cool text-sm mt-1">A spec is given. You write a function that satisfies it — then run it instantly in your browser.</p>
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <div class="code-block text-xs">
+            <div class="text-slate-dim mb-2 font-display text-xs uppercase tracking-wider">Input</div>
+            <div><span class="nm">[3, 1, 4, 1, 5, 9]</span></div>
+          </div>
+          <div class="code-block text-xs">
+            <div class="text-slate-dim mb-2 font-display text-xs uppercase tracking-wider">Expected</div>
+            <div><span class="str">[1, 1, 3, 4, 5, 9]</span></div>
+          </div>
+        </div>
+        <div class="code-block mt-3 text-xs">
+          <div><span class="kw">def </span><span class="fn">solution</span><span class="op">(</span>nums<span class="op">):</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># your code here</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;...</div>
+        </div>
+        <button class="btn-primary mt-4 text-sm py-2 w-full justify-center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run in browser
+        </button>
+      </div>
+
+      <!-- Lab 4: Syntax Fix -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.2s">
+        <span class="pill pill-amber mb-2">Syntax Fix</span>
+        <h3 class="font-display font-600 text-xl mt-2">Spot the syntax error. Patch it.</h3>
+        <p class="text-slate-cool text-sm mt-1">The code is almost right. An inline editor highlights the bad token — fix it without googling.</p>
+        <div class="code-block mt-4">
+          <div><span class="ln">1</span><span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span><span class="nm">5</span><span class="op">)</span></div>
+          <div class="err-line"><span class="ln">2</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span><span class="op">(</span>i<span class="op">)</span></div>
+        </div>
+        <div class="flex items-center gap-3 mt-4">
+          <input id="syntax-input" type="text" placeholder="type the fix for line 1…"
+            class="flex-1 bg-panel border border-border rounded-lg px-3 py-2 font-mono text-sm text-glass placeholder-slate-dim focus:outline-none focus:border-indigo transition-colors" />
+          <button id="syntax-check" class="btn-primary text-sm py-2 px-4">Check</button>
+        </div>
+        <p id="syntax-feedback" class="text-xs text-slate-dim font-mono mt-2 hidden"></p>
+      </div>
+
+      <!-- Lab 5: Theory Quiz -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.25s">
+        <span class="pill pill-slate mb-2">Theory Quiz</span>
+        <h3 class="font-display font-600 text-xl mt-2">Quick-fire conceptual questions</h3>
+        <p class="text-slate-cool text-sm mt-1">From scope rules to GIL internals. Test your mental model, not just syntax.</p>
+        <div class="mt-5 p-4 rounded-xl bg-panel border border-border">
+          <p class="font-mono text-sm text-glass mb-4">What does <code class="text-phosphor">list[:]</code> return in Python?</p>
+          <div class="flex flex-col gap-2" id="quiz-opts">
+            <button class="quiz-opt text-left px-4 py-2.5 rounded-lg bg-void border border-border text-slate-cool text-sm font-mono hover:border-indigo hover:text-glass transition-colors" data-correct="false">A reference to the same list</button>
+            <button class="quiz-opt text-left px-4 py-2.5 rounded-lg bg-void border border-border text-slate-cool text-sm font-mono hover:border-indigo hover:text-glass transition-colors" data-correct="true">A shallow copy of the list</button>
+            <button class="quiz-opt text-left px-4 py-2.5 rounded-lg bg-void border border-border text-slate-cool text-sm font-mono hover:border-indigo hover:text-glass transition-colors" data-correct="false">An empty list</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lab 6: Predict Output -->
+      <div class="glow-card p-7 reveal" style="transition-delay:.3s">
+        <span class="pill pill-indigo mb-2">Predict Output</span>
+        <h3 class="font-display font-600 text-xl mt-2">What does this print?</h3>
+        <p class="text-slate-cool text-sm mt-1">Read a snippet. Predict the output before running. Forces real understanding of execution order.</p>
+        <div class="code-block mt-4 text-sm">
+          <div><span class="ln">1</span>x <span class="op">=</span> <span class="op">[</span><span class="nm">1</span><span class="op">,</span><span class="nm">2</span><span class="op">,</span><span class="nm">3</span><span class="op">]</span></div>
+          <div><span class="ln">2</span>y <span class="op">=</span> x</div>
+          <div><span class="ln">3</span>y<span class="op">.</span><span class="fn">append</span><span class="op">(</span><span class="nm">4</span><span class="op">)</span></div>
+          <div><span class="ln">4</span><span class="fn">print</span><span class="op">(</span>x<span class="op">)</span></div>
+        </div>
+        <div class="flex gap-2 mt-4 flex-wrap">
+          <button class="predict-btn pill pill-slate cursor-pointer hover:border-indigo transition-colors" data-val="[1,2,3]">[1, 2, 3]</button>
+          <button class="predict-btn pill pill-slate cursor-pointer hover:border-indigo transition-colors" data-val="[1,2,3,4]">[1, 2, 3, 4]</button>
+          <button class="predict-btn pill pill-slate cursor-pointer hover:border-indigo transition-colors" data-val="error">NameError</button>
+        </div>
+        <p id="predict-feedback" class="text-xs font-mono mt-3 hidden"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep max-w-7xl mx-auto"></div>
+
+<!-- ════════════════════════════════════════════════
+     VISUALIZER
+════════════════════════════════════════════════ -->
+<section id="visualizer" class="py-28 relative">
+  <div class="blob w-[500px] h-[400px] left-0 top-1/2 -translate-y-1/2 opacity-60" style="background:rgba(57,211,83,.06)"></div>
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <div class="reveal">
+        <span class="pill pill-green mb-4">Memory Visualizer</span>
+        <h2 class="font-display font-700 text-4xl lg:text-5xl tracking-tight mt-3">
+          See Python's memory<br/>in real time.
+        </h2>
+        <p class="text-slate-cool text-lg mt-5 leading-relaxed">
+          PyVerse's built-in visualizer renders stack frames, heap objects, and reference arrows as you step through code — like Python Tutor, but embedded directly in your lab.
+        </p>
+        <ul class="mt-6 flex flex-col gap-3">
+          <li class="flex items-center gap-3 text-slate-cool text-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Stack &amp; heap separation
+          </li>
+          <li class="flex items-center gap-3 text-slate-cool text-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Object identity vs equality
+          </li>
+          <li class="flex items-center gap-3 text-slate-cool text-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Step-by-step execution arrows
+          </li>
+          <li class="flex items-center gap-3 text-slate-cool text-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Mutable vs immutable visual cues
+          </li>
+        </ul>
+      </div>
+
+      <!-- Visual demo card -->
+      <div class="reveal" style="transition-delay:.15s">
+        <div class="glow-card p-0 overflow-hidden">
+          <div class="flex items-center gap-2 px-5 py-3 border-b border-border bg-panel">
+            <div class="w-3 h-3 rounded-full bg-red-500 opacity-70"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-400 opacity-70"></div>
+            <div class="w-3 h-3 rounded-full bg-phosphor opacity-70"></div>
+            <span class="font-mono text-xs text-slate-dim ml-3">memory_tracer</span>
+            <div class="ml-auto pill pill-green" style="font-size:.65rem;padding:2px 8px;">LIVE</div>
+          </div>
+
+          <div class="p-5 grid grid-cols-2 gap-4">
+            <!-- Stack frame -->
+            <div>
+              <div class="text-xs font-mono text-slate-dim uppercase tracking-wider mb-3">Stack</div>
+              <div class="rounded-xl border border-border bg-panel p-3 text-xs font-mono">
+                <div class="text-indigo-light mb-2 font-600">frame: main</div>
+                <div class="flex justify-between py-1 border-b border-border/50">
+                  <span class="text-slate-cool">x</span>
+                  <span class="text-amber-300">→ obj#1</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-border/50">
+                  <span class="text-slate-cool">y</span>
+                  <span class="text-amber-300">→ obj#1</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-cool">z</span>
+                  <span class="text-phosphor">42</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Heap -->
+            <div>
+              <div class="text-xs font-mono text-slate-dim uppercase tracking-wider mb-3">Heap</div>
+              <div class="rounded-xl border border-phosphor/30 bg-phosphor/5 p-3 text-xs font-mono">
+                <div class="text-phosphor mb-2 font-600">list obj#1</div>
+                <div class="flex gap-1">
+                  <span class="bg-panel rounded px-2 py-1 text-amber-300">1</span>
+                  <span class="bg-panel rounded px-2 py-1 text-amber-300">2</span>
+                  <span class="bg-panel rounded px-2 py-1 text-amber-300">3</span>
+                  <span class="bg-phosphor/20 rounded px-2 py-1 text-phosphor border border-phosphor/40">4</span>
+                </div>
+                <div class="text-slate-dim text-xs mt-2">← mutated by y.append(4)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arrow viz -->
+          <div class="px-5 pb-5">
+            <svg width="100%" height="40" viewBox="0 0 400 40" fill="none">
+              <defs>
+                <marker id="arr" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+                  <path d="M0 0 L6 3 L0 6 Z" fill="#6366F1"/>
+                </marker>
+                <marker id="arr2" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+                  <path d="M0 0 L6 3 L0 6 Z" fill="#6366F1"/>
+                </marker>
+              </defs>
+              <text x="10" y="15" font-family="JetBrains Mono" font-size="11" fill="#94A3B8">x</text>
+              <line x1="22" y1="12" x2="170" y2="12" stroke="#6366F1" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4 2"/>
+              <text x="10" y="32" font-family="JetBrains Mono" font-size="11" fill="#94A3B8">y</text>
+              <line x1="22" y1="29" x2="170" y2="18" stroke="#6366F1" stroke-width="1.5" marker-end="url(#arr2)" stroke-dasharray="4 2"/>
+              <rect x="175" y="4" width="80" height="32" rx="6" fill="rgba(57,211,83,.1)" stroke="#39D353" stroke-width="1"/>
+              <text x="183" y="24" font-family="JetBrains Mono" font-size="10" fill="#39D353">[1,2,3,4]</text>
+            </svg>
+          </div>
+
+          <!-- Step controls -->
+          <div class="px-5 pb-5 flex items-center gap-3">
+            <button class="btn-ghost py-1.5 px-3 text-xs">⟵ Prev</button>
+            <div class="flex-1 text-center font-mono text-xs text-slate-dim">Step 3 of 4</div>
+            <button class="btn-primary py-1.5 px-3 text-xs">Next ⟶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep max-w-7xl mx-auto"></div>
+
+<!-- ════════════════════════════════════════════════
+     COURSES
+════════════════════════════════════════════════ -->
+<section id="courses" class="py-28 relative">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+
+    <div class="reveal mb-14">
+      <span class="pill pill-indigo mb-4">Courses</span>
+      <h2 class="font-display font-700 text-4xl lg:text-5xl tracking-tight mt-3">
+        Structured paths.<br/>Unstructured curiosity welcome.
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Course cards -->
+      <div class="glow-card p-6 reveal" style="transition-delay:.05s">
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-green">Free</span>
+          <span class="font-mono text-xs text-slate-dim">24 labs</span>
+        </div>
+        <h3 class="font-display font-600 text-lg">Python Foundations</h3>
+        <p class="text-slate-cool text-sm mt-2 mb-5">Variables, control flow, functions — taught the Pythonic way from the very first line.</p>
+        <div class="xp-bar mb-2"><div class="xp-fill" style="width:0%"></div></div>
+        <div class="flex items-center justify-between text-xs text-slate-dim font-mono">
+          <span>Not started</span><span>0 / 24</span>
+        </div>
+        <a href="#" class="btn-primary mt-5 text-sm py-2 w-full justify-center">Start course →</a>
+      </div>
+
+      <div class="glow-card p-6 reveal" style="transition-delay:.1s">
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-green">Free</span>
+          <span class="font-mono text-xs text-slate-dim">31 labs</span>
+        </div>
+        <h3 class="font-display font-600 text-lg">Data Structures in Python</h3>
+        <p class="text-slate-cool text-sm mt-2 mb-5">Lists, dicts, sets, and deques — with visualized memory and complexity tradeoffs.</p>
+        <div class="xp-bar mb-2"><div class="xp-fill" style="width:0%"></div></div>
+        <div class="flex items-center justify-between text-xs text-slate-dim font-mono">
+          <span>Not started</span><span>0 / 31</span>
+        </div>
+        <a href="#" class="btn-primary mt-5 text-sm py-2 w-full justify-center">Start course →</a>
+      </div>
+
+      <div class="glow-card p-6 reveal" style="transition-delay:.15s">
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-green">Free</span>
+          <span class="font-mono text-xs text-slate-dim">18 labs</span>
+        </div>
+        <h3 class="font-display font-600 text-lg">Pythonic Patterns</h3>
+        <p class="text-slate-cool text-sm mt-2 mb-5">List comps, generators, decorators, context managers. The idioms that separate beginners from practitioners.</p>
+        <div class="xp-bar mb-2"><div class="xp-fill" style="width:0%"></div></div>
+        <div class="flex items-center justify-between text-xs text-slate-dim font-mono">
+          <span>Not started</span><span>0 / 18</span>
+        </div>
+        <a href="#" class="btn-primary mt-5 text-sm py-2 w-full justify-center">Start course →</a>
+      </div>
+
+      <!-- Paywalled cards -->
+      <div class="glow-card p-6 reveal relative overflow-hidden" style="transition-delay:.2s">
+        <div class="lock-overlay flex-col gap-2">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span class="shimmer-text font-display font-600 text-sm">Coming Soon</span>
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-amber">Pro</span>
+          <span class="font-mono text-xs text-slate-dim">40 labs</span>
+        </div>
+        <h3 class="font-display font-600 text-lg">OOP &amp; Design Patterns</h3>
+        <p class="text-slate-cool text-sm mt-2">Classes, dunder methods, MRO, SOLID principles — with drag-and-drop class diagrams.</p>
+      </div>
+
+      <div class="glow-card p-6 reveal relative overflow-hidden" style="transition-delay:.25s">
+        <div class="lock-overlay flex-col gap-2">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span class="shimmer-text font-display font-600 text-sm">Coming Soon</span>
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-amber">Pro</span>
+          <span class="font-mono text-xs text-slate-dim">29 labs</span>
+        </div>
+        <h3 class="font-display font-600 text-lg">Async &amp; Concurrency</h3>
+        <p class="text-slate-cool text-sm mt-2">asyncio, threading, GIL — visualized with timeline diagrams and interactive I/O labs.</p>
+      </div>
+
+      <div class="glow-card p-6 reveal relative overflow-hidden" style="transition-delay:.3s">
+        <div class="lock-overlay flex-col gap-2">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span class="shimmer-text font-display font-600 text-sm">Coming Soon</span>
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-amber">Pro</span>
+          <span class="font-mono text-xs text-slate-dim">35 labs</span>
+        </div>
+        <h3 class="font-display font-600 text-lg">CPython Internals</h3>
+        <p class="text-slate-cool text-sm mt-2">Bytecode, reference counting, the import system — for learners who want to go all the way down.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep max-w-7xl mx-auto"></div>
+
+<!-- ════════════════════════════════════════════════
+     HOW IT WORKS
+════════════════════════════════════════════════ -->
+<section class="py-28 relative">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+    <div class="reveal mb-14 text-center">
+      <span class="pill pill-slate mb-4">How it works</span>
+      <h2 class="font-display font-700 text-4xl lg:text-5xl tracking-tight mt-3">From zero to Pythonic<br/>in four moves.</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="glow-card p-6 text-center reveal" style="transition-delay:.05s">
+        <div class="w-12 h-12 rounded-2xl bg-indigo/10 border border-indigo/20 flex items-center justify-center mx-auto mb-4">
+          <span class="font-display font-700 text-indigo-light text-xl">01</span>
+        </div>
+        <h3 class="font-display font-600 mb-2">Pick a course or lab</h3>
+        <p class="text-slate-cool text-sm">Browse by topic or difficulty. No sign-up required for free content.</p>
+      </div>
+      <div class="glow-card p-6 text-center reveal" style="transition-delay:.1s">
+        <div class="w-12 h-12 rounded-2xl bg-phosphor/10 border border-phosphor/20 flex items-center justify-center mx-auto mb-4">
+          <span class="font-display font-700 text-phosphor text-xl">02</span>
+        </div>
+        <h3 class="font-display font-600 mb-2">Interact with code</h3>
+        <p class="text-slate-cool text-sm">Drag, type, click, fix — six lab types keep sessions varied and sharp.</p>
+      </div>
+      <div class="glow-card p-6 text-center reveal" style="transition-delay:.15s">
+        <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mx-auto mb-4">
+          <span class="font-display font-700 text-amber-300 text-xl">03</span>
+        </div>
+        <h3 class="font-display font-600 mb-2">Get instant feedback</h3>
+        <p class="text-slate-cool text-sm">Targeted hints — not just right/wrong. Understand why you got it wrong.</p>
+      </div>
+      <div class="glow-card p-6 text-center reveal" style="transition-delay:.2s">
+        <div class="w-12 h-12 rounded-2xl bg-red-400/10 border border-red-400/20 flex items-center justify-center mx-auto mb-4">
+          <span class="font-display font-700 text-red-400 text-xl">04</span>
+        </div>
+        <h3 class="font-display font-600 mb-2">Track your progress</h3>
+        <p class="text-slate-cool text-sm">XP, streaks, and concept maps show exactly what you've mastered.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep max-w-7xl mx-auto"></div>
+
+<!-- ════════════════════════════════════════════════
+     PRICING
+════════════════════════════════════════════════ -->
+<section id="pricing" class="py-28 relative">
+  <div class="blob w-[500px] h-[400px] top-0 right-[-100px]" style="background:rgba(99,102,241,.07)"></div>
+  <div class="max-w-5xl mx-auto px-6 lg:px-8 relative z-10">
+
+    <div class="reveal mb-14 text-center">
+      <span class="pill pill-indigo mb-4">Pricing</span>
+      <h2 class="font-display font-700 text-4xl lg:text-5xl tracking-tight mt-3">Simple. No tricks.</h2>
+      <p class="text-slate-cool mt-4">The core experience is free, always.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Free -->
+      <div class="glow-card p-8 reveal" style="transition-delay:.05s">
+        <div class="pill pill-green mb-4">Free — Forever</div>
+        <div class="font-display font-700 text-5xl mt-4 text-glass">₹0<span class="text-slate-dim text-xl font-400">/mo</span></div>
+        <p class="text-slate-cool text-sm mt-3 mb-8">Everything you need to start thinking in Python.</p>
+        <ul class="flex flex-col gap-3 mb-8">
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 6 lab types</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>3 full courses</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Memory visualizer</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39D353" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Basic XP tracking</li>
+          <li class="flex items-center gap-3 text-sm text-slate-dim"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Spaced repetition (Pro)</li>
+          <li class="flex items-center gap-3 text-sm text-slate-dim"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Concept mastery maps (Pro)</li>
+        </ul>
+        <a href="#" class="btn-ghost w-full justify-center">Get started free</a>
+      </div>
+
+      <!-- Pro (coming soon) -->
+      <div class="glow-card p-8 reveal relative overflow-hidden" style="border-color:rgba(99,102,241,.4); transition-delay:.1s">
+        <!-- Glow top border accent -->
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo to-transparent"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="pill pill-amber">Pro</span>
+          <span class="pill pill-slate">Coming Soon</span>
+        </div>
+        <div class="font-display font-700 text-5xl mt-4 shimmer-text">₹?<span class="text-slate-dim text-xl font-400">/mo</span></div>
+        <p class="text-slate-cool text-sm mt-3 mb-8">Everything in Free, plus deep tracking and more content.</p>
+        <ul class="flex flex-col gap-3 mb-8">
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Free</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SM-2 spaced repetition</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Concept mastery heatmaps</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All Pro courses (OOP, Async, CPython)</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Streak &amp; goal tracking</li>
+          <li class="flex items-center gap-3 text-sm text-slate-cool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>AI-powered weakness analysis</li>
+        </ul>
+        <button class="btn-ghost w-full justify-center cursor-not-allowed opacity-60" disabled>Notify me when live</button>
+        <p class="text-center text-xs text-slate-dim font-mono mt-3">We'll email you at launch. No spam.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep max-w-7xl mx-auto"></div>
+
+<!-- ════════════════════════════════════════════════
+     CTA BANNER
+════════════════════════════════════════════════ -->
+<section class="py-28 relative overflow-hidden">
+  <div class="blob w-[600px] h-[400px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="background:rgba(99,102,241,.12)"></div>
+  <div class="max-w-3xl mx-auto px-6 text-center relative z-10 reveal">
+    <h2 class="font-display font-700 text-4xl lg:text-6xl tracking-tight">
+      Stop reading.<br/><span class="grad-text">Start doing.</span>
+    </h2>
+    <p class="text-slate-cool text-lg mt-5 mb-10">
+      Every lab takes under 5 minutes. No setup. No credit card. Just Python.
+    </p>
+    <div class="flex flex-wrap gap-3 justify-center">
+      <a href="#labs" class="btn-primary px-8 py-4 text-base">Start your first lab →</a>
+      <a href="#courses" class="btn-ghost px-8 py-4 text-base">Browse courses</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════ -->
+<footer class="border-t border-border">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 py-16">
+    <div class="grid md:grid-cols-4 gap-12 mb-16">
+
+      <!-- Brand -->
+      <div class="md:col-span-1">
+        <a href="#" class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-indigo flex items-center justify-center flex-shrink-0">
+            <span class="font-mono font-bold text-sm text-white">Py</span>
+          </div>
+          <span class="font-display font-700 text-lg text-glass">Py<span class="text-indigo-light">Verse</span></span>
+        </a>
+        <p class="text-slate-cool text-sm leading-relaxed">Interactive Python learning for people who actually want to understand what they're writing.</p>
+        <div class="flex items-center gap-2 mt-4">
+          <div class="status-dot" style="width:6px;height:6px"></div>
+          <span class="font-mono text-xs text-phosphor">Open Beta — Free</span>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div>
+        <div class="font-display font-600 text-sm text-glass mb-4 uppercase tracking-wider">Learn</div>
+        <ul class="flex flex-col gap-2.5">
+          <li><a href="#labs"    class="text-slate-cool text-sm hover:text-glass transition-colors">Lab Types</a></li>
+          <li><a href="#courses" class="text-slate-cool text-sm hover:text-glass transition-colors">Courses</a></li>
+          <li><a href="#visualizer" class="text-slate-cool text-sm hover:text-glass transition-colors">Memory Visualizer</a></li>
+          <li><a href="#pricing" class="text-slate-cool text-sm hover:text-glass transition-colors">Pricing</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-display font-600 text-sm text-glass mb-4 uppercase tracking-wider">Labs</div>
+        <ul class="flex flex-col gap-2.5">
+          <li><a href="#" class="text-slate-cool text-sm hover:text-glass transition-colors">Drag &amp; Drop</a></li>
+          <li><a href="#" class="text-slate-cool text-sm hover:text-glass transition-colors">Bug Hunt</a></li>
+          <li><a href="#" class="text-slate-cool text-sm hover:text-glass transition-colors">I/O Write</a></li>
+          <li><a href="#" class="text-slate-cool text-sm hover:text-glass transition-colors">Syntax Fix</a></li>
+          <li><a href="#" class="text-slate-cool text-sm hover:text-glass transition-colors">Theory Quiz</a></li>
+          <li><a href="#" class="text-slate-cool text-sm hover:text-glass transition-colors">Predict Output</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-display font-600 text-sm text-glass mb-4 uppercase tracking-wider">Project</div>
+        <ul class="flex flex-col gap-2.5">
+          <li><a href="#why"  class="text-slate-cool text-sm hover:text-glass transition-colors">Why PyVerse</a></li>
+          <li><a href="#"     class="text-slate-cool text-sm hover:text-glass transition-colors">Changelog</a></li>
+          <li><a href="#"     class="text-slate-cool text-sm hover:text-glass transition-colors">GitHub</a></li>
+          <li><a href="#"     class="text-slate-cool text-sm hover:text-glass transition-colors">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-slate-dim text-xs font-mono">
+        © 2025 PyVerse. Built with ❤️ for the Python community.
+      </p>
+      <div class="flex items-center gap-6">
+        <a href="#" class="text-slate-dim text-xs hover:text-slate-cool transition-colors">Privacy</a>
+        <a href="#" class="text-slate-dim text-xs hover:text-slate-cool transition-colors">Terms</a>
+        <a href="#" class="font-mono text-xs text-slate-dim hover:text-glass transition-colors flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+// ── Navbar scroll ──
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ── Mobile menu ──
+const hamburger = document.getElementById('hamburger');
+const mobileMenu = document.getElementById('mobile-menu');
+let menuOpen = false;
+hamburger.addEventListener('click', () => {
+  menuOpen = !menuOpen;
+  mobileMenu.style.maxHeight = menuOpen ? mobileMenu.scrollHeight + 'px' : '0';
+  mobileMenu.style.opacity  = menuOpen ? '1' : '0';
+});
+// Close on nav link click
+mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  menuOpen = false;
+  mobileMenu.style.maxHeight = '0';
+  mobileMenu.style.opacity = '0';
+}));
+
+// ── Reveal on scroll ──
+const reveals = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.12 });
+reveals.forEach(r => io.observe(r));
+
+// ── Glow card mouse tracking ──
+document.querySelectorAll('.glow-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width * 100) + '%');
+    card.style.setProperty('--my', ((e.clientY - rect.top) / rect.height * 100) + '%');
+  });
+});
+
+// ── Drag & Drop demo ──
+let dragVal = null;
+document.querySelectorAll('.drag-chip').forEach(chip => {
+  chip.addEventListener('dragstart', e => {
+    dragVal = chip.dataset.val;
+    chip.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+  chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+});
+
+document.querySelectorAll('.drop-zone').forEach(zone => {
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('over');
+    zone.classList.add('filled');
+    zone.textContent = dragVal;
+    dragVal = null;
+  });
+});
+
+// ── Bug hunt ──
+document.getElementById('bl4').addEventListener('click', () => {
+  document.getElementById('bug-feedback').classList.remove('hidden');
+  document.getElementById('bl4').style.background = 'rgba(57,211,83,.08)';
+  document.getElementById('bl4').style.borderLeft = '2px solid #39D353';
+});
+[...document.querySelectorAll('.bug-line')].filter(el => el.id !== 'bl4').forEach(el => {
+  el.addEventListener('click', () => {
+    el.style.background = 'rgba(239,68,68,.05)';
+    setTimeout(() => el.style.background = '', 600);
+  });
+});
+
+// ── Syntax fix ──
+const syntaxInput = document.getElementById('syntax-input');
+const syntaxCheck = document.getElementById('syntax-check');
+const syntaxFeedback = document.getElementById('syntax-feedback');
+syntaxCheck.addEventListener('click', () => {
+  const val = syntaxInput.value.trim().replace(/\s+/g,'');
+  const correct = ['foriinrange(5):', 'foriinrange(5):'].some(s => val.includes(s))
+    || val.includes(':');
+  syntaxFeedback.classList.remove('hidden');
+  if (correct) {
+    syntaxFeedback.textContent = '✓ Correct! The for loop was missing its colon.';
+    syntaxFeedback.style.color = '#39D353';
+  } else {
+    syntaxFeedback.textContent = '✗ Not quite — look at the end of line 1.';
+    syntaxFeedback.style.color = '#F87171';
+  }
+});
+syntaxInput.addEventListener('keydown', e => { if (e.key === 'Enter') syntaxCheck.click(); });
+
+// ── Theory quiz ──
+document.querySelectorAll('.quiz-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.quiz-opt').forEach(b => {
+      b.style.pointerEvents = 'none';
+      if (b.dataset.correct === 'true') {
+        b.style.borderColor = '#39D353'; b.style.color = '#39D353';
+        b.style.background = 'rgba(57,211,83,.08)';
+      }
+    });
+    if (btn.dataset.correct !== 'true') {
+      btn.style.borderColor = '#EF4444'; btn.style.color = '#F87171';
+      btn.style.background = 'rgba(239,68,68,.08)';
+    }
+  });
+});
+
+// ── Predict output ──
+const predictFeedback = document.getElementById('predict-feedback');
+document.querySelectorAll('.predict-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.predict-btn').forEach(b => b.style.pointerEvents = 'none');
+    if (btn.dataset.val === '[1,2,3,4]') {
+      btn.style.borderColor = '#39D353'; btn.style.color = '#39D353';
+      predictFeedback.textContent = '✓ Correct. y = x is not a copy — both names point to the same list object.';
+      predictFeedback.style.color = '#39D353';
+    } else {
+      btn.style.borderColor = '#EF4444'; btn.style.color = '#F87171';
+      predictFeedback.textContent = '✗ Close! y and x reference the same object in memory.';
+      predictFeedback.style.color = '#F87171';
+    }
+    predictFeedback.classList.remove('hidden');
+  });
+});
+
+// ── Hero XP bar animate on load ──
+setTimeout(() => {
+  const bar = document.getElementById('hero-xp');
+  if (bar) { bar.style.width = '0%'; setTimeout(() => bar.style.width = '42%', 100); }
+}, 300);
+
+// ── Hero fix button ──
+document.getElementById('hero-fix-btn').addEventListener('click', () => {
+  document.getElementById('hero-fix-btn').textContent = '✓ Fixed!';
+  document.getElementById('hero-fix-btn').style.borderColor = '#39D353';
+  document.getElementById('hero-fix-btn').style.color = '#39D353';
+  document.getElementById('hero-fix-btn').style.background = 'rgba(57,211,83,.1)';
+  const xp = document.getElementById('hero-xp');
+  xp.style.width = '52%';
+});
+
+// ── Lab type switcher ──
+const labTypes = {
+  bug: {
+    label: 'BUG HUNT', labelClass: 'pill-red',
+    title: 'Fix the bug — what\'s wrong here?',
+    lines: [
+      '<span class="ln">1</span><span class="cm"># Fix the bug — what\'s wrong here?</span>',
+      '<span class="ln">2</span>',
+      '<span class="ln">3</span><span class="kw">def </span><span class="fn">find_max</span><span class="op">(</span>nums<span class="op">):</span>',
+      '<span class="ln">4</span>&nbsp;&nbsp;&nbsp;&nbsp;max_val <span class="op">= </span><span class="nm">0</span>',
+      '<span class="ln">5</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> n <span class="kw">in</span> <span class="fn">range</span><span class="op">(</span>nums<span class="op">):</span>',
+    ]
+  }
+};
+
+document.querySelectorAll('.lab-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lab-type-btn').forEach(b => {
+      b.classList.remove('active-type');
+    });
+    btn.classList.add('active-type');
+  });
+});
+</script>
+</body>
+</html>
