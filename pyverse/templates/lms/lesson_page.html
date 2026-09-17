@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load static wagtailcore_tags %}
 
 {% block content %}
 <main class="lesson-page">
@@ -22,9 +22,10 @@
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
                         {{ course.title }}
                     </h3>
-                    <nav class="space-y-0.5 border-l border-neutral-200 pl-3">
+                    <nav class="space-y-0.5 border-l border-neutral-200 pl-3" data-lesson-list>
                         {% for lesson in lesson_list %}
                             <a href="{{ lesson.url }}"
+                               data-lesson-slug="{{ lesson.slug }}"
                                class="block py-1.5 text-sm transition-colors
                                       {% if lesson.id == page.id %}
                                           text-neutral-900 font-medium border-l-2 border-neutral-900 -ml-px pl-3
@@ -61,6 +62,33 @@
                     {% for block in page.body %}
                         {% include_block block %}
                     {% endfor %}
+                </div>
+
+                <!-- Completion (kept in this browser; see js/pyverse-progress.js) -->
+                <div class="mt-10 rounded-xl border border-neutral-200 p-5 flex flex-wrap items-center justify-between gap-4"
+                     data-lesson-progress>
+                    <div>
+                        <div class="font-medium text-sm">Finished this lesson?</div>
+                        <div class="text-xs text-neutral-500 mt-0.5">
+                            Progress is stored in this browser only — no account needed.
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                                id="lesson-complete"
+                                data-lesson-slug="{{ page.slug }}"
+                                data-lesson-title="{{ page.title }}"
+                                data-course-slug="{{ course.slug }}"
+                                class="px-4 py-2 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">
+                            Mark complete
+                        </button>
+                        <div id="lesson-complete-done" class="hidden items-center gap-3 text-sm text-green-700">
+                            <span class="font-medium">✓ Completed</span>
+                            <button type="button" id="lesson-undo" class="text-xs text-neutral-400 underline hover:text-neutral-700">
+                                undo
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Lesson Navigation -->
@@ -121,6 +149,9 @@ window.__CURRENT_LESSON__ = "{{ page.slug }}";
     });
 
 </script>
+
+<script src="{% static 'js/pyverse-progress.js' %}"></script>
+<script src="{% static 'lms/js/lesson-progress.js' %}"></script>
 
 {% include "lms/_lucide.html" %}
 

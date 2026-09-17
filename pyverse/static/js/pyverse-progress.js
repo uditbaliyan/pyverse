@@ -10,10 +10,13 @@
  */
 window.PyverseProgress = (function () {
   const DB_NAME = "pyverse_progress";
-  const DB_VERSION = 1;
+  // v2 added `lesson_status`: LMS lessons complete into the same database the
+  // practice surfaces read, so one store covers both halves of the site.
+  const DB_VERSION = 2;
   const STORE_SUBMISSIONS = "submissions";
   const STORE_STATUS = "problem_status";
   const STORE_STREAK = "streak_meta";
+  const STORE_LESSONS = "lesson_status";
   const STREAK_KEY = "single";
 
   let dbPromise = null;
@@ -40,6 +43,9 @@ window.PyverseProgress = (function () {
         }
         if (!db.objectStoreNames.contains(STORE_STREAK)) {
           db.createObjectStore(STORE_STREAK, { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains(STORE_LESSONS)) {
+          db.createObjectStore(STORE_LESSONS, { keyPath: "slug" });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -192,20 +198,60 @@ window.PyverseProgress = (function () {
     }
   }
 
+  /** Mark one lesson complete — the LMS half of the same store. */
+  async function completeLesson(entry) {
+    const row = {
+      slug: entry.slug,
+      course: entry.course || "",
+      title: entry.title || entry.slug,
+      updated: Date.now(),
+    };
+    await withStore(STORE_LESSONS, "readwrite", (store) => store.put(row));
+    return row;
+  }
+
+  /** Un-mark one lesson; the learner's own record, so it must be reversible. */
+  async function uncompleteLesson(slug) {
+    await withStore(STORE_LESSONS, "readwrite", (store) => store.delete(slug));
+    return true;
+  }
+
+  /** `{ slug: {course, title, updated} }` — absent means not completed. */
+  async function lessonMap() {
+    try {
+      const rows = await withStore(STORE_LESSONS, "readonly", (store) => getAll(store));
+      const list = Array.isArray(rows) ? rows : [];
+      return Object.fromEntries(list.map((row) => [row.slug, row]));
+    } catch (err) {
+      return {};
+    }
+  }
+
   async function clear() {
     const db = await open();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(
-        [STORE_SUBMISSIONS, STORE_STATUS, STORE_STREAK],
+        [STORE_SUBMISSIONS, STORE_STATUS, STORE_STREAK, STORE_LESSONS],
         "readwrite",
       );
       tx.objectStore(STORE_SUBMISSIONS).clear();
       tx.objectStore(STORE_STATUS).clear();
       tx.objectStore(STORE_STREAK).clear();
+      tx.objectStore(STORE_LESSONS).clear();
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     });
   }
 
-  return { recordSubmission, statusMap, stats, streak, submissionsFor, clear };
+  return {
+    recordSubmission,
+    statusMap,
+    stats,
+    streak,
+    submissionsFor,
+    completeLesson,
+    uncompleteLesson,
+    lessonMap,
+    clear,
+  };
 })();

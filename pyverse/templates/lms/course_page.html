@@ -1,8 +1,13 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags wagtailimages_tags %}
+{% load static wagtailcore_tags wagtailimages_tags %}
 
 {% block content %}
 <main class="course-page">
+    <style>
+      .lesson-check { color: #16a34a; font-weight: 700; margin-left: 8px; }
+      .lesson-done .lesson-title { color: #a3a3a3; }
+      .lesson-done .lesson-index { background: #dcfce7; color: #15803d; }
+    </style>
     <!-- Course Header -->
     <section class="py-12 px-6 border-b border-neutral-200">
         <div class="max-w-6xl mx-auto">
@@ -110,20 +115,32 @@
 
     <!-- Lesson List -->
     {% if lessons %}
-    <section class="py-12 px-6">
+    <section class="py-12 px-6" data-course-progress data-total="{{ lessons|length }}">
         <div class="max-w-6xl mx-auto">
-            <h2 class="text-xl font-bold mb-6">Course Content</h2>
+            <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+                <h2 class="text-xl font-bold">Course Content</h2>
+                <div class="w-full sm:w-56">
+                    <div class="text-xs text-neutral-500 mb-1.5" id="course-progress-count">
+                        {{ lessons|length }} lesson{{ lessons|length|pluralize }} · progress is kept in this browser
+                    </div>
+                    <div class="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
+                        <div class="h-full w-0 bg-green-600 transition-all" id="course-progress-bar"></div>
+                    </div>
+                </div>
+            </div>
             <div class="border border-neutral-200 rounded-xl overflow-hidden divide-y divide-neutral-200">
                 {% for lesson in lessons %}
                     <a href="{{ lesson.url }}"
+                       data-lesson-slug="{{ lesson.slug }}"
                        class="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50 transition-colors group">
-                        <span class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-sm font-medium text-neutral-600 group-hover:bg-neutral-900 group-hover:text-white transition-colors shrink-0">
+                        <span class="lesson-index w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-sm font-medium text-neutral-600 group-hover:bg-neutral-900 group-hover:text-white transition-colors shrink-0">
                             {{ forloop.counter }}
                         </span>
                         <div class="flex-1 min-w-0">
-                            <span class="font-medium text-sm block truncate">{{ lesson.title }}</span>
+                            <span class="lesson-title font-medium text-sm block truncate">{{ lesson.title }}</span>
                             <span class="text-xs text-neutral-500">{{ lesson.estimated_minutes }} min</span>
                         </div>
+                        <span data-lesson-state></span>
                         <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors"></i>
                     </a>
                 {% endfor %}
@@ -137,5 +154,7 @@
 // Expose lesson slugs for progress tracking
 window.__LESSON_SLUGS__ = {{ lesson_slugs_json|safe }};
 </script>
+<script src="{% static 'js/pyverse-progress.js' %}"></script>
+<script src="{% static 'lms/js/lesson-progress.js' %}"></script>
 {% include "lms/_lucide.html" %}
 {% endblock %}

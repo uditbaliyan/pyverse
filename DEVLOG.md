@@ -12,14 +12,37 @@ Django notes` get overwritten in place. `README.md` (deploy notes) and `docs/`
   and tracks, and notes/blog — shipped as a **static export**, so no server,
   no runtime cost, and nothing of ours executes a learner's code.
 - Priority order right now (the reasoning is in `docs/roadmap.rst`):
-  1. LMS learner progress (practice has it, `/learn/` has none).
-  2. Content on surfaces that already exist — the whole corpus is 4 problems,
+  1. Content on surfaces that already exist — the whole corpus is 4 problems,
      2 quizzes, 1 course, 2 lessons, 2 labs.
-  3. Deploy the export — host still undecided.
+  2. Deploy the export — host still undecided.
 - The build spec is **not in this repo**: the code cites `pyverse-requirements-v2.md`
   as "spec §2/§3/§5/§12/§18". Find it before re-deriving design decisions.
 
 ## Session log
+
+### 2026-09-17 — LMS learner progress
+
+- Lessons complete into the *same* IndexedDB store the practice surfaces read
+  rather than a second one: `pyverse-progress.js` goes to `DB_VERSION = 2` and
+  adds a `lesson_status` store (keyPath `slug`, with `course` + `title`), so a
+  browser profile keeps one progress record for both halves of the site. The
+  upgrade only adds a store — existing submissions, statuses and streak survive
+  (confirmed by reading the store after the bump).
+- New API on the shared store: `completeLesson`, `uncompleteLesson`,
+  `lessonMap`; `clear()` now empties the lesson store too.
+- `static/lms/js/lesson-progress.js` is the LMS half: the course page ticks
+  completed lessons, shows "n of N complete" and a progress bar; the lesson page
+  gets a "Mark complete" control with an undo, and the sidebar lesson list picks
+  up the same ticks. Storage blocked (private mode, denied permission) hides the
+  controls instead of offering a button that cannot keep its promise.
+- `window.__LESSON_SLUGS__` / `__CURRENT_LESSON__` are no longer dead: the
+  templates now carry `data-lesson-slug` hooks and the page reads its own
+  completion state from the store.
+- Verified in a browser on both the dev server and the frozen export: complete a
+  lesson → the course page counts 1 of 2 with a 50% bar; undo clears it; the
+  sidebar marks the right lesson; no console errors or failed requests on the
+  course, lesson, topic and lab pages; the practice landing still reads the same
+  store after the version bump.
 
 ### 2026-09-17 — Labs: the tracer lab
 
@@ -239,7 +262,9 @@ Implemented and observed working end-to-end (verified 2026-09-17):
   page (hero, what-you'll-learn, prerequisites, lesson list), lesson page
   (rich text, code examples, Mermaid diagrams via CDN, callouts, images) with
   prev/next navigation. Icons render — lucide via CDN, loaded by
-  `templates/lms/_lucide.html`.
+  `templates/lms/_lucide.html`. Lesson completion is kept in the shared
+  `PyverseProgress` store: the course page counts ticks and a progress bar, the
+  lesson page has mark-complete + undo, and the lesson sidebar ticks along.
 - Auth: allauth login / signup / logout / profile; Wagtail admin login.
 - Authoring: Wagtail admin at `/cms/` — pages, snippets, settings, sitemap-driven freeze.
 
@@ -261,9 +286,6 @@ per-page.
 
 - Deploy the export. Netlify or Cloudflare Pages get real 301s + a root
   `404.html`; GitHub Pages needs the redirect stubs.
-- LMS progress: lesson/course pages already publish `window.__LESSON_SLUGS__` and
-  `__CURRENT_LESSON__` and nothing reads them — either wire lesson completion into
-  the same IndexedDB store or decide LMS progress is out of scope.
 - Content: everything else is bottlenecked on 4 problems / 2 quizzes / 1 course /
   2 lessons. Each new problem = one snippet + a topic tag.
 
@@ -292,7 +314,8 @@ per-page.
 - Nothing tests practice, quiz, LMS, Labs or SEO — the only tests are
   cookiecutter's (`tests/`, `pyverse/users/tests/`). The tracer is verified in a
   browser, which is the only place it can run.
-- Progress is per-browser and per-device; there is no account-linked progress.
+- Progress — practice and lessons alike — is per-browser and per-device; there is
+  no account-linked progress, and `clear()` wipes both halves at once.
 - `PUPUT_AS_PLUGIN = True` plus the vendored app means puput's own `canonical_url`
   / `entry_url` tags must stay shadowed by `seo_tags.absolute_url` / `{% pageurl %}`.
 
@@ -333,6 +356,10 @@ per-page.
 - `django-distill`: `distill_path` entries in `freeze.py` (`distill_func` generators,
   `distill_file`, `distill_status_codes=(404,)`), gated behind `DISTILL_ENABLED`;
   `wagtail.views.serve` reused to render each frozen path through the page router.
+- One IndexedDB database (`pyverse_progress`, v2) with four stores: practice
+  `submissions` / `problem_status` / `streak_meta` plus `lesson_status` for LMS
+  lessons. Pages never share a database per feature — a new progress surface
+  adds a store and an API method to `static/js/pyverse-progress.js`.
 - `django.contrib.sites` for the origin fallback; `Site` lookups via
   `wagtail.models.Site` where the request has no host.
 - `{% json_script %}` to bake grading payloads, `PyverseProgress` reading them client-side.

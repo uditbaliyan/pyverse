@@ -45,10 +45,11 @@ Order
    committed with them.
 2. **Tracer lab.** Shipped: ``/labs/`` plus one lab page per traced program,
    with the line-trace and memory-graph views of a single step stream.
-3. **LMS learner progress.** ``CoursePage``/``LessonPage`` already publish
-   ``window.__LESSON_SLUGS__`` and ``window.__CURRENT_LESSON__``; wire lesson
-   completion into the same ``PyverseProgress`` IndexedDB store the practice
-   surfaces read, rather than a second store.
+3. **LMS learner progress.** Shipped: lessons complete into the same
+   ``PyverseProgress`` IndexedDB store the practice surfaces read (a
+   ``lesson_status`` store in the same database, not a second store). The
+   course page counts ticks and shows a progress bar; the lesson page offers
+   mark-complete with an undo.
 4. **Content and deployment.** Every remaining surface is bottlenecked on
    corpus size (4 problems, 2 quizzes, 1 course, 2 lessons, 2 labs). Deploy the
    static export once the tree is clean — host still undecided.
