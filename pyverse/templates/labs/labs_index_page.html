@@ -1,54 +1,66 @@
-{% load static wagtailcore_tags seo_tags %}
+{% extends "home/base_.html" %}
+{% load wagtailcore_tags %}
 {% comment %}
-`/labs/` — the lab list. Same shell as the Practice browse surfaces (dark engine
-tokens, shared header) so the whole toolset reads as one product, and every lab
-is one card linking to its own canonical URL.
+`/labs/` — the lab list, in the site's own shell: same navbar, footer, cream
+brutalist theme and card language as the home and about pages, so Labs reads as
+part of PyVerse rather than a separate tool. Each card is one lab and links to
+its canonical URL.
 {% endcomment %}
-{% seo_meta as seo %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ seo.title }}</title>
-    {% include "partials/_seo_meta.html" %}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
-  </head>
 
-  <body class="pe-engine">
-    {% include "practice/includes/engine_header.html" %}
+{% block content %}
+<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
 
-    <div class="pe-page">
-      <div class="pe-path">labs/</div>
-      <h1 class="pe-h1">{{ page.title }}</h1>
-      {% if page.intro %}<div class="pe-sub">{{ page.intro|richtext }}</div>{% endif %}
+  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">labs/</p>
 
-      <div class="pe-cards">
-        {% for lab in labs %}
-          <a class="pe-card" href="{{ lab.url }}">
-            <div class="pe-card-head">
-              <div class="pe-card-title">{{ lab.title }}</div>
-              <span class="pe-badge">{{ lab.get_difficulty_display }}</span>
-            </div>
-            <div class="pe-card-note">{{ lab.summary }}</div>
-            <div class="pe-card-meta">
-              <span>{{ lab.estimated_minutes }} min</span>
-              <span>{{ lab.get_default_mode_display }}</span>
-              {% with items=lab.what_to_watch|length %}
-                {% if items %}<span>{{ items }} thing{{ items|pluralize }} to watch</span>{% endif %}
-              {% endwith %}
-            </div>
-          </a>
-        {% empty %}
-          <p class="pe-empty">No labs published yet.</p>
-        {% endfor %}
+  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
+    {{ page.title }}
+  </h1>
+
+  {% if page.intro %}
+    <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
+  {% endif %}
+
+  {# ── stripe divider (same signature strip as the home page) ───── #}
+  <div class="mt-9 h-[14px] flex" aria-hidden="true">
+    <div class="flex-1 bg-s1"></div>
+    <div class="flex-1 bg-s2"></div>
+    <div class="flex-1 bg-s3"></div>
+    <div class="flex-1 bg-s4"></div>
+    <div class="flex-1 bg-s5"></div>
+    <div class="flex-1 bg-s6"></div>
+  </div>
+
+  <div class="mt-9 mb-5 flex items-baseline gap-3.5">
+    <h2 class="font-black text-[28px] tracking-tight">Pick a program</h2>
+    <span class="font-mono text-[13px] text-muted">{{ labs|length|stringformat:"02d" }} loaded</span>
+  </div>
+
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
+    {% for lab in labs %}
+      <a href="{{ lab.url }}"
+         class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card
+                hover:-translate-x-0.5 hover:-translate-y-0.5
+                hover:shadow-card-h transition-all duration-100 no-underline text-ink block">
+        <div class="flex justify-between items-center mb-2.5 font-mono text-[11px]">
+          <span class="bg-ink text-bg px-[7px] py-[3px]">{{ forloop.counter|stringformat:"02d" }}</span>
+          <span class="text-red uppercase tracking-wide">{{ lab.get_difficulty_display }}</span>
+        </div>
+
+        <h3 class="font-black text-[19px] mb-2 tracking-tight">{{ lab.title }}</h3>
+        <p class="text-[13.5px] text-body-txt mb-3">{{ lab.summary }}</p>
+
+        {% with watches=lab.what_to_watch|length %}
+          <div class="font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5">
+            {{ lab.get_default_mode_display }} · {{ lab.estimated_minutes }} min{% if watches %} · {{ watches }} thing{{ watches|pluralize }} to watch{% endif %}
+          </div>
+        {% endwith %}
+      </a>
+    {% empty %}
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <p class="font-mono text-[12px] text-muted">No labs published yet.</p>
       </div>
-    </div>
-  </body>
-</html>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

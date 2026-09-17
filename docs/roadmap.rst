@@ -21,7 +21,9 @@ wheel.
 under Home (``/labs/<slug>/``), with its own nav entry and its own sitemap
 bucket. Labs are neither graded practice nor a guided lesson, so neither
 ``PracticeHubPage`` nor ``LMSIndexPage`` is a natural parent, and a top-level
-section keeps the URL shape stable for the frozen export.
+section keeps the URL shape stable for the frozen export. They render in the
+site's own shell (``home/base_.html``), not the dark engine shell, so the
+section looks like the rest of PyVerse; only the tracer console inside is dark.
 
 **Flashcards stay on the roadmap but not in this phase.** The prototype
 (``neetcode/pyverse-flashcards.html``) is a later surface; the tracer lab comes

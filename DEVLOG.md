@@ -20,6 +20,26 @@ Django notes` get overwritten in place. `README.md` (deploy notes) and `docs/`
 
 ## Session log
 
+### 2026-09-17 — Labs wear the site's own theme
+
+- Labs no longer ship their own shell. Both pages extend `home/base_.html` —
+  the same cream brutalist theme, navbar, footer, fonts and card language as
+  the home and about pages — so Labs reads as part of PyVerse instead of a
+  second, darker product.
+- The tracer itself stays dark on purpose: it sits in a thick-ink framed
+  console, the same pattern the home page uses for its device mockup, so a
+  dark code surface is native to this theme rather than a clash. The frame
+  bar carries the runtime status pill.
+- `lab-engine.css` lost its full-viewport assumptions (`.lab-app` is `height:
+  100%` inside the frame; the `body.lab-app` margin reset and the engine's own
+  header are gone), and `practice-engine.css` is now scoped to the console
+  rather than the document.
+- Verified against the About page by computed style rather than by eye: body,
+  navbar (63px, 3px ink border), `h1` (72px/900/-3.6px), footer and the
+  Tailwind CDN config now match exactly, and both labs render inside the theme
+  on the dev server and in the frozen export, with the tracer still tracing
+  (12 steps for `two_sum`, 7 for the aliasing lab, memory graph intact).
+
 ### 2026-09-17 — LMS learner progress
 
 - Lessons complete into the *same* IndexedDB store the practice surfaces read
@@ -251,11 +271,13 @@ Implemented and observed working end-to-end (verified 2026-09-17):
 - Static export: 30 frozen HTML files plus static/media, `404.html`, `_redirects`
   (Netlify/Cloudflare 301s), HTML redirect stubs for hosts without redirect rules;
   no request-host leakage after the share-link fix.
-- Labs: `/labs/` index plus a per-lab tracer page — line-trace and memory-graph
-  views of the same step stream, step/play/seek transport, variables with
-  changed-value highlighting, per-step stdout, and the raising line marked on
-  error. The program is CMS-authored and editable in the browser before
-  re-tracing (`pyverse/labs/`).
+- Labs: `/labs/` index plus a per-lab tracer page, both in the site's own shell
+  (`home/base_.html` — same navbar, footer and cream brutalist theme as home
+  and about), with the tracer in a framed dark console. Line-trace and
+  memory-graph views of the same step stream, step/play/seek transport,
+  variables with changed-value highlighting, per-step stdout, and the raising
+  line marked on error. The program is CMS-authored and editable in the browser
+  before re-tracing (`pyverse/labs/`).
 - Blog (vendored puput): BlogFolderPage / BlogPage / EntryPage, share links,
   related entries, comments providers, Markdown body field.
 - LMS: hub (topic/course counts, featured courses), topic page (course grid), course
@@ -381,6 +403,10 @@ per-page.
 - Labs are page types, not snippets: `labs.LabsIndexPage` → `labs.LabPage`, with
   the program in a plain `TextField` (baked into the page) and `summary` reused
   as the meta description via `seo._DESCRIPTION_ATTRS`.
+- Both Labs templates extend `home/base_.html` (the marketing shell with the
+  Tailwind CDN config, navbar and footer), not `base.html`. Page chrome is that
+  theme; only the tracer console is dark, and `practice-engine.css` +
+  `lab-engine.css` are loaded through `{% block extra_head %}` to style it.
 - The tracer is `sys.settrace` inside `includes/tracer_runtime.html`, exposed to
   JS as `window._pvTrace()` returning one JSON string — the same bridge shape as
   the grading harness's `window._pyExec`. Frames are filtered by `co_filename`,

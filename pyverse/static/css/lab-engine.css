@@ -1,55 +1,38 @@
 /* PyVerse Labs engine — layout on top of the shared Practice tokens.
  *
  * `practice-engine.css` owns the token set (colours, mono/sans families,
- * scrollbars); this file only lays out the tracer: editor on the left, the
- * selected view plus transport on the right. The index page reuses `.pe-card`
- * and friends and needs almost nothing from here.
+ * scrollbars); this file only lays out the tracer inside the page's framed
+ * console: the site shell is the cream brutalist theme (home/base_.html), and
+ * the engine is the dark "device" panel inside it, exactly like the home page's
+ * device mockup. Loaded after practice-engine.css so `.lab-app` can override
+ * `.pe-engine`'s full-viewport defaults.
  */
 
 .lab-app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 .lab-app .hidden { display: none !important; }
-/* The engine is a full-viewport app; the UA's 8px body margin would push the
-   timeline past the fold. */
-body.lab-app { margin: 0; }
 
-/* ── header ─────────────────────────────────────────────────────────── */
-.lab-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  height: 46px;
-  padding: 0 16px;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg1);
-}
-.lab-crumb {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text2);
-  text-decoration: none;
-}
-.lab-crumb:hover { color: var(--text1); }
+/* ── status pill, on the device bar (cream) ─────────────────────────── */
 .lab-status {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text1);
-  padding: 4px 11px;
-  border: 1px solid var(--border);
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #1a1a1a;
+  border: 1px solid rgba(26, 26, 26, 0.28);
   border-radius: 999px;
-  background: var(--bg2);
+  padding: 2px 9px;
+  background: rgba(255, 255, 255, 0.45);
   white-space: nowrap;
+  text-transform: none;
 }
-.lab-status.ok { color: var(--green); border-color: var(--green-dim); }
-.lab-status.busy { color: var(--amber); border-color: var(--amber-dim); }
-.lab-status.err { color: var(--red); border-color: var(--red-dim); }
+.lab-status.ok { color: #15803d; border-color: rgba(21, 128, 61, 0.4); }
+.lab-status.busy { color: #b45309; border-color: rgba(180, 83, 9, 0.4); }
+.lab-status.err { color: #c62828; border-color: rgba(198, 40, 40, 0.4); }
 
 /* ── shell ──────────────────────────────────────────────────────────── */
 .lab-main {
@@ -142,15 +125,6 @@ body.lab-app { margin: 0; }
   margin-left: 16px;
   margin-bottom: 5px;
 }
-.lab-summary {
-  padding: 12px 14px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--text1);
-  flex-shrink: 0;
-}
-
 /* ── view tabs ──────────────────────────────────────────────────────── */
 .lab-tabs {
   display: flex;
