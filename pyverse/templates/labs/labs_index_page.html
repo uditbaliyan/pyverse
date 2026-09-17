@@ -1,0 +1,54 @@
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+`/labs/` — the lab list. Same shell as the Practice browse surfaces (dark engine
+tokens, shared header) so the whole toolset reads as one product, and every lab
+is one card linking to its own canonical URL.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+  </head>
+
+  <body class="pe-engine">
+    {% include "practice/includes/engine_header.html" %}
+
+    <div class="pe-page">
+      <div class="pe-path">labs/</div>
+      <h1 class="pe-h1">{{ page.title }}</h1>
+      {% if page.intro %}<div class="pe-sub">{{ page.intro|richtext }}</div>{% endif %}
+
+      <div class="pe-cards">
+        {% for lab in labs %}
+          <a class="pe-card" href="{{ lab.url }}">
+            <div class="pe-card-head">
+              <div class="pe-card-title">{{ lab.title }}</div>
+              <span class="pe-badge">{{ lab.get_difficulty_display }}</span>
+            </div>
+            <div class="pe-card-note">{{ lab.summary }}</div>
+            <div class="pe-card-meta">
+              <span>{{ lab.estimated_minutes }} min</span>
+              <span>{{ lab.get_default_mode_display }}</span>
+              {% with items=lab.what_to_watch|length %}
+                {% if items %}<span>{{ items }} thing{{ items|pluralize }} to watch</span>{% endif %}
+              {% endwith %}
+            </div>
+          </a>
+        {% empty %}
+          <p class="pe-empty">No labs published yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </body>
+</html>

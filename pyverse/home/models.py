@@ -269,6 +269,7 @@ class StatItem(Orderable):
 class HomePage(SEOFields, Page):
     subpage_types = [
         "lms.LMSIndexPage",
+        "labs.LabsIndexPage",
         "puput.BlogFolderPage",
         "home.StandardPage",
         "topics.PracticeHubPage",

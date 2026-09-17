@@ -12,15 +12,54 @@ Django notes` get overwritten in place. `README.md` (deploy notes) and `docs/`
   and tracks, and notes/blog — shipped as a **static export**, so no server,
   no runtime cost, and nothing of ours executes a learner's code.
 - Priority order right now (the reasoning is in `docs/roadmap.rst`):
-  1. Tracer lab — merge the two PyTutor prototypes into one top-level `LabPage`.
-  2. LMS learner progress (practice has it, `/learn/` has none).
-  3. Content on surfaces that already exist — the whole corpus is 4 problems,
-     2 quizzes, 1 course, 2 lessons.
-  4. Deploy the export — host still undecided.
+  1. LMS learner progress (practice has it, `/learn/` has none).
+  2. Content on surfaces that already exist — the whole corpus is 4 problems,
+     2 quizzes, 1 course, 2 lessons, 2 labs.
+  3. Deploy the export — host still undecided.
 - The build spec is **not in this repo**: the code cites `pyverse-requirements-v2.md`
   as "spec §2/§3/§5/§12/§18". Find it before re-deriving design decisions.
 
 ## Session log
+
+### 2026-09-17 — Labs: the tracer lab
+
+- New `pyverse/labs/` app: `LabsIndexPage` (`/labs/`) and `LabPage`
+  (`/labs/<slug>/`), top level under Home as `docs/roadmap.rst` records. Two
+  labs seeded — "Two Sum, one pass" (line view) and "Two names, one list"
+  (memory view) — and a Labs entry added to the Site Settings nav between Blog
+  and About.
+- One tracer, two renderers. `includes/tracer_runtime.html` traces with
+  `sys.settrace` inside PyScript (the same 2025.7.3 pin as the grading harness,
+  so no second runtime) and returns a single step list;
+  `static/js/lab-engine.js` renders it as source lines + variables + stdout +
+  a step timeline, or as a Graphviz record diagram through `@viz-js/viz`
+  3.11.0, fetched only when the memory view is first opened.
+- Deliberate departures from the prototypes:
+  - Neither prototype is a real tracer: both inject AST probes before
+    statements, so a loop body records once per loop and a function's own body
+    is never probed; `pyvis_v8_1` also marks *every* line above the current one
+    as executed. `sys.settrace` gives per-line events per iteration, real call
+    depth and return values — `two_sum` records 12 steps, `seen` grows on each
+    pass, and the return step reads `↩ returns [0, 1]`.
+  - `pyvis_mg` micropip-installs an unpinned `memory-graph` wheel at page load
+    and precomputes up to 500 DOT strings. The port builds DOT in JS from the
+    tracer's own value nodes, for the current step only: no extra wheel, no
+    unpinned dependency, no payload for steps nobody opens. `oid` is emitted
+    for containers and objects only, so two independent `5`s are never drawn as
+    one shared box.
+  - CodeMirror 6 from esm.sh is replaced by the CodeMirror 5 build every other
+    engine surface already loads, and the canvas memory diagram is dropped —
+    viz-js is the memory renderer, the line view is the other.
+- Verified in a browser against both the dev server and the frozen export:
+  runtime ready, Trace/step/play/seek, per-iteration steps, changed values
+  highlighted, stdout appearing only once its line has run, `IndexError`
+  highlighted on the raising line with the stdout printed before it, a
+  `SyntaxError` tracing 0 steps, and editing + re-tracing recovering. In the
+  aliasing lab's memory view `a` and `b` point at one object while `c[0]` still
+  shares `a[0]` and `d` is detached — the whole point of that lab.
+- Export: 30 HTML files, `/labs/` and both labs in `sitemap.xml` on the
+  canonical origin, `LearningResource` JSON-LD with
+  `"learningResourceType": "interactive lab"`.
 
 ### 2026-09-17 — cleanup pass
 
@@ -186,9 +225,14 @@ Implemented and observed working end-to-end (verified 2026-09-17):
 - SEO: canonical, authored-or-derived description, OG/Twitter, per-page `og_image`
   with site default fallback, JSON-LD (Course / BlogPosting / LearningResource),
   `sitemap.xml` (pages + problems + quizzes on the canonical origin), `robots.txt`.
-- Static export: 34 frozen HTML files plus static/media, `404.html`, `_redirects`
+- Static export: 30 frozen HTML files plus static/media, `404.html`, `_redirects`
   (Netlify/Cloudflare 301s), HTML redirect stubs for hosts without redirect rules;
   no request-host leakage after the share-link fix.
+- Labs: `/labs/` index plus a per-lab tracer page — line-trace and memory-graph
+  views of the same step stream, step/play/seek transport, variables with
+  changed-value highlighting, per-step stdout, and the raising line marked on
+  error. The program is CMS-authored and editable in the browser before
+  re-tracing (`pyverse/labs/`).
 - Blog (vendored puput): BlogFolderPage / BlogPage / EntryPage, share links,
   related entries, comments providers, Markdown body field.
 - LMS: hub (topic/course counts, featured courses), topic page (course grid), course
@@ -217,8 +261,6 @@ per-page.
 
 - Deploy the export. Netlify or Cloudflare Pages get real 301s + a root
   `404.html`; GitHub Pages needs the redirect stubs.
-- Tracer lab: merge the two PyTutor prototypes into one top-level `LabPage` with
-  a rendering-mode toggle (`docs/roadmap.rst`).
 - LMS progress: lesson/course pages already publish `window.__LESSON_SLUGS__` and
   `__CURRENT_LESSON__` and nothing reads them — either wire lesson completion into
   the same IndexedDB store or decide LMS progress is out of scope.
@@ -237,7 +279,8 @@ per-page.
   loading `cdn.tailwindcss.com` with an inline config, *and* the practice engine's
   own token set in `practice-engine.css`. Pick a direction before adding surfaces.
 - CDN runtime dependencies: pyscript.net, cdn.tailwindcss.com, CodeMirror, Mermaid,
-  Alpine, Google Fonts. Offline, the challenge page renders but never enables
+  Alpine, lucide, Google Fonts, and viz-js (fetched only when a lab's memory view
+  is opened). Offline, the challenge page renders but never enables
   Run/Submit ("Python runtime failed to load" after 45 s). Self-host if that matters.
 - Vendored `pyverse/puput/` means upstream puput updates are manual.
 - The homepage's live slug is `ghar` (`/home/ghar/`), and the default Wagtail
@@ -246,8 +289,9 @@ per-page.
 ### Known rough edges
 
 - `_site/` is stale-but-gitignored; regenerate before any deploy (5.6 s).
-- Nothing tests practice, quiz, LMS or SEO — the only tests are cookiecutter's
-  (`tests/`, `pyverse/users/tests/`).
+- Nothing tests practice, quiz, LMS, Labs or SEO — the only tests are
+  cookiecutter's (`tests/`, `pyverse/users/tests/`). The tracer is verified in a
+  browser, which is the only place it can run.
 - Progress is per-browser and per-device; there is no account-linked progress.
 - `PUPUT_AS_PLUGIN = True` plus the vendored app means puput's own `canonical_url`
   / `entry_url` tags must stay shadowed by `seo_tags.absolute_url` / `{% pageurl %}`.
@@ -307,4 +351,18 @@ per-page.
 - `wagtail_hooks.py` exists only in `coding/` and `quiz/`, and only to register the
   two snippets above — no admin-menu or URL hooks. (`lms/wagtail_hooks.py` was a
   stale comment block naming a `TrackPage` that no longer exists; deleted.)
+- Labs are page types, not snippets: `labs.LabsIndexPage` → `labs.LabPage`, with
+  the program in a plain `TextField` (baked into the page) and `summary` reused
+  as the meta description via `seo._DESCRIPTION_ATTRS`.
+- The tracer is `sys.settrace` inside `includes/tracer_runtime.html`, exposed to
+  JS as `window._pvTrace()` returning one JSON string — the same bridge shape as
+  the grading harness's `window._pyExec`. Frames are filtered by `co_filename`,
+  so serialising inside the trace callback cannot recurse; `sys.settrace(None)`
+  runs in a `finally` even when the learner's code raises.
+- `static/js/lab-engine.js` is one IIFE: CM5 editor, step transport, two
+  renderers (source lines + variables + stdout; DOT → SVG via `@viz-js/viz`),
+  and keyboard shortcuts bound to the lab root rather than `document`.
+- `seo._json_ld` gained a `LabPage` branch (`LearningResource`,
+  `learningResourceType: "interactive lab"`); pages need no freeze work because
+  `live_pages()` and the sitemap already walk every live page.
 - Django admin (`pyverse/*/admin.py`) is untouched cookiecutter stubs.

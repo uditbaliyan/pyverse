@@ -1,0 +1,218 @@
+{% comment %}
+Client-side Python tracer for Labs (spec §12/§18 tracer lab).
+
+One PyScript version for the whole site, pinned here exactly as in
+`includes/pyscript_runtime.html`: 2025.7.3. Do not add a second runtime tag —
+a page includes one of the two partials, never both.
+
+Contract for the including page:
+  * Set `window._pendingLabCode` (the source to trace) and then call
+    `window._pvTrace()` — it returns a JSON string:
+    `{steps, stdout, error, error_line, truncated, source}`.
+  * Each step is `{line, fn, depth, out, vars, returned?}` where `vars` maps a
+    visible local to a JSON-safe value node, and `out` is how many characters
+    of `stdout` had been printed by that step.
+  * Value nodes: `{k:"int"|"float"|"bool"|"str"|"none"|"seq"|"dict"|"obj"
+    |"cycle"|"deep"|"other", ...}`. Containers and objects carry `oid` (the
+    CPython `id()`), which is how the memory view knows two names point at one
+    object. Primitives deliberately carry no `oid`: equal small ints are
+    interned, and drawing a shared node for two independent `5`s would lie.
+  * Poll `document.body.dataset.labReady === "1"` before enabling Trace —
+    Pyodide loads asynchronously and offline it never arrives.
+{% endcomment %}
+<link
+  rel="stylesheet"
+  href="https://pyscript.net/releases/2025.7.3/core.css"
+/>
+<script
+  defer
+  type="module"
+  src="https://pyscript.net/releases/2025.7.3/core.js"
+></script>
+
+<script type="py">
+import io
+import json
+import sys
+import types
+
+from js import document, window
+
+# Keeps PyScript's own default output panels out of the page layout.
+_hide = document.createElement("style")
+_hide.textContent = "py-config, py-script, .py-error, .py-terminal { display: none !important; }"
+document.head.appendChild(_hide)
+
+_FILE = "<lab>"
+_STEP_CAP = 400  # a runaway loop would otherwise fill the bridge with JSON
+_ITEM_CAP = 25
+_ATTR_CAP = 20
+_DEPTH_CAP = 3
+_STR_CAP = 28
+
+
+def _node(value, depth=0, seen=frozenset()):
+    """One JSON-safe projection of a value, small enough to send every step."""
+    if value is None:
+        return {"k": "none"}
+    if isinstance(value, bool):
+        return {"k": "bool", "v": value}
+    if isinstance(value, int):
+        return {"k": "int", "v": value}
+    if isinstance(value, float):
+        return {"k": "float", "v": round(value, 6)}
+    if isinstance(value, str):
+        text = value if len(value) <= _STR_CAP else value[:_STR_CAP] + "…"
+        return {"k": "str", "v": text}
+
+    if isinstance(value, (list, tuple, set, frozenset)):
+        oid = id(value)
+        if oid in seen:
+            return {"k": "cycle", "t": type(value).__name__}
+        if depth >= _DEPTH_CAP:
+            return {"k": "deep", "t": type(value).__name__, "n": len(value)}
+        # Sets have no order; sorting by repr keeps a trace reproducible.
+        items = sorted(value, key=repr) if isinstance(value, (set, frozenset)) else value
+        inner = seen | {oid}
+        return {
+            "k": "seq",
+            "t": type(value).__name__,
+            "oid": oid,
+            "n": len(value),
+            "items": [_node(item, depth + 1, inner) for item in list(items)[:_ITEM_CAP]],
+        }
+
+    if isinstance(value, dict):
+        oid = id(value)
+        if oid in seen:
+            return {"k": "cycle", "t": "dict"}
+        if depth >= _DEPTH_CAP:
+            return {"k": "deep", "t": "dict", "n": len(value)}
+        inner = seen | {oid}
+        return {
+            "k": "dict",
+            "oid": oid,
+            "n": len(value),
+            "entries": [
+                {"k": _node(key, depth + 1, inner), "v": _node(item, depth + 1, inner)}
+                for key, item in list(value.items())[:_ITEM_CAP]
+            ],
+        }
+
+    attrs = getattr(value, "__dict__", None)
+    if isinstance(attrs, dict):
+        oid = id(value)
+        if oid in seen:
+            return {"k": "cycle", "t": type(value).__name__}
+        if depth >= _DEPTH_CAP:
+            return {"k": "deep", "t": type(value).__name__}
+        inner = seen | {oid}
+        public = {
+            name: item
+            for name, item in attrs.items()
+            if not name.startswith("__") and not callable(item)
+        }
+        return {
+            "k": "obj",
+            "t": type(value).__name__,
+            "oid": oid,
+            "attrs": {
+                name: _node(item, depth + 1, inner)
+                for name, item in list(public.items())[:_ATTR_CAP]
+            },
+        }
+
+    return {"k": "other", "t": type(value).__name__, "v": repr(value)[:40]}
+
+
+def _visible(frame):
+    """The frame's locals a learner would recognise, in definition order."""
+    found = {}
+    for name, value in frame.f_locals.items():
+        if name.startswith("__"):
+            continue
+        if callable(value) or isinstance(value, (type, types.ModuleType)):
+            continue
+        found[name] = _node(value)
+    return found
+
+
+def trace():
+    """Run `window._pendingLabCode` and return the step-by-step trace as JSON."""
+    source = window._pendingLabCode or ""
+    steps = []
+    chunks = []
+    printed = [0]
+    stack = []
+
+    class _Writer(io.TextIOBase):
+        def write(self, text):
+            chunks.append(text)
+            printed[0] += len(text)
+            return len(text)
+
+    def record(frame, event, arg):
+        # Only the learner's own code: the tracer's own frames are filtered out
+        # by filename, so serialising inside a callback cannot recurse.
+        if frame.f_code.co_filename != _FILE:
+            return None
+        name = frame.f_code.co_name
+        if event == "call":
+            stack.append(name)
+        elif event == "return":
+            if stack:
+                stack.pop()
+            # Attach the value to the function's last executed line, so a
+            # return is visible without inventing an extra step.
+            if stack and name != "<module>" and steps and steps[-1]["fn"] == name:
+                steps[-1]["returned"] = _node(arg)
+        elif event == "line" and len(steps) < _STEP_CAP:
+            steps.append(
+                {
+                    "line": frame.f_lineno,
+                    "fn": name,
+                    "depth": len(stack),
+                    "out": printed[0],
+                    "vars": _visible(frame),
+                }
+            )
+        return record
+
+    error = None
+    error_line = None
+    stdout = sys.stdout
+    sys.stdout = _Writer()
+    sys.settrace(record)
+    try:
+        exec(compile(source, _FILE, "exec"), {"__name__": "__main__"})
+    except SyntaxError as exc:
+        error = f"SyntaxError: {exc.msg}"
+        error_line = exc.lineno
+    except BaseException as exc:  # learner code may raise anything at all
+        error = f"{type(exc).__name__}: {exc}"
+        traceback = exc.__traceback__
+        while traceback is not None:
+            if traceback.tb_frame.f_code.co_filename == _FILE:
+                error_line = traceback.tb_lineno
+            traceback = traceback.tb_next
+    finally:
+        sys.settrace(None)
+        sys.stdout = stdout
+
+    return json.dumps(
+        {
+            "steps": steps,
+            "stdout": "".join(chunks),
+            "error": error,
+            "error_line": error_line,
+            "truncated": len(steps) >= _STEP_CAP,
+            "source": source,
+        }
+    )
+
+
+import js
+
+js.window._pvTrace = trace
+document.body.dataset.labReady = "1"
+</script>

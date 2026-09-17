@@ -10,8 +10,12 @@ Decided
 **Labs are reinstated as an active surface.** Labs are the next feature after
 the DSA slice, ahead of more problems/quizzes/courses. The execution + memory
 tracer merges the two PyTutor prototypes into one ``LabPage`` with a rendering
-mode toggle — a line-trace view (``pyvis_v8_1.html``) and a DOT→SVG memory-graph
-view (``pyvis_mg.html``) — not two separate labs.
+mode toggle — a line-trace view (``pyvis_v8_1.html``) and a memory-graph view
+(``pyvis_mg.html``) — not two separate labs. **Shipped** as ``pyverse/labs/``:
+one ``sys.settrace`` tracer behind both views, so the line view sees every
+iteration and real call depth, and the memory view builds its DOT from the
+tracer's own value nodes instead of the prototypes' unpinned ``memory-graph``
+wheel.
 
 **Labs live at the top level, not under Practice or Learn.** Their own section
 under Home (``/labs/<slug>/``), with its own nav entry and its own sitemap
@@ -39,14 +43,15 @@ Order
    URL modules, the stale ``lms/wagtail_hooks.py``, the unloaded lucide markup
    and the junk redirect rows are all gone; the puput canonical-URL fix is
    committed with them.
-2. **Tracer lab.** Port the PyTutor prototypes into ``LabPage``.
+2. **Tracer lab.** Shipped: ``/labs/`` plus one lab page per traced program,
+   with the line-trace and memory-graph views of a single step stream.
 3. **LMS learner progress.** ``CoursePage``/``LessonPage`` already publish
    ``window.__LESSON_SLUGS__`` and ``window.__CURRENT_LESSON__``; wire lesson
    completion into the same ``PyverseProgress`` IndexedDB store the practice
    surfaces read, rather than a second store.
 4. **Content and deployment.** Every remaining surface is bottlenecked on
-   corpus size (4 problems, 2 quizzes, 1 course, 2 lessons). Deploy the static
-   export once the tree is clean — host still undecided.
+   corpus size (4 problems, 2 quizzes, 1 course, 2 lessons, 2 labs). Deploy the
+   static export once the tree is clean — host still undecided.
 
 Tag axes
 --------

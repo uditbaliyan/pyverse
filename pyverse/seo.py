@@ -221,6 +221,7 @@ def _title(page, problem, site_name, override=None, quiz=None):
 # ── Structured data ─────────────────────────────────────────────────────
 def _json_ld(page, problem, canonical, request=None, quiz=None):
     """Course / BlogPosting / LearningResource, per spec §15.3."""
+    from pyverse.labs.models import LabPage
     from pyverse.lms.models import CoursePage
     from pyverse.puput.models import EntryPage
 
@@ -274,6 +275,19 @@ def _json_ld(page, problem, canonical, request=None, quiz=None):
                     "courseWorkload": f"PT{page.estimated_hours}H",
                 },
             ]
+    elif isinstance(page, LabPage):
+        payload = {
+            "@context": "https://schema.org",
+            "@type": "LearningResource",
+            "name": page.title,
+            "description": _description(page, request=request),
+            "url": canonical,
+            "learningResourceType": "interactive lab",
+            "educationalLevel": page.get_difficulty_display(),
+            "isAccessibleForFree": True,
+            "inLanguage": "en",
+            "provider": publisher,
+        }
     elif isinstance(page, EntryPage):
         payload = {
             "@context": "https://schema.org",

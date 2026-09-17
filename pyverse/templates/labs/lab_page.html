@@ -1,0 +1,141 @@
+{% load static wagtailcore_tags seo_tags %}
+{% comment %}
+One lab (spec §12/§18 tracer lab). Standalone document, not extending base.html:
+like the challenge page the engine is a full-height app on the shared dark
+tokens, and it links `practice-engine.css` for those tokens.
+
+The program is baked into the page as a json_script payload (same approach as
+challenge grading) and traced in the browser by
+`includes/tracer_runtime.html` — nothing of ours executes learner code.
+{% endcomment %}
+{% seo_meta as seo %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ seo.title }}</title>
+    {% include "partials/_seo_meta.html" %}
+
+    <!-- CodeMirror 5, the build every PyVerse engine surface uses -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/lab-engine.css' %}" />
+  </head>
+
+  <body class="pe-engine lab-app" id="lab-root" data-mode="{{ lab_payload.mode }}">
+    <header class="lab-header">
+      <a class="pe-logo" href="{{ page.get_parent.url }}">
+        <div class="pe-logo-icon">λ</div>
+        PyVerse <span class="pe-logo-sep">/ Labs</span>
+      </a>
+      <nav class="pe-nav" aria-label="Main">
+        {% include "partials/_site_nav_items.html" with nav_link_class="" %}
+      </nav>
+      <div class="lab-status" id="lab-status">Loading Python runtime…</div>
+    </header>
+
+    <main class="lab-main">
+      {# ── Program ──────────────────────────────────────────────────── #}
+      <section class="lab-col">
+        <div class="lab-panel-head">
+          <span>Program</span>
+          <a class="lab-crumb" href="{{ page.get_parent.url }}">← all labs</a>
+        </div>
+        {% if page.summary %}<p class="lab-summary">{{ page.summary }}</p>{% endif %}
+        <div class="lab-editor" id="lab-new-editor"></div>
+        <textarea id="lab-code" class="hidden" spellcheck="false">{{ lab_payload.code }}</textarea>
+        <div class="lab-run-row">
+          <button class="lab-btn lab-btn-run" id="lab-run" type="button" disabled>▶ Trace</button>
+          <span class="lab-hint">Ctrl/⌘ + Enter · edit the program and re-trace</span>
+        </div>
+        {% if page.what_to_watch %}
+          <div class="lab-watch">
+            <h2>What to watch</h2>
+            <ul>
+              {% for block in page.what_to_watch %}<li>{{ block.value }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </section>
+
+      {# ── Trace ────────────────────────────────────────────────────── #}
+      <section class="lab-col">
+        <div class="lab-tabs" role="tablist" aria-label="Trace view">
+          <button class="lab-tab" type="button" role="tab" data-mode="line" aria-selected="false">
+            Line trace
+          </button>
+          <button class="lab-tab" type="button" role="tab" data-mode="memory" aria-selected="false">
+            Memory graph
+          </button>
+        </div>
+
+        <div class="lab-view" id="lab-panel-line">
+          <div class="lab-source-col">
+            <div class="lab-source" id="lab-source"></div>
+          </div>
+          <div class="lab-side-col">
+            <div class="lab-side-block">
+              <div class="lab-side-title">Where</div>
+              <div id="lab-where">Press Trace to record the program.</div>
+            </div>
+            <div class="lab-side-block grow">
+              <div class="lab-side-title">Variables</div>
+              <div id="lab-vars"></div>
+            </div>
+            <div class="lab-side-block">
+              <div class="lab-side-title">Output</div>
+              <pre class="lab-stdout" id="lab-stdout"></pre>
+              <div class="lab-error hidden" id="lab-error"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lab-view hidden" id="lab-panel-memory">
+          <div class="lab-viewport" id="lab-viewport">
+            <div class="lab-graph" id="lab-graph">
+              <p class="lab-empty">Press Trace to draw memory.</p>
+            </div>
+            <div class="lab-zoom">
+              <button type="button" id="lab-zoom-in" title="Zoom in">+</button>
+              <button type="button" id="lab-zoom-out" title="Zoom out">−</button>
+              <button type="button" id="lab-zoom-fit" title="Fit">⌂</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lab-transport">
+          <button class="lab-btn" type="button" id="lab-first" title="First step" disabled>⏮</button>
+          <button class="lab-btn" type="button" id="lab-back" title="Previous step" disabled>◀</button>
+          <button class="lab-btn" type="button" id="lab-play" title="Play / pause">▶</button>
+          <button class="lab-btn" type="button" id="lab-next" title="Next step" disabled>▶</button>
+          <button class="lab-btn" type="button" id="lab-last" title="Last step" disabled>⏭</button>
+          <label class="lab-speed">
+            speed
+            <input type="range" id="lab-speed" min="1" max="9" value="5" />
+          </label>
+          <span class="lab-step">
+            step <span id="lab-step-cur">0</span> / <span id="lab-step-tot">0</span>
+          </span>
+        </div>
+        <div class="lab-progress"><span id="lab-progress"></span></div>
+        <div class="lab-timeline hidden" id="lab-timeline"></div>
+      </section>
+    </main>
+
+    {% include "includes/tracer_runtime.html" %}
+    <script src="{% static 'js/lab-engine.js' %}"></script>
+  </body>
+</html>
