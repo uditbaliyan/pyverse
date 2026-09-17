@@ -212,7 +212,9 @@ class CoursePage(SEOFields, Page):
         max_length=50, blank=True, help_text='e.g. "Python", "SQL"'
     )
     summary = models.TextField(blank=True)
-    is_free = models.BooleanField(default=False)
+    # PyVerse has no paywall: this only drives the "Free" badge and JSON-LD
+    # `isAccessibleForFree`, so it defaults on for every course.
+    is_free = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     estimated_hours = models.PositiveIntegerField(
         default=1, help_text="Estimated time to complete (in hours)"
