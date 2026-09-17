@@ -113,7 +113,7 @@ class FooterLink(LinkFields, Orderable):
 
 @register_setting
 class SiteSettings(BaseSiteSetting, ClusterableModel):
-    """Edit at  /admin/settings/home/sitesettings/"""
+    """Edit at  /cms/settings/home/sitesettings/"""
 
     # ── branding ──────────────────────────────────────────
     logo = models.ForeignKey(

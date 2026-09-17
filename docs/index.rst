@@ -11,6 +11,7 @@ Welcome to PyVerse's documentation!
    :caption: Contents:
 
    howto
+   roadmap
    users
 
 
