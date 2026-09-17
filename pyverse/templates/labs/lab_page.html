@@ -45,11 +45,8 @@ executes learner code, and the page ships as static HTML.
   <div class="mt-9 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
 
     {# ── the tracer, framed like the home page's device ────────── #}
-    <section class="border-[3px] border-ink bg-ink shadow-device overflow-hidden
-                    h-[min(80vh,700px)] min-h-[520px] flex flex-col"
-             aria-label="Python tracer">
-      <div class="flex items-center justify-between gap-3 px-3.5 py-2 bg-device
-                  border-b-[3px] border-ink font-mono text-[10px] text-muted uppercase tracking-wide">
+    <section class="pe-console h-[min(80vh,700px)] min-h-[520px]" aria-label="Python tracer">
+      <div class="pe-console-bar">
         <span>PyVerse Unit — tracer</span>
         <span class="lab-status" id="lab-status">Loading Python runtime…</span>
       </div>

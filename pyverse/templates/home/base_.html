@@ -90,7 +90,7 @@
     {% block extra_head %}{% endblock %}
   </head>
 
-  <body class="bg-bg text-ink font-sans text-base leading-relaxed">
+  <body class="bg-bg text-ink font-sans text-base leading-relaxed{% block body_class %}{% endblock %}"{% block body_attrs %}{% endblock %}>
     {# ── navbar ──────────────────────────────────────────────────── #}
     <nav
       class="sticky top-0 z-50 bg-bg border-b-[3px] border-ink"

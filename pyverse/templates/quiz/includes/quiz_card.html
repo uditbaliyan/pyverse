@@ -1,16 +1,30 @@
 {% comment %}
 Quiz card, used by the Landing and by Tracks. Links to the quiz page and
 carries its slug so the shared progress store can decorate it.
+
+`pe-card` stays because `practice-browse.js` counts quiz cards by that class (see
+`fillStats`) for the Landing's "Quizzes passed" stat; the rest of the card wears
+the site's card language (cream-2, 3px ink border, hard shadow) on top of it, so
+it matches the neighbouring cards. The difficulty chip keeps its `diff-*` class
+and takes its colours from the engine tokens, which the Practice pages re-point
+at the site palette.
 {% endcomment %}
-<a class="pe-card" href="{{ quiz.get_absolute_url }}" data-slug="{{ quiz.slug }}" data-title="{{ quiz.title }}">
-  <div class="pe-card-head">
-    <span class="pe-rowtitle">{{ quiz.title }}</span>
-    <span class="pe-badge diff-{{ quiz.difficulty }}">{{ quiz.get_difficulty_display }}</span>
+<a
+  class="pe-card bg-bg-2 border-[3px] border-ink p-[18px] shadow-card rounded-none
+         hover:border-ink hover:-translate-x-0.5 hover:-translate-y-0.5
+         hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
+  href="{{ quiz.get_absolute_url }}"
+  data-slug="{{ quiz.slug }}"
+  data-title="{{ quiz.title }}"
+>
+  <div class="flex items-baseline justify-between gap-2.5 mb-1.5">
+    <span class="font-black text-[17px] tracking-tight">{{ quiz.title }}</span>
+    <span class="pe-badge diff-{{ quiz.difficulty }} !border-ink rounded-none border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-wide">{{ quiz.get_difficulty_display }}</span>
   </div>
-  <div class="pe-card-meta">
+  <div class="flex flex-wrap items-center gap-2.5 font-mono text-[10.5px] text-muted">
     <span>{{ quiz.question_count }} question{{ quiz.question_count|pluralize }}</span>
     <span>pass {{ quiz.pass_percentage }}%</span>
     {% if quiz.topic %}<span>{{ quiz.topic.title }}</span>{% endif %}
-    <span data-status-icon>○</span>
+    <span class="ml-auto" data-status-icon>○</span>
   </div>
 </a>

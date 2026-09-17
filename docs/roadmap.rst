@@ -46,7 +46,11 @@ Order
    and the junk redirect rows are all gone; the puput canonical-URL fix is
    committed with them.
 2. **Tracer lab.** Shipped: ``/labs/`` plus one lab page per traced program,
-   with the line-trace and memory-graph views of a single step stream.
+   with the line-trace and memory-graph views of a single step stream. Practice
+   was re-skinned at the same time: every Practice page now uses the site shell
+   with its engine inside a ``.pe-console`` frame, which supersedes spec §8's
+   "Practice is its own dark product" as a *page chrome* decision — the engines
+   themselves are still dark.
 3. **LMS learner progress.** Shipped: lessons complete into the same
    ``PyverseProgress`` IndexedDB store the practice surfaces read (a
    ``lesson_status`` store in the same database, not a second store). The
@@ -70,9 +74,11 @@ Open
 ----
 
 - Which host serves the export (real 301s vs. redirect stubs).
-- Two styling systems coexist (built Tailwind for LMS/base, the marketing shell
-  on the Tailwind CDN, plus the practice engine's own tokens). Pick one before
-  adding the next surface.
+- Settled: the site shell (``home/base_.html``) is the theme for every
+  learner-facing page — Practice and Labs included — and the engine's dark token
+  set is used only inside ``.pe-console`` panels. Two Tailwind pipelines still
+  ship (the built one for LMS/account pages, the CDN one for the shell); folding
+  the first into the second is cleanup, not a decision.
 - CDN runtime dependencies (PyScript, Tailwind CDN, CodeMirror, Mermaid, lucide,
   Alpine, Google Fonts) mean offline visitors get a rendered-but-dead challenge
   page. Self-hosting is the fix if that matters.

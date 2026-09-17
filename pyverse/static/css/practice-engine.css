@@ -8,6 +8,50 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* ── Console frame ────────────────────────────────────────────────────
+ * The dark engine panel inside the site's cream shell (home/base_.html): a
+ * thick ink frame with the hard shadow the marketing pages use. The page
+ * chrome around it stays in the site theme; the interactive surface goes in
+ * here, which is also what keeps the dark token set resolvable.
+ */
+.pe-console {
+  display: flex;
+  flex-direction: column;
+  border: 3px solid #1a1a1a;
+  background: #1a1a1a;
+  box-shadow: 4px 4px 0 0 #1a1a1a;
+  overflow: hidden;
+}
+.pe-console-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #d6cebd;
+  border-bottom: 3px solid #1a1a1a;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6355;
+}
+
+/* ── Engine tokens on a light page ────────────────────────────────────
+ * `.pe-engine` normally paints a whole dark document. When the site theme
+ * owns the page, this modifier keeps the token set — so every pe-* component
+ * and every `var(--…)` still resolves — while letting the cream shell show
+ * through. Interactive panels still use `.pe-console` for their own surface.
+ */
+.pe-on-light {
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  min-height: 0;
+}
+.pe-on-light .pe-dot { background: rgba(26, 26, 26, 0.12); }
+.pe-on-light .pe-dot.on { background: #c62828; }
+
 .pe-engine {
   --bg0: #0d0f14;
   --bg1: #12151c;

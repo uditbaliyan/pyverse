@@ -20,6 +20,35 @@ Django notes` get overwritten in place. `README.md` (deploy notes) and `docs/`
 
 ## Session log
 
+### 2026-09-17 — Practice moves into the site shell
+
+- Practice was the last dark island: hub, tracks, sheets, challenge and quiz
+  pages were standalone documents with their own header and no footer. All six
+  now extend `home/base_.html` — same cream brutalist theme, navbar, footer,
+  fonts and card language as home and about — which settles the "two styling
+  systems coexist" question in favour of the site theme.
+- Interactive surfaces stay dark, framed in a shared `.pe-console` panel
+  (3px ink border, hard shadow, `.pe-console-bar` caption bar) defined in
+  `practice-engine.css`; the same classes now back the Labs tracer, so there is
+  one console pattern rather than one per feature. Light pages that still need
+  engine tokens wrap content in `.pe-engine pe-on-light` (keeps `var(--…)` and
+  every `pe-*` component resolvable, drops the dark full-page painting).
+- `home/base_.html` gained `{% block body_class %}` and `{% block body_attrs %}`
+  so a page can add `data-problem-*` / `data-quiz-*` to `<body>` without
+  restating the shell.
+- No JS contract changed: `practice-browse.js`, `pyverse-progress.js` and the
+  inline state machines on the challenge and quiz pages were untouched, so every
+  id, `data-*` hook and status decoration behaves exactly as before.
+- `practice/includes/engine_header.html` is gone — the site navbar replaced it.
+- Verified in a browser, dev server and frozen export: solved `two_sum` in the
+  page's editor → `✓ Accepted`, 4/4 cases; the Landing then shows solved=1,
+  easy=1, a `✓`/`solved` row and streak 1; the sheet page offers "Continue: print
+  hello world", its dots and ring move (25%) and its tree still collapses; the
+  quiz grades 2/3 with "Not passed — 67% (needs 70%)" and records the attempt;
+  no console errors or failed requests on any of the six pages; no horizontal
+  overflow at 1365px or 390px, and the challenge still stacks its panes on a
+  phone.
+
 ### 2026-09-17 — Labs wear the site's own theme
 
 - Labs no longer ship their own shell. Both pages extend `home/base_.html` —
@@ -255,7 +284,9 @@ Implemented and observed working end-to-end (verified 2026-09-17):
 - Marketing pages: HomePage (hero, module grid, stats strip), StandardPage (About).
 - Practice ecosystem: hub table, Tracks (topic pages aggregating
   `topic__path__startswith`), curated Sheet pages, flat `/practice/problem/<slug>/`
-  and `/practice/quiz/<slug>/` URLs, 301s from the retired nested URLs.
+  and `/practice/quiz/<slug>/` URLs, 301s from the retired nested URLs — all in
+  the site shell, with the challenge editor/test pane and the quiz stage inside
+  framed dark consoles.
 - Challenge pages: in-browser grading via PyScript/Pyodide (CDN, pinned 2025.7.3) —
   ACCEPTED / WRONG_ANSWER / RUNTIME_ERROR, per-case pass log with hidden cases
   masked, latency + case metrics, three-tier hints, editorial, solutions, starter
@@ -318,10 +349,12 @@ per-page.
   readable in page source. That is the accepted cost of spec "approach A"
   client-side grading — live with it, or move grading server-side and lose the
   no-server property.
-- Two styling systems coexist: built Tailwind (`pyverse.theme`,
-  `static/css/dist/styles.css`, used by LMS + base) *and* the marketing shell
-  loading `cdn.tailwindcss.com` with an inline config, *and* the practice engine's
-  own token set in `practice-engine.css`. Pick a direction before adding surfaces.
+- Settled: the site theme (`home/base_.html`, Tailwind CDN + inline config) is
+  the shell for every learner-facing page, including Practice and Labs, and the
+  engine token set in `practice-engine.css` is used only inside `.pe-console`
+  panels. What is left is that `base.html`/`pyverse.theme`'s built Tailwind still
+  serves the LMS and account pages, so two Tailwind pipelines ship — worth
+  collapsing, not worth doing mid-feature.
 - CDN runtime dependencies: pyscript.net, cdn.tailwindcss.com, CodeMirror, Mermaid,
   Alpine, lucide, Google Fonts, and viz-js (fetched only when a lab's memory view
   is opened). Offline, the challenge page renders but never enables

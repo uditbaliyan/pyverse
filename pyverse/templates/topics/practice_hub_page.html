@@ -1,226 +1,334 @@
-{% load static wagtailcore_tags seo_tags %}
+{% extends "home/base_.html" %}
+{% load static wagtailcore_tags %}
 {% comment %}
-Practice Landing (spec §2): the LeetCode-style problemset clone.
+Practice Landing (spec §2): the LeetCode-style problemset clone, wearing the
+site's own shell — same navbar, footer, fonts and cream brutalist card language
+as the home, about and labs pages.
+
 Progress comes from the shared IndexedDB store — the table's status icons, the
 stats strip and the streak are all client-side, so the static export stays
 static. Acceptance rate is deliberately omitted (spec §2: show real aggregate
 data or nothing, never a made-up number), as is the Company/Pattern filter
 until those tag axes go live.
+
+Everything from the stats strip down sits in one `pe-engine pe-on-light` block:
+the JS-built widgets (progress bars, status icons) and the quiz cards are `pe-*`
+components, so they need the engine token set, and `pe-on-light` drops the dark
+full-page painting. The tokens are re-pointed at the site palette on the same
+element, so a progress bar reads device-cream/red on cream instead of slate
+/purple — the components then render in the site's own colours, and the visible
+chrome is plain Tailwind on top.
 {% endcomment %}
-{% seo_meta as seo %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ seo.title }}</title>
-    {% include "partials/_seo_meta.html" %}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
-  </head>
 
-  <body class="pe-engine">
-    {% include "practice/includes/engine_header.html" with header_note=header_note %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+{% endblock extra_head %}
 
-    <div class="pe-page">
-      <div class="pe-path">practice/</div>
-      <h1 class="pe-h1">{{ page.title }}</h1>
-      {% if page.intro %}<div class="pe-sub">{{ page.intro|richtext }}</div>{% endif %}
+{% block content %}
+<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
 
-      {# ── Stats strip (IndexedDB-backed) ───────────────────────────── #}
-      <div class="pe-stats" data-progress-scope>
-        <div class="pe-stat">
-          <div class="pe-stat-lbl">Problems solved</div>
-          <div class="pe-stat-val green" id="stat-solved">0</div>
-          <div class="pe-stat-note">
-            <span id="stat-easy">0</span> easy ·
-            <span id="stat-medium">0</span> medium ·
-            <span id="stat-hard">0</span> hard
-          </div>
-        </div>
-        <div class="pe-stat">
-          <div class="pe-stat-lbl">Quizzes passed</div>
-          <div class="pe-stat-val accent" id="stat-quizzes">0</div>
-          <div class="pe-stat-note">of <span id="stat-quiz-total">0</span> available</div>
-        </div>
-        <div class="pe-stat">
-          <div class="pe-stat-lbl">Attempted</div>
-          <div class="pe-stat-val amber" id="stat-attempted">0</div>
-          <div class="pe-stat-note">submitted, not yet accepted</div>
-        </div>
-        <div class="pe-stat">
-          <div class="pe-stat-lbl">Available</div>
-          <div class="pe-stat-val accent" id="stat-total">{{ problems|length }}</div>
-          <div class="pe-stat-note">across {{ practice_topics|length }} topic{{ practice_topics|length|pluralize }}</div>
-        </div>
-        <div class="pe-stat">
-          <div class="pe-stat-lbl">Streak</div>
-          <div class="pe-stat-val" id="stat-streak">0</div>
-          <div class="pe-stat-note">consecutive days with a submission</div>
-        </div>
-        <div class="pe-stat pe-hidden" id="stat-cta">
-          <div class="pe-stat-lbl">New here?</div>
-          <a class="pe-btn primary" href="#tracks">Start with a Track →</a>
+  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">practice/</p>
+
+  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
+    {{ page.title }}
+  </h1>
+
+  {% if page.intro %}
+    <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
+  {% endif %}
+
+  <div
+    class="mt-9 pe-engine pe-on-light bg-transparent text-ink min-h-0
+           [--bg0:#F5EEDA] [--bg1:#F5EEDA] [--bg2:#EDE6D2] [--bg3:#D6CEBD] [--bg4:#D6CEBD]
+           [--border:rgba(26,26,26,0.15)] [--border-hi:#1A1A1A]
+           [--text0:#1A1A1A] [--text1:#3A3529] [--text2:#6B6355]
+           [--accent:#C62828] [--accent-dim:rgba(198,40,40,0.12)]
+           [--green:#3D4F2F] [--green-dim:rgba(200,213,185,0.55)]
+           [--red:#C62828] [--red-dim:rgba(198,40,40,0.12)]
+           [--amber:#6B6355] [--amber-dim:rgba(214,206,189,0.7)]
+           [--sans:Inter,system-ui,sans-serif] [--mono:'JetBrains_Mono',monospace]"
+  >
+
+    {# ── Stats strip (IndexedDB-backed) ───────────────────────────── #}
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5 mb-[18px]" data-progress-scope>
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Problems solved</div>
+        <div class="font-mono text-[22px] font-bold text-screen-dk" id="stat-solved">0</div>
+        <div class="font-mono text-[10.5px] text-muted mt-1">
+          <span id="stat-easy">0</span> easy ·
+          <span id="stat-medium">0</span> medium ·
+          <span id="stat-hard">0</span> hard
         </div>
       </div>
 
-      {# ── Filter bar ───────────────────────────────────────────────── #}
-      <div class="pe-filters">
-        <div class="pe-field">
-          <label>Difficulty</label>
-          <div class="pe-chips">
-            <button class="pe-chip" type="button" data-difficulty-chip="easy" aria-pressed="false">Easy</button>
-            <button class="pe-chip" type="button" data-difficulty-chip="medium" aria-pressed="false">Medium</button>
-            <button class="pe-chip" type="button" data-difficulty-chip="hard" aria-pressed="false">Hard</button>
-          </div>
-        </div>
-        <div class="pe-field">
-          <label for="filter-topic">Topic</label>
-          <select class="pe-select" id="filter-topic">
-            <option value="">All topics</option>
-            {% for topic in practice_topics %}
-              <option value="{{ topic.slug }}">{{ topic.title }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="pe-field">
-          <label for="filter-status">Status</label>
-          <select class="pe-select" id="filter-status">
-            <option value="all">All</option>
-            <option value="solved">Solved</option>
-            <option value="attempted">Attempted</option>
-            <option value="todo">Todo</option>
-          </select>
-        </div>
-        <div class="pe-field">
-          <label for="filter-q">Search</label>
-          <input class="pe-input" id="filter-q" type="search" placeholder="title or topic" />
-        </div>
-        {% if company_options %}
-          <div class="pe-field">
-            <label for="filter-company">Company</label>
-            <select class="pe-select" id="filter-company">
-              <option value="">Any company</option>
-              {% for company in company_options %}<option value="{{ company }}">{{ company }}</option>{% endfor %}
-            </select>
-          </div>
-        {% endif %}
-        {% if pattern_options %}
-          <div class="pe-field">
-            <label for="filter-pattern">Pattern</label>
-            <select class="pe-select" id="filter-pattern">
-              <option value="">Any pattern</option>
-              {% for pattern in pattern_options %}<option value="{{ pattern }}">{{ pattern }}</option>{% endfor %}
-            </select>
-          </div>
-        {% endif %}
-        {% if technique_options %}
-          <div class="pe-field">
-            <label for="filter-technique">Technique</label>
-            <select class="pe-select" id="filter-technique">
-              <option value="">Any technique</option>
-              {% for technique in technique_options %}<option value="{{ technique }}">{{ technique }}</option>{% endfor %}
-            </select>
-          </div>
-        {% endif %}
-        <button class="pe-clear" type="button" id="filter-clear">Reset</button>
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Quizzes passed</div>
+        <div class="font-mono text-[22px] font-bold text-red" id="stat-quizzes">0</div>
+        <div class="font-mono text-[10.5px] text-muted mt-1">of <span id="stat-quiz-total">0</span> available</div>
       </div>
 
-      {# ── Problem table ────────────────────────────────────────────── #}
-      <div class="pe-table-wrap">
-        <table class="pe-table" data-practice-table data-default-sort="default">
-          <thead>
-            <tr>
-              <th scope="col"><span class="pe-hidden">Status</span></th>
-              <th scope="col"><span class="pe-hidden">#</span></th>
-              <th scope="col" data-sort="title"><button type="button">Title</button></th>
-              <th scope="col" data-sort="difficulty"><button type="button">Difficulty</button></th>
-              <th scope="col" data-sort="status"><button type="button">Status</button></th>
-              <th scope="col">Topics</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for problem in problems %}
-              <tr
-                data-slug="{{ problem.slug }}"
-                data-title="{{ problem.title }}"
-                data-difficulty="{{ problem.difficulty }}"
-                data-topic="{{ problem.topic.slug }}"
-                data-companies="{{ problem.company_names }}"
-                data-patterns="{{ problem.pattern_names }}"
-                data-techniques="{{ problem.technique_names }}"
-              >
-                <td class="pe-status" data-status-icon data-status="todo">○</td>
-                <td class="pe-num">{{ forloop.counter }}</td>
-                <td><a class="pe-rowlink" href="{{ problem.get_absolute_url }}">{{ problem.title }}</a></td>
-                <td><span class="pe-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span></td>
-                <td class="pe-num" data-status-label data-status="todo">unsolved</td>
-                <td class="pe-tags">
-                  {% if problem.topic %}<a class="pe-tag" href="{{ problem.topic.url }}">{{ problem.topic.title }}</a>{% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="6" class="pe-empty">No problems published yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Attempted</div>
+        <div class="font-mono text-[22px] font-bold text-ink" id="stat-attempted">0</div>
+        <div class="font-mono text-[10.5px] text-muted mt-1">submitted, not yet accepted</div>
       </div>
-      <div class="pe-count-line" id="table-count">{{ problems|length }} problems</div>
 
-      {# ── Tracks (topic pages, spec §4: no new content type) ───────── #}
-      <h2 class="pe-h1" id="tracks" style="font-size: 18px; margin-top: 34px">Tracks</h2>
-      <p class="pe-sub">Drill one topic at a time, difficulty ascending.</p>
-      <div class="pe-cards">
-        {% for track in tracks %}
-          <a class="pe-card" href="{{ track.page.url }}" data-progress-scope>
-            {% for problem in track.problems %}<span class="pe-hidden" data-slug="{{ problem.slug }}"></span>{% endfor %}
-            <div class="pe-card-title">{{ track.page.title }}</div>
-            {% if track.page.theory_content %}
-              <div class="pe-card-note">{{ track.page.theory_content|striptags|truncatechars:110 }}</div>
-            {% endif %}
-            <div class="pe-card-meta">
-              <span>{{ track.problems|length }} problem{{ track.problems|length|pluralize }}</span>
-              <span data-progress-label>0/0</span>
-            </div>
-            <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
-          </a>
-        {% empty %}
-          <p class="pe-empty">No tracks published yet.</p>
-        {% endfor %}
-      </div>
-      {% if quizzes %}
-        <h2 class="pe-h1" id="quizzes" style="font-size: 18px; margin-top: 34px">Quizzes</h2>
-        <p class="pe-sub">Quick checks on the same topics — graded in your browser, progress shared with challenges.</p>
-        <div class="pe-cards" data-progress-scope>
-          {% for quiz in quizzes %}
-            {% include "quiz/includes/quiz_card.html" with quiz=quiz %}
-          {% endfor %}
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Available</div>
+        <div class="font-mono text-[22px] font-bold text-ink" id="stat-total">{{ problems|length }}</div>
+        <div class="font-mono text-[10.5px] text-muted mt-1">
+          across {{ practice_topics|length }} topic{{ practice_topics|length|pluralize }}
         </div>
-      {% endif %}
+      </div>
+
+      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Streak</div>
+        <div class="font-mono text-[22px] font-bold text-red" id="stat-streak">0</div>
+        <div class="font-mono text-[10.5px] text-muted mt-1">consecutive days with a submission</div>
+      </div>
+
+      <div class="pe-hidden bg-bg-2 border-[3px] border-ink p-[18px] shadow-card" id="stat-cta">
+        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-2">New here?</div>
+        <a
+          class="inline-block font-mono font-bold text-[12px] px-4 py-2 border-[3px] border-ink bg-red text-[#F5EEDA] hover:bg-[#963026] transition-colors"
+          href="#tracks"
+        >Start with a Track →</a>
+      </div>
     </div>
 
-    <script src="{% static 'js/pyverse-progress.js' %}"></script>
-    <script src="{% static 'js/practice-browse.js' %}"></script>
-    <script>
-      // The Landing table's rows carry the status; the stats strip counts them.
-      document.querySelectorAll("[data-practice-table] tbody tr[data-slug]").forEach((row) => {
-        const label = row.querySelector("[data-status-label]");
-        if (!label) return;
-        const observer = new MutationObserver(() => {
-          label.textContent =
-            row.dataset.status === "solved"
-              ? "solved"
-              : row.dataset.status === "attempted"
-                ? "attempted"
-                : "unsolved";
-        });
-        observer.observe(row, { attributes: true, attributeFilter: ["data-status"] });
+    {# ── Filter bar ───────────────────────────────────────────────── #}
+    <div class="flex flex-wrap items-end gap-3 border-[3px] border-ink bg-bg-2 p-[18px] shadow-card mb-[18px]">
+      <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+        <span class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted">Difficulty</span>
+        <div class="flex gap-1.5 flex-wrap">
+          <button
+            class="font-mono font-bold text-[11px] px-3 py-1.5 border-[3px] border-ink bg-bg text-ink hover:bg-ink hover:text-bg transition-colors aria-pressed:bg-ink aria-pressed:text-bg"
+            type="button"
+            data-difficulty-chip="easy"
+            aria-pressed="false"
+          >Easy</button>
+          <button
+            class="font-mono font-bold text-[11px] px-3 py-1.5 border-[3px] border-ink bg-bg text-ink hover:bg-ink hover:text-bg transition-colors aria-pressed:bg-ink aria-pressed:text-bg"
+            type="button"
+            data-difficulty-chip="medium"
+            aria-pressed="false"
+          >Medium</button>
+          <button
+            class="font-mono font-bold text-[11px] px-3 py-1.5 border-[3px] border-ink bg-bg text-ink hover:bg-ink hover:text-bg transition-colors aria-pressed:bg-ink aria-pressed:text-bg"
+            type="button"
+            data-difficulty-chip="hard"
+            aria-pressed="false"
+          >Hard</button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+        <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted" for="filter-topic">Topic</label>
+        <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink" id="filter-topic">
+          <option value="">All topics</option>
+          {% for topic in practice_topics %}
+            <option value="{{ topic.slug }}">{{ topic.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+        <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted" for="filter-status">Status</label>
+        <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink" id="filter-status">
+          <option value="all">All</option>
+          <option value="solved">Solved</option>
+          <option value="attempted">Attempted</option>
+          <option value="todo">Todo</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+        <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted" for="filter-q">Search</label>
+        <input
+          class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
+          id="filter-q"
+          type="search"
+          placeholder="title or topic"
+        />
+      </div>
+
+      {% if company_options %}
+        <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+          <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted" for="filter-company">Company</label>
+          <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink" id="filter-company">
+            <option value="">Any company</option>
+            {% for company in company_options %}<option value="{{ company }}">{{ company }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      {% if pattern_options %}
+        <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+          <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted" for="filter-pattern">Pattern</label>
+          <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink" id="filter-pattern">
+            <option value="">Any pattern</option>
+            {% for pattern in pattern_options %}<option value="{{ pattern }}">{{ pattern }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      {% if technique_options %}
+        <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
+          <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted" for="filter-technique">Technique</label>
+          <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink" id="filter-technique">
+            <option value="">Any technique</option>
+            {% for technique in technique_options %}<option value="{{ technique }}">{{ technique }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      <button
+        class="font-mono font-bold text-[12px] px-4 py-2 border-[3px] border-ink text-ink hover:bg-ink hover:text-bg transition-colors"
+        type="button"
+        id="filter-clear"
+      >Reset</button>
+    </div>
+
+    {# ── Problem table ────────────────────────────────────────────── #}
+    <div class="border-[3px] border-ink bg-bg-2 shadow-card overflow-hidden">
+      <table class="w-full border-collapse text-[13px] text-ink" data-practice-table data-default-sort="default">
+        <thead>
+          <tr class="border-b-[3px] border-ink bg-device/40">
+            <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">Status</span></th>
+            <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">#</span></th>
+            <th scope="col" class="px-3 py-2 text-left" data-sort="title">
+              <button
+                class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                type="button"
+              >Title</button>
+            </th>
+            <th scope="col" class="px-3 py-2 text-left" data-sort="difficulty">
+              <button
+                class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                type="button"
+              >Difficulty</button>
+            </th>
+            <th scope="col" class="px-3 py-2 text-left" data-sort="status">
+              <button
+                class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                type="button"
+              >Status</button>
+            </th>
+            <th scope="col" class="px-3 py-2 text-left">Topics</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for problem in problems %}
+            <tr
+              class="border-b border-ink/20 last:border-b-0 hover:bg-bg transition-colors"
+              data-slug="{{ problem.slug }}"
+              data-title="{{ problem.title }}"
+              data-difficulty="{{ problem.difficulty }}"
+              data-topic="{{ problem.topic.slug }}"
+              data-companies="{{ problem.company_names }}"
+              data-patterns="{{ problem.pattern_names }}"
+              data-techniques="{{ problem.technique_names }}"
+            >
+              <td class="pe-status text-center" data-status-icon data-status="todo">○</td>
+              <td class="px-3 py-2.5 font-mono text-[11.5px] text-muted">{{ forloop.counter }}</td>
+              <td class="px-3 py-2.5">
+                <a class="font-bold text-ink no-underline hover:text-red" href="{{ problem.get_absolute_url }}">{{ problem.title }}</a>
+              </td>
+              <td class="px-3 py-2.5">
+                <span class="pe-badge diff-{{ problem.difficulty }} !border-ink rounded-none border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-wide">{{ problem.get_difficulty_display }}</span>
+              </td>
+              <td class="px-3 py-2.5 font-mono text-[11.5px] text-muted" data-status-label data-status="todo">unsolved</td>
+              <td class="px-3 py-2.5">
+                <div class="flex flex-wrap gap-1.5">
+                  {% if problem.topic %}
+                    <a
+                      class="border border-ink/30 px-1.5 py-[3px] font-mono text-[10.5px] no-underline hover:border-ink hover:text-red"
+                      href="{{ problem.topic.url }}"
+                    >{{ problem.topic.title }}</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="px-3 py-6 text-center font-mono text-[12px] text-muted">No problems published yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-2.5 px-0.5 font-mono text-[11px] text-muted" id="table-count">{{ problems|length }} problems</div>
+
+    {# ── Tracks (topic pages, spec §4: no new content type) ───────── #}
+    <div class="mt-9 mb-5 flex items-baseline gap-3.5">
+      <h2 class="font-black text-[28px] tracking-tight" id="tracks">Tracks</h2>
+      <span class="font-mono text-[13px] text-muted">{{ tracks|length|stringformat:"02d" }} loaded</span>
+    </div>
+    <p class="mt-3 mb-5 max-w-[65ch] text-[13.5px] leading-relaxed text-body-txt">
+      Drill one topic at a time, difficulty ascending.
+    </p>
+
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]">
+      {% for track in tracks %}
+        <a
+          class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
+          href="{{ track.page.url }}"
+          data-progress-scope
+        >
+          {% for problem in track.problems %}<span class="pe-hidden" data-slug="{{ problem.slug }}"></span>{% endfor %}
+          <div class="font-black text-[17px] tracking-tight mb-1.5">{{ track.page.title }}</div>
+          {% if track.page.theory_content %}
+            <div class="text-[12.5px] leading-relaxed text-body-txt mb-3">{{ track.page.theory_content|striptags|truncatechars:110 }}</div>
+          {% endif %}
+          <div class="font-mono text-[10.5px] text-muted flex gap-2.5 flex-wrap">
+            <span>{{ track.problems|length }} problem{{ track.problems|length|pluralize }}</span>
+            <span data-progress-label>0/0</span>
+          </div>
+          <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
+        </a>
+      {% empty %}
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <p class="font-mono text-[12px] text-muted">No tracks published yet.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if quizzes %}
+      <div class="mt-9 mb-5 flex items-baseline gap-3.5">
+        <h2 class="font-black text-[28px] tracking-tight" id="quizzes">Quizzes</h2>
+        <span class="font-mono text-[13px] text-muted">{{ quizzes|length|stringformat:"02d" }} loaded</span>
+      </div>
+      <p class="mt-3 mb-5 max-w-[65ch] text-[13.5px] leading-relaxed text-body-txt">
+        Quick checks on the same topics — graded in your browser, progress shared with challenges.
+      </p>
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]" data-progress-scope>
+        {% for quiz in quizzes %}
+          {% include "quiz/includes/quiz_card.html" with quiz=quiz %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+  <script src="{% static 'js/pyverse-progress.js' %}"></script>
+  <script src="{% static 'js/practice-browse.js' %}"></script>
+  <script>
+    // The Landing table's rows carry the status; the stats strip counts them.
+    document.querySelectorAll("[data-practice-table] tbody tr[data-slug]").forEach((row) => {
+      const label = row.querySelector("[data-status-label]");
+      if (!label) return;
+      const observer = new MutationObserver(() => {
+        label.textContent =
+          row.dataset.status === "solved"
+            ? "solved"
+            : row.dataset.status === "attempted"
+              ? "attempted"
+              : "unsolved";
       });
-    </script>
-  </body>
-</html>
+      observer.observe(row, { attributes: true, attributeFilter: ["data-status"] });
+    });
+  </script>
+{% endblock extra_js %}

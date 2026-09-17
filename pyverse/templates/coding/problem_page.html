@@ -1,72 +1,64 @@
-{% load static wagtailcore_tags seo_tags %}
+{% extends "home/base_.html" %}
+{% load static wagtailcore_tags %}
 {% comment %}
-LeetWasm problem page (Practice spec §5). Standalone document, not extending
-base.html: the engine is a full-viewport app with its own dark theme (spec §8),
-and shares its tokens with the Landing, Sheets and Tracks surfaces.
+Problem page (Practice spec §5), in the site's own shell: same navbar, footer,
+cream brutalist theme and typography as the home and about pages, so a challenge
+reads as part of PyVerse rather than a separate tool.
+
+The workspace — description/hints/editorial/submissions tabs, the editor, the
+test pane — is the site's "device": a dark console panel inside a thick ink
+frame, the same pattern the home page uses for its mockup and the labs use for
+the tracer. That keeps the engine's dark token set native here instead of a
+second full-page theme.
 
 Problem data is baked into this page at build time (spec §5.2 approach A) — no
 runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
 {% endcomment %}
-{% seo_meta as seo %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ seo.title }}</title>
-    {% include "partials/_seo_meta.html" %}
 
-    <!-- PyScript (via the shared runtime partial) -->
-    <!-- CodeMirror 5, same build the reference engine uses -->
+{% block extra_head %}
+    {# CodeMirror 5, same build the reference engine uses. #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 
     <style>
-      *, *::before, *::after { margin: 0; padding: 0; }
-      html, body { height: 100%; overflow: hidden; background: var(--bg0, #0d0f14); color: var(--text0, #e8ecf5); font-family: var(--sans, sans-serif); }
-      ::-webkit-scrollbar { width: 4px; height: 4px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
-      .hidden { display: none !important; }
-      a { color: inherit; }
+      /* ── console interior ────────────────────────────────────────
+       * The document scrolls normally now: the dark app fills the
+       * fixed-height `.pe-console` frame instead of the viewport, so the rules
+       * that used to size it against `html, body` are scoped to `.pe-app`, and
+       * the wipe-out reset stays off the cream chrome around it.
+       */
+      .pe-app, .pe-app *, .pe-app *::before, .pe-app *::after { margin: 0; padding: 0; }
+      .pe-app {
+        display: flex; flex-direction: column;
+        flex: 1 1 0%; min-height: 0;
+      }
+      .pe-app ::-webkit-scrollbar { width: 4px; height: 4px; }
+      .pe-app ::-webkit-scrollbar-track { background: transparent; }
+      .pe-app ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+      .pe-app .hidden { display: none !important; }
 
-      .shell { display: flex; flex-direction: column; height: 100vh; }
-      .header {
-        display: flex; align-items: center; justify-content: space-between;
-        height: 46px; padding: 0 18px; flex-shrink: 0;
-        border-bottom: 1px solid var(--border); background: var(--bg1);
+      /* Base's cream-theme richtext lists (red “+”, mono 13px) belong to the
+       * light chrome; inside the console the engine's typography owns lists,
+       * and the shell's Tailwind preflight has already stripped the markers. */
+      .pe-app .rich-text ul { list-style: disc; padding-left: 1.2em; }
+      .pe-app .rich-text ol { list-style: decimal; padding-left: 1.2em; }
+      .pe-app .rich-text ul li { font-family: inherit; font-size: inherit; padding: 0; border-bottom: 0; }
+      .pe-app .rich-text ul li::before { content: none; }
+      .pe-app .rich-text a { color: var(--accent); text-decoration: underline; }
+
+      /* Runtime status pill, living in the console bar. (The engine already
+       * spends `.pe-status` on its table's per-row glyph, hence `pe-runtime`.)
+       * The bar is device-cream, outside `.pe-engine`, so these use literals. */
+      .pe-runtime {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 3px 10px; border: 1px solid #1a1a1a; background: #f5eeda;
+        color: #3a3529; text-transform: none; letter-spacing: .02em; white-space: nowrap;
       }
-      .logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 14px; }
-      .logo-icon {
-        width: 24px; height: 24px; background: var(--accent); border-radius: 5px;
-        display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff;
-      }
-      .logo-sep { color: var(--text2); font-weight: 400; font-size: 13px; }
-      .crumb { font-family: var(--mono); font-size: 11px; color: var(--text2); text-decoration: none; }
-      .crumb:hover { color: var(--text1); }
-      .status-pill {
-        display: flex; align-items: center; gap: 7px; padding: 4px 12px;
-        border-radius: 999px; border: 1px solid var(--border); background: var(--bg2);
-        font-family: var(--mono); font-size: 11px; color: var(--text1);
-      }
-      .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
-      .sdot.ready { background: var(--green); animation: none; }
-      .sdot.failed { background: var(--red); }
+      .pe-runtime .sdot { width: 6px; height: 6px; border-radius: 50%; background: #f0a140; flex-shrink: 0; }
+      .pe-runtime .sdot.ready { background: #3dd68c; animation: none; }
+      .pe-runtime .sdot.failed { background: #f26d6d; }
       @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.22} }
-      .sdot.loading { animation: blink 1.4s ease-in-out infinite; }
+      .pe-runtime .sdot.loading { animation: blink 1.4s ease-in-out infinite; }
 
       .main { display: flex; flex: 1; min-height: 0; }
       .left { width: 42%; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--bg1); min-height: 0; }
@@ -237,35 +229,67 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
       kbd { font-family: var(--mono); font-size: 10px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }
       @media (max-width: 900px) {
         .main { flex-direction: column; }
-        .left { width: 100% !important; height: 50%; }
+        /* Stacked panes inside a fixed-height console: the description and the
+         * test pane both give height back to the editor. */
+        .left { width: 100% !important; height: 45%; }
         .rhandle { display: none; }
+        .bottom { height: 170px; }
       }
     </style>
-  </head>
+{% endblock extra_head %}
 
-  <body
-    class="pe-engine"
-    data-problem-slug="{{ problem.slug }}"
-    data-problem-title="{{ problem.title }}"
-    data-problem-topic="{{ page.title }}"
-  >
-    <div class="shell">
-      <header class="header">
-        <div class="logo">
-          <div class="logo-icon">L</div>
-          LeetWasm <span class="logo-sep">/ {{ problem.slug }}</span>
-          <a class="crumb" href="/practice/">&larr; all problems</a>
-          {% if topic %}<a class="crumb" href="{{ topic.url }}">{{ topic.title }}</a>{% endif %}
-        </div>
-        <nav class="pe-nav" aria-label="Main">
-          {% include "partials/_site_nav_items.html" with nav_link_class="" %}
-        </nav>
-        <div class="status-pill">
-          <span class="sdot loading" id="sdot"></span>
-          <span id="stxt">Loading PyScript runtime…</span>
-        </div>
-      </header>
+{% block body_attrs %} data-problem-slug="{{ problem.slug }}" data-problem-title="{{ problem.title }}" data-problem-topic="{{ page.title }}"{% endblock body_attrs %}
 
+{% block content %}
+<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+
+  {# ── breadcrumb + title ──────────────────────────────────────── #}
+  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+    <a href="/practice/" class="text-muted no-underline hover:text-ink">practice/</a>
+    <span class="mx-1">›</span>problem/
+  </p>
+
+  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
+    {{ problem.title }}
+  </h1>
+
+  {# ── problem metadata ────────────────────────────────────────── #}
+  <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
+    <span class="bg-ink text-bg px-[7px] py-[3px] uppercase">{{ problem.get_difficulty_display }}</span>
+    {% if topic %}
+      <a href="{{ topic.url }}" class="text-red no-underline uppercase tracking-wide hover:text-ink">{{ topic.title }}</a>
+      <span class="text-muted">·</span>
+    {% endif %}
+    <span class="text-muted">{{ problem.function_name }}{{ problem.function_signature }}</span>
+  </div>
+
+  <p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">
+    Solve it in the console below — the description, hints, editorial and your past
+    submissions are in its left panel, the editor and test runner on the right.
+    Python runs in your browser, so Run and Submit need no server round-trip.
+  </p>
+
+  {# ── stripe divider (same signature strip as the home page) ───── #}
+  <div class="mt-9 h-[14px] flex" aria-hidden="true">
+    <div class="flex-1 bg-s1"></div>
+    <div class="flex-1 bg-s2"></div>
+    <div class="flex-1 bg-s3"></div>
+    <div class="flex-1 bg-s4"></div>
+    <div class="flex-1 bg-s5"></div>
+    <div class="flex-1 bg-s6"></div>
+  </div>
+
+  {# ── the workspace, framed like the home page's device ───────── #}
+  <section class="pe-console mt-9 h-[min(85vh,780px)] min-h-[560px]" aria-label="Problem workspace">
+    <div class="pe-console-bar">
+      <span>PyVerse Practice — {{ problem.slug }}</span>
+      <span class="pe-runtime">
+        <span class="sdot loading" id="sdot"></span>
+        <span id="stxt">Loading PyScript runtime…</span>
+      </span>
+    </div>
+
+    <div class="pe-engine pe-app flex-1 min-h-0">
       <div class="main" id="main">
         <div class="left" id="left-panel">
           <div class="tab-bar">
@@ -292,7 +316,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
               <span class="sig">{{ problem.function_name }}{{ problem.function_signature }}</span>
             </div>
 
-            <div class="ptext">{{ problem.description|richtext }}</div>
+            <div class="ptext rich-text">{{ problem.description|richtext }}</div>
 
             {% if problem.examples %}
               {% for block in problem.examples %}
@@ -320,7 +344,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
                 {% for block in problem.hint_tiers %}
                   <div class="hint-item" data-hint="{{ forloop.counter0 }}">
                     <div class="hint-tier">{{ block.value.tier|upper }}</div>
-                    <div class="hint-body hidden" id="hint-body-{{ forloop.counter0 }}">{{ block.value.text|richtext }}</div>
+                    <div class="hint-body rich-text hidden" id="hint-body-{{ forloop.counter0 }}">{{ block.value.text|richtext }}</div>
                   </div>
                 {% endfor %}
               </div>
@@ -340,7 +364,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
                     {{ block.value.name }}
                     {% if block.value.is_optimal %}<span class="opt-pill">OPTIMAL</span>{% endif %}
                   </div>
-                  {% if block.value.description %}<div class="edesc">{{ block.value.description|richtext }}</div>{% endif %}
+                  {% if block.value.description %}<div class="edesc rich-text">{{ block.value.description|richtext }}</div>{% endif %}
                   <div class="ctags">
                     {% if block.value.time_complexity %}<span class="ctag t">time {{ block.value.time_complexity }}</span>{% endif %}
                     {% if block.value.space_complexity %}<span class="ctag s">space {{ block.value.space_complexity }}</span>{% endif %}
@@ -354,7 +378,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
           {% if problem.solution_code or problem.solution_explanation %}
             <div class="tcontent hidden" id="tab-sol">
               {% if problem.solution_explanation %}
-                <div class="ptext">{{ problem.solution_explanation|richtext }}</div>
+                <div class="ptext rich-text">{{ problem.solution_explanation|richtext }}</div>
               {% endif %}
               {% if problem.solution_code %}
                 <div class="sol-block">{{ problem.solution_code }}</div>
@@ -433,6 +457,23 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
         </div>
       </div>
     </div>
+  </section>
+
+  {# ── how to drive it ─────────────────────────────────────────── #}
+  <div class="mt-5 font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5">
+    ⌃/⌘ + ↵ runs the visible case · ⌃/⌘ + ⇧ + ↵ submits every case ·
+    drag the seam between the panels to resize them
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
 
     {{ payload|json_script:"pyverse-payload" }}
     <script src="{% static 'js/pyverse-progress.js' %}"></script>
@@ -705,5 +746,4 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
         })();
       })();
     </script>
-  </body>
-</html>
+{% endblock extra_js %}
