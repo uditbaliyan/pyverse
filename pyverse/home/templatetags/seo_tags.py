@@ -20,6 +20,21 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
+def absolute_url(context, entity=None):
+    """Canonical *absolute* URL — for share links and anything that leaves the site.
+
+    `context`'s page (or an explicit entity, e.g. a loop variable) is resolved
+    against the configured canonical origin, so nothing bakes in the request
+    host: puput's own tag uses `request.build_absolute_uri`, which stamped
+    "http://testserver" into every frozen share link.
+    """
+    return seo.canonical_for(
+        context.get("request"),
+        page=entity or context.get("page") or context.get("self"),
+    )
+
+
+@register.simple_tag(takes_context=True)
 def seo_meta(context, title=None, description=None):
     overrides = {}
     if title:

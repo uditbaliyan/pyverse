@@ -1,5 +1,5 @@
 {% extends "puput/base.html" %}
-{% load i18n wagtailcore_tags wagtailimages_tags puput_tags %}
+{% load i18n wagtailcore_tags wagtailimages_tags puput_tags seo_tags %}
 
 {% block title %}
     {{ self.title }} | {{ blog_page.title }}
@@ -26,7 +26,7 @@
                         <i class="fa fa-angle-left"></i> {% trans 'Return' %}
                     </a>
                 </div>
-                {% canonical_url self as share_url %}
+                {% absolute_url self as share_url %}
                 <ul class="social-share-all text-right col-md-10">
                     {% include 'puput/share_links.html' with share_url=share_url entry=self only %}
                 </ul>
