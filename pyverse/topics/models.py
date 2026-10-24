@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from wagtail import blocks
@@ -129,6 +130,7 @@ class PracticeHubPage(RoutablePageMixin, Page):
         context["quizzes"] = (
             Quiz.objects.filter(topic__isnull=False, topic__live=True)
             .select_related("topic")
+            .annotate(_question_count=Count("questions"))
             .order_by("title")
         )
         context["top_level_topics"] = (
@@ -321,6 +323,7 @@ class PracticeTopicPage(RoutablePageMixin, Page):
         context["quizzes"] = (
             Quiz.objects.filter(topic__path__startswith=self.path)
             .select_related("topic")
+            .annotate(_question_count=Count("questions"))
             .order_by("title")
         )
         context["subtopics"] = (

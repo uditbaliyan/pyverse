@@ -8,7 +8,12 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('puput', '0009_alter_blogpage_main_color'),
-        ('wagtailcore', '0098_query_searchpromotion_querydailyhits'),
+        # Was '0098_query_searchpromotion_querydailyhits', a wagtailcore
+        # migration that no released Wagtail ships — the whole migration graph
+        # (migrate, and therefore the test suite) failed to load because of it.
+        # BlogFolderPage only needs wagtailcore.Page, so the latest real
+        # migration is the correct ordering constraint.
+        ('wagtailcore', '0097_baselogentry_uuid_action_timestamp_indexes'),
     ]
 
     operations = [

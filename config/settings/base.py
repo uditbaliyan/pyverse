@@ -102,6 +102,7 @@ THIRD_PARTY_APPS = [
     "wagtail.admin",
     "wagtail.contrib.settings",
     "wagtail",
+    "wagtail_ai",
     "wagtailmarkdown",
     "modelcluster",
     "taggit",
@@ -118,6 +119,8 @@ LOCAL_APPS = [
     "pyverse.topics",
     "pyverse.coding",
     "pyverse.labs",
+    # Drafts content with a language model; nothing here runs at request time.
+    "pyverse.ai_content",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -326,3 +329,29 @@ TAILWIND_APP_NAME = "pyverse.theme"
 WAGTAIL_SITE_NAME = "PyVerse"
 
 PUPUT_AS_PLUGIN = True
+
+# AI content drafting
+# ------------------------------------------------------------------------------
+# One provider serves both the admin AI panels (wagtail-ai) and `manage.py
+# ai_create`, which reads the same alias — so there is one place to configure a
+# model and one set of credentials. Keys come from the provider's own
+# environment variable (OPENAI_API_KEY, ANTHROPIC_API_KEY, …) unless AI_API_KEY
+# is set explicitly.
+_AI_API_KEY = env("AI_API_KEY", default="")
+_AI_PROVIDER: dict[str, str] = {
+    "provider": env("AI_PROVIDER", default="openai"),
+    "model": env("AI_MODEL", default="gpt-4o-mini"),
+}
+if _AI_API_KEY:
+    _AI_PROVIDER["api_key"] = _AI_API_KEY
+
+WAGTAIL_AI = {"PROVIDERS": {"default": _AI_PROVIDER}}
+
+# Which WAGTAIL_AI["PROVIDERS"] alias content generation talks to.
+AI_CONTENT_PROVIDER_ALIAS = env("AI_CONTENT_PROVIDER_ALIAS", default="default")
+# Extra kwargs passed to every generation call, for providers that need them
+# (e.g. {"response_format": {"type": "json_object"}}).
+AI_CONTENT_COMPLETION_KWARGS: dict = {}
+# Seconds a generated solution gets to answer all of a problem's test cases
+# before the draft is refused.
+AI_CONTENT_VERIFY_TIMEOUT = env.int("AI_CONTENT_VERIFY_TIMEOUT", default=10)

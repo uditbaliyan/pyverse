@@ -150,12 +150,19 @@ window.PyverseProgress = (function () {
     return true;
   }
 
+  /** Like `statusMap()`, but rejects when the store cannot be read at all, so a
+   * caller that must tell "nothing recorded" from "no storage" can fail open
+   * (see `lms/js/lesson-progress.js`). */
+  async function readStatus() {
+    const rows = await withStore(STORE_STATUS, "readonly", (store) => getAll(store));
+    const list = Array.isArray(rows) ? rows : [];
+    return Object.fromEntries(list.map((row) => [row.slug, row.status]));
+  }
+
   /** `{ slug: "solved" | "attempted" }` — absent means untouched. */
   async function statusMap() {
     try {
-      const rows = await withStore(STORE_STATUS, "readonly", (store) => getAll(store));
-      const list = Array.isArray(rows) ? rows : [];
-      return Object.fromEntries(list.map((row) => [row.slug, row.status]));
+      return await readStatus();
     } catch (err) {
       return {};
     }
@@ -246,6 +253,7 @@ window.PyverseProgress = (function () {
   return {
     recordSubmission,
     statusMap,
+    readStatus,
     stats,
     streak,
     submissionsFor,

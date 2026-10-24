@@ -1,5 +1,6 @@
 # quiz/models.py
 from django.db import models
+from django.utils.functional import cached_property
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 from taggit.managers import TaggableManager
@@ -7,7 +8,6 @@ from taggit.models import TaggedItemBase
 from wagtail.admin.panels import FieldPanel
 from wagtail.admin.panels import InlinePanel
 from wagtail.models import Orderable
-from wagtail.snippets.models import register_snippet
 
 from pyverse.taxonomy import Difficulty
 
@@ -35,7 +35,7 @@ class Quiz(ClusterableModel):
     randomize_questions = models.BooleanField(default=False)
     quiz_type = models.CharField(
         max_length=20,
-        choices=QuestionType.choices,
+        choices=QuestionType,
         default=QuestionType.TRUE_FALSE,
     )
     difficulty = models.CharField(
@@ -90,8 +90,14 @@ class Quiz(ClusterableModel):
         """Flat, like challenge pages: /practice/quiz/<slug>/."""
         return f"/practice/quiz/{self.slug}/"
 
-    @property
+    @cached_property
     def question_count(self):
+        """Question count, preferring the `_question_count` annotation the
+        Practice listing querysets add (`topics.models`) so a grid of quiz cards
+        costs no per-card COUNT."""
+        annotated = getattr(self, "_question_count", None)
+        if annotated is not None:
+            return annotated
         return self.questions.count()
 
     @property
@@ -112,7 +118,9 @@ class Quiz(ClusterableModel):
 class Question(Orderable, ClusterableModel):
     quiz = ParentalKey(Quiz, related_name="questions", on_delete=models.CASCADE)
     question_type = models.CharField(
-        max_length=20, choices=QuestionType.choices, default=QuestionType.MCQ,
+        max_length=20,
+        choices=QuestionType,
+        default=QuestionType.MCQ,
     )
     text = models.TextField()
     code_snippet = models.TextField(blank=True)

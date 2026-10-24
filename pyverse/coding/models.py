@@ -8,7 +8,9 @@ from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.fields import RichTextField
 from wagtail.fields import StreamField
+from wagtail_ai.panels import AITitleFieldPanel
 
+from pyverse.common.blocks import EditorialApproachBlock
 from pyverse.taxonomy import Difficulty
 
 
@@ -119,22 +121,6 @@ class HintBlock(blocks.StructBlock):
         label = "Hint"
 
 
-class EditorialApproachBlock(blocks.StructBlock):
-    name = blocks.CharBlock(help_text='e.g. "Hash map, one pass".')
-    description = blocks.RichTextBlock(required=False)
-    time_complexity = blocks.CharBlock(required=False, label="Time complexity")
-    space_complexity = blocks.CharBlock(required=False, label="Space complexity")
-    is_optimal = blocks.BooleanBlock(
-        required=False,
-        default=False,
-        help_text="Marks this approach as the intended optimal one.",
-    )
-
-    class Meta:
-        icon = "code"
-        label = "Editorial approach"
-
-
 class CodingProblem(ClusterableModel):
     """
     A single free-practice coding problem, addressable independently of the
@@ -202,7 +188,7 @@ class CodingProblem(ClusterableModel):
     )
     comparator = models.CharField(
         max_length=20,
-        choices=Comparator.choices,
+        choices=Comparator,
         default=Comparator.EXACT,
         help_text=(
             "How a returned value is compared against each test case's "
@@ -298,7 +284,7 @@ class CodingProblem(ClusterableModel):
 
     panels = [
         FieldPanel("topic"),
-        FieldPanel("title"),
+        AITitleFieldPanel("title", classname="title"),
         FieldPanel("slug"),
         FieldPanel("difficulty"),
         FieldPanel("description"),
@@ -330,11 +316,7 @@ class CodingProblem(ClusterableModel):
         if not self.slug:
             base = slugify(self.title)[:200] or "problem"
             slug, suffix = base, 2
-            while (
-                CodingProblem.objects.filter(slug=slug)
-                .exclude(pk=self.pk)
-                .exists()
-            ):
+            while CodingProblem.objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base}-{suffix}"[:200]
                 suffix += 1
             self.slug = slug

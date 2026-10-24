@@ -8,9 +8,9 @@ from wagtail.admin.panels import (
     FieldPanel,
     InlinePanel,
     MultiFieldPanel,
-    TitleFieldPanel,
 )
 from wagtail.fields import RichTextField
+from wagtail_ai.panels import AITitleFieldPanel
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from wagtailmarkdown.fields import MarkdownField
 
@@ -150,7 +150,7 @@ class EntryAbstract(models.Model):
     content_panels = [
         MultiFieldPanel(
             [
-                TitleFieldPanel("title", classname="title"),
+                AITitleFieldPanel("title", classname="title"),
                 FieldPanel("header_image"),
                 FieldPanel("body", classname="full"),
                 FieldPanel("markdown_body"),

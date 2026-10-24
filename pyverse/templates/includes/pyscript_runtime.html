@@ -20,6 +20,13 @@ Contract for any page that includes this partial:
   * Poll `document.body.dataset.pyverseReady === "1"` before enabling the
     Run/Submit buttons — Pyodide loads asynchronously and offline it never
     arrives.
+
+ * Notebook pages (lesson bodies) use the same include instead of a second
+ * runtime: render `[data-notebook]` cells (see `lms/blocks/notebook.html`), set
+ * `window._pendingNotebook` to `{"cells": [{"type": "code", "source": …}]}` and
+ * call `window._pyNotebook()` — it returns a JSON string
+ * `{"cells": [{"stdout": …, "error": …}], "ok": …}`. Markdown cells are rendered
+ * server-side and never appear in that payload.
 {% endcomment %}
 <link
   rel="stylesheet"
@@ -203,8 +210,39 @@ def exec_solution(is_submit, custom_json):
     )
 
 
+def run_notebook():
+    """Execute one notebook's code cells in order, in a shared namespace.
+
+    Reads `window._pendingNotebook` — `{"cells": [{"type": "code", "source":
+    "…"}]}`, written by `js/notebook.js` from the rendered DOM. Returns a JSON
+    string `{"cells": [{"stdout": "…", "error": "…"}, …], "ok": bool}` with one
+    entry per cell, in cell order; `error` is the formatted traceback, empty when
+    the cell ran. Cells share one namespace per call, so the notebook behaves
+    like Jupyter's Run All.
+    """
+    payload = json.loads(window._pendingNotebook or "{}")
+    namespace = {}
+    results = []
+    ok = True
+    for cell in payload.get("cells", []):
+        log = io.StringIO()
+        real_stdout = sys.stdout
+        sys.stdout = log
+        error = ""
+        try:
+            exec(compile(cell.get("source") or "", "<cell>", "exec"), namespace)
+        except Exception:
+            error = traceback.format_exc()
+            ok = False
+        finally:
+            sys.stdout = real_stdout
+        results.append({"stdout": log.getvalue(), "error": error})
+    return json.dumps({"cells": results, "ok": ok})
+
+
 import js
 
 js.window._pyExec = exec_solution
+js.window._pyNotebook = run_notebook
 document.body.dataset.pyverseReady = "1"
 </script>

@@ -70,6 +70,13 @@ python manage.py distill-local _site --collectstatic --force
   serve one (Netlify, GitHub Pages, Cloudflare Pages).
 - Output is `_site/` (gitignored): HTML tree + `static/` + `media/`. Serve it
   with any static host; there is no server-side component.
+- Build the Tailwind stylesheet first. `{% tailwind_css %}` in `base.html` (the
+  LMS and account pages) points at
+  `pyverse/theme/static/css/dist/styles.css`, which is **gitignored build output**
+  — `.venv/bin/python manage.py tailwind build` (or `manage.py tailwind start`,
+  as `Procfile.tailwind` does) before `--collectstatic`, on a fresh clone and
+  again after adding any new utility class. Otherwise `--collectstatic` copies a
+  stylesheet that is absent or stale, and the new classes silently do nothing.
 
 `_site/404.html` only works on hosts that use a root `404.html`; map it
 explicitly if the host wants a different filename.

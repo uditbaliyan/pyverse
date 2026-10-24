@@ -56,7 +56,15 @@ Order
    ``lesson_status`` store in the same database, not a second store). The
    course page counts ticks and shows a progress bar; the lesson page offers
    mark-complete with an undo.
-4. **Content and deployment.** Every remaining surface is bottlenecked on
+4. **Lesson checkpoints and notebooks.** Shipped: a lesson body can carry a
+   graded ``practice`` checkpoint (one problem **or** one quiz, optionally
+   ``required_to_advance``) and a ``notebook`` whose code cells run and print in
+   the learner's browser on the existing PyScript runtime, with Markdown cells
+   rendered server-side. A required checkpoint gates the next-lesson link until
+   that slug reads ``solved`` in ``problem_status`` — a client-side nudge, not an
+   entitlement check. Lesson counts on a course grid moved from one ``COUNT`` per
+   card to one descendant query per grid.
+5. **Content and deployment.** Every remaining surface is bottlenecked on
    corpus size (4 problems, 2 quizzes, 1 course, 2 lessons, 2 labs). Deploy the
    static export once the tree is clean — host still undecided.
 
@@ -78,7 +86,10 @@ Open
   learner-facing page — Practice and Labs included — and the engine's dark token
   set is used only inside ``.pe-console`` panels. Two Tailwind pipelines still
   ship (the built one for LMS/account pages, the CDN one for the shell); folding
-  the first into the second is cleanup, not a decision.
+  the first into the second is cleanup, not a decision. Worth knowing before a
+  deploy: the built stylesheet is gitignored build output, so it has to be rebuilt
+  (``manage.py tailwind build``) after new utility classes or the classes silently
+  do nothing — the lesson checkpoint gate was unstyled until a rebuild.
 - CDN runtime dependencies (PyScript, Tailwind CDN, CodeMirror, Mermaid, lucide,
   Alpine, Google Fonts) mean offline visitors get a rendered-but-dead challenge
   page. Self-hosting is the fix if that matters.

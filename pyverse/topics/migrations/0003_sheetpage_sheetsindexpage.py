@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('topics', '0002_alter_practicehubpage_intro_and_more'),
-        ('wagtailcore', '0098_query_searchpromotion_querydailyhits'),
+        ('wagtailcore', '0097_baselogentry_uuid_action_timestamp_indexes'),
     ]
 
     operations = [

@@ -12,6 +12,7 @@ Welcome to PyVerse's documentation!
 
    howto
    roadmap
+   design/index
    users
 
 

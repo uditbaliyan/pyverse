@@ -1,0 +1,33 @@
+{% comment %}
+Practice Checkpoint (`pyverse.lms.models.PracticeBlock`). Exactly one of
+problem/quiz is set — `PracticeBlock.clean` rejects both/neither when the lesson
+is saved.
+
+`data-checkpoint-slug` is the slug `js/pyverse-progress.js` records when the
+problem is accepted or the quiz is passed, so `lms/js/lesson-progress.js` can
+tick this block and gate the next-lesson link when `required_to_advance` is set.
+{% endcomment %}
+<div class="my-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4"
+     data-checkpoint
+     data-checkpoint-kind="{% if value.problem %}problem{% else %}quiz{% endif %}"
+     data-checkpoint-slug="{% if value.problem %}{{ value.problem.slug }}{% else %}{{ value.quiz.slug }}{% endif %}"
+     {% if value.required_to_advance %}data-checkpoint-required{% endif %}>
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+        {% if value.required_to_advance %}Required checkpoint{% else %}Practice checkpoint{% endif %}
+      </div>
+      <div class="font-medium">{% if value.problem %}{{ value.problem.title }}{% else %}{{ value.quiz.title }}{% endif %}</div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-neutral-500" data-checkpoint-state>Not started</span>
+      {% if value.problem %}
+        <a href="{{ value.problem.get_absolute_url }}"
+           class="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">Try it</a>
+      {% else %}
+        <a href="{{ value.quiz.get_absolute_url }}"
+           class="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">Take the quiz</a>
+      {% endif %}
+    </div>
+  </div>
+</div>

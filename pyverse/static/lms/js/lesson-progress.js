@@ -14,6 +14,11 @@
  *                [data-lesson-title], #lesson-complete-done, #lesson-undo, and
  *                an optional [data-lesson-list] whose [data-lesson-slug] links
  *                get marked too.
+ *   lesson page  ... plus [data-checkpoint][data-checkpoint-slug]
+ *                (optional [data-checkpoint-required], [data-checkpoint-state]),
+ *                #lesson-next, #lesson-gate-note. A required checkpoint gates the
+ *                next-lesson link until its slug reads "solved" in
+ *                `PyverseProgress`; an unreadable store never gates.
  */
 (function () {
   "use strict";
@@ -149,5 +154,69 @@
         })
         .catch(fail);
     });
+  }
+
+  var checkpoints = Array.prototype.slice.call(
+    document.querySelectorAll("[data-checkpoint]"),
+  );
+  var nextLink = document.getElementById("lesson-next");
+  var gateNote = document.getElementById("lesson-gate-note");
+
+  function paintCheckpoints(map) {
+    checkpoints.forEach(function (element) {
+      var done = map[element.getAttribute("data-checkpoint-slug")] === "solved";
+      element.setAttribute("data-checkpoint-done", done ? "1" : "0");
+      var slot = element.querySelector("[data-checkpoint-state]");
+      if (slot) slot.textContent = done ? "✓ Done" : "Not started";
+      // The block ships with the neutral pair; swap it for the done pair rather
+      // than adding both, so the same border/background properties never
+      // compete.
+      element.classList.toggle("border-neutral-200", !done);
+      element.classList.toggle("bg-neutral-50", !done);
+      element.classList.toggle("border-green-300", done);
+      element.classList.toggle("bg-green-50", done);
+    });
+  }
+
+  function paintGate() {
+    if (!nextLink) return;
+    var unmet = checkpoints.filter(function (element) {
+      return (
+        element.hasAttribute("data-checkpoint-required") &&
+        element.getAttribute("data-checkpoint-done") !== "1"
+      );
+    });
+    var locked = unmet.length > 0;
+    nextLink.setAttribute("aria-disabled", locked ? "true" : "false");
+    nextLink.classList.toggle("opacity-40", locked);
+    nextLink.classList.toggle("pointer-events-none", locked);
+    if (!gateNote) return;
+    gateNote.classList.toggle("hidden", !locked);
+    if (locked) {
+      gateNote.textContent =
+        unmet.length === 1
+          ? "Finish the required checkpoint above to unlock the next lesson."
+          : "Finish the " + unmet.length + " required checkpoints above to unlock the next lesson.";
+    }
+  }
+
+  if (checkpoints.length || nextLink) {
+    if (nextLink) {
+      nextLink.addEventListener("click", function (event) {
+        if (nextLink.getAttribute("aria-disabled") === "true") event.preventDefault();
+      });
+    }
+    store
+      .readStatus()
+      .then(function (map) {
+        paintCheckpoints(map);
+        paintGate();
+      })
+      .catch(function () {
+        // Storage unreadable: never lock navigation on the strength of a failed
+        // read.
+        if (gateNote) gateNote.classList.add("hidden");
+        if (nextLink) nextLink.removeAttribute("aria-disabled");
+      });
   }
 })();

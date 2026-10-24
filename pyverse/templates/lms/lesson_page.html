@@ -92,6 +92,7 @@
                 </div>
 
                 <!-- Lesson Navigation -->
+                <p id="lesson-gate-note" class="hidden mt-8 text-sm text-amber-700"></p>
                 <nav class="flex justify-between items-center mt-12 pt-6 border-t border-neutral-200">
                     {% if prev_lesson %}
                         <a href="{{ prev_lesson.url }}"
@@ -108,6 +109,7 @@
 
                     {% if next_lesson %}
                         <a href="{{ next_lesson.url }}"
+                           id="lesson-next"
                            class="group flex items-center gap-3 text-sm text-right">
                             <div>
                                 <span class="text-neutral-400 block text-xs">Next</span>
@@ -152,6 +154,11 @@ window.__CURRENT_LESSON__ = "{{ page.slug }}";
 
 <script src="{% static 'js/pyverse-progress.js' %}"></script>
 <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
+
+{% if has_notebook %}
+{% include "includes/pyscript_runtime.html" %}
+<script src="{% static 'lms/js/notebook.js' %}"></script>
+{% endif %}
 
 {% include "lms/_lucide.html" %}
 

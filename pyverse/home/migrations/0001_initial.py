@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('wagtailcore', '0098_query_searchpromotion_querydailyhits'),
+        ('wagtailcore', '0097_baselogentry_uuid_action_timestamp_indexes'),
         ('wagtailimages', '0027_image_description'),
     ]
 
