@@ -67,7 +67,9 @@ jobs:
         run: uv sync --locked
 
       - name: Check DB Migrations
-        run: uv run python manage.py makemigrations --check
+        # Scoped to project apps: unscoped, Wagtail 7.4.x reports a pending
+        # wagtailcore migration that lives in site-packages (audit F-02).
+        run: uv run python manage.py makemigrations --check --dry-run home lms quiz coding topics puput labs users
 
       - name: Run DB Migrations
         run: uv run python manage.py migrate

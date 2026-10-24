@@ -23,6 +23,9 @@ from .local import MIDDLEWARE
 
 DEBUG = False
 
+# The export has no /accounts/ routes; hide login/signup/logout links.
+SHOW_ACCOUNT_LINKS = False
+
 # Distill's renderer already forces this; being explicit keeps collectstatic
 # and any stray request on the same footing.
 ALLOWED_HOSTS = ["*"]

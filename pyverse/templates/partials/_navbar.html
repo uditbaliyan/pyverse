@@ -17,6 +17,7 @@
       <div class="hidden md:flex items-center space-x-12">
         {% include "partials/_site_nav_items.html" with nav_link_class="text-ink hover:underline decoration-[2px] underline-offset-4" %}
 
+        {% if SHOW_ACCOUNT_LINKS %}
         {% if request.user.is_authenticated %}
         <span class="text-muted">|</span>
         <a
@@ -97,6 +98,7 @@
             />
           </svg>
         </button>
+        {% endif %}
       </div>
     </div>
 
@@ -110,6 +112,7 @@
     >
       {% include "partials/_site_nav_items.html" with nav_link_class="block text-ink hover:bg-ink hover:text-bg px-3 py-1.5 transition-colors" %}
 
+      {% if SHOW_ACCOUNT_LINKS %}
       {% if request.user.is_authenticated %}
       <div class="border-t border-ink/20 my-2 pt-2"></div>
       <a
@@ -142,6 +145,7 @@
       >
         > LOGIN
       </a>
+      {% endif %}
       {% endif %}
     </div>
   </nav>

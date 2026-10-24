@@ -13,6 +13,8 @@ Challenge pages need no special casing here: they are routed sub-paths served by
 view resolves them exactly as a live request would.
 """
 
+from html import escape
+
 from django.contrib.sitemaps import views as sitemap_views
 from django.http import HttpResponse
 from django.views.defaults import page_not_found
@@ -111,7 +113,7 @@ def render_redirect_stub(request, path=""):
     if row is None or not row.link:
         return page_not_found(request, Exception("Not found"))
 
-    target = row.link
+    target = escape(row.link, quote=True)
     body = (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n<head>\n<meta charset="utf-8" />\n'

@@ -262,7 +262,7 @@ Session.vim
 .netrwhist
 
 # Auto-generated tag files
-tags
+/tags
 
 # Redis dump file
 dump.rdb
@@ -274,3 +274,7 @@ pyverse/media/
 
 # Static export output (`manage.py distill-local`)
 /_site/
+
+# Local secrets and authoring database: never commit (keep *.example)
+/.envs/
+*.sqlite3

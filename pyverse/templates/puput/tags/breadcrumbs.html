@@ -1,0 +1,1 @@
+{% for crumb in breadcrumbs %}{% if not forloop.first %} / {% endif %}<a href="{{ crumb.url }}">{{ crumb.title }}</a>{% endfor %}
