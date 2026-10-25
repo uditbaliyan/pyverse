@@ -10,16 +10,16 @@
     {% endif %}
 {% endblock title %}
 
-{% block content %}
+{% block blog_content %}
     {% with per_page=blog_page.num_entries_page %}
         {# 'paginate' tag cannot render dotted variables, so we need to create a context var #}
         {% paginate per_page entries %}
         {% if search_term %}
-            <div class="searchTerm">{% trans 'Entries for' %} {{ search_type }} "{{ search_term }}"</div>
+            <p class="mb-5 font-mono text-[12px] uppercase tracking-wide text-muted">{% trans 'Entries for' %} {{ search_type }} “{{ search_term }}”</p>
         {% endif %}
         {% for entry in entries %}
             {% entry_url entry blog_page as post_url %}
-            <article class="box page-content blog_grid">
+            <article class="pv-card">
                 {% include 'puput/entry_page_header.html' %}
                 <section>
                     {% if entry.header_image %}
@@ -30,29 +30,27 @@
                     {% endif %}
                     {% include 'puput/entry_links.html' %}
                 </section>
-                <section class="article">
+                <section class="pv-excerpt">
                     {% if entry.excerpt %}
                         {{ entry.excerpt|richtext }}
                     {% else %}
                         {{ entry.body|richtext|truncatewords_html:70 }}
                     {% endif %}
-                    <div class="row">
+                    <div class="pv-card-foot">
                         {% absolute_url entry as share_url %}
-                        <ul class="social-share col-md-9">
+                        <ul class="pv-share">
                             {% include 'puput/share_links.html' with share_url=share_url entry=entry only %}
                         </ul>
-                        <div class="col-md-3">
-                            <a class="blog_btn continue" href="{{ post_url }}">{% trans 'Continue reading' %} &raquo;</a>
-                        </div>
+                        <a class="pv-btn" href="{{ post_url }}">{% trans 'Continue reading' %} →</a>
                     </div>
                 </section>
             </article>
         {% empty %}
-            <span>{% trans 'No results found.' %}</span>
+            <p class="border border-dashed border-muted/50 py-14 text-center font-mono text-sm uppercase tracking-widest text-muted">{% trans 'No results found.' %}</p>
         {% endfor %}
 
-        <div class="pagination">
+        <div class="pv-pagination">
             {% show_paginator %}
         </div>
     {% endwith %}
-{% endblock content %}
+{% endblock blog_content %}

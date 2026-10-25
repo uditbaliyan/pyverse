@@ -167,19 +167,25 @@ def _render(problem):
     )
 
 
-def test_problem_page_has_one_runtime_two_py_blocks_and_the_trace_panel(problem):
+def test_problem_page_runs_python_in_a_worker_not_with_pyscript(problem):
+    """No PyScript on the page: its `py` blocks are inert text for the worker."""
     html = _render(problem)
-    assert html.count("pyscript.net/releases/2025.7.3/core.js") == 1
-    assert html.count('<script type="py">') == 2
+    assert "pyscript.net" not in html
+    assert html.count('<script type="py">') == 2  # grader + tracer, as text
+    assert "js/pyverse-runtime.js" in html
+    assert 'data-worker="' in html
+    assert "js/pyverse-runner.js" in html
     for needle in (
         'id="trace-section"',
         'id="trace-btn"',
         'id="trace-prompt"',
         'id="lab-root"',
+        "js/tutor-view.js",
+        "css/tutor-view.css",
         "js/problem-trace.js",
-        "css/problem-trace.css",
     ):
         assert needle in html
+    assert "lab-engine" not in html
 
 
 def test_reference_is_baked_in_only_when_there_is_one(problem):
@@ -200,20 +206,80 @@ def test_hidden_case_input_never_reaches_the_trace_surface(problem):
     assert html.count("[3, 3], 6") == 1
 
 
-def test_engine_ids_exist():
-    """Every element id the engine requires must be in the embedded panel."""
-    engine = (ROOT / "static/js/lab-engine.js").read_text(encoding="utf-8")
+def test_viewer_ids_exist():
+    """Every element id tutor-view.js and problem-trace.js need is in the panel / page."""
     panel = (ROOT / "templates/includes/trace_panel.html").read_text(encoding="utf-8")
-    ids = set(re.findall(r'getElementById\("([^"]+)"\)', engine))
-    optional = {
-        "lab-run",
-        "lab-new-editor",
-        "lab-code",
-    }  # editor lives on lab_page only
-    missing = {i for i in ids - optional if f'id="{i}"' not in panel}
-    for name in ("first", "back", "play", "next", "last"):  # built as "lab-" + name
-        assert f'id="lab-{name}"' in panel
+    viewer = (ROOT / "static/js/tutor-view.js").read_text(encoding="utf-8")
+    ids = set(re.findall(r'\$\("([^"]+)"\)', viewer)) | {"lab-root"}
+    missing = {i for i in ids if f'id="{i}"' not in panel}
     assert not missing, missing
+    glue = (ROOT / "static/js/problem-trace.js").read_text(encoding="utf-8")
+    glued = set(re.findall(r'getElementById\("([^"]+)"\)', glue))
+    page = (ROOT / "templates/coding/problem_page.html").read_text(encoding="utf-8")
+    external = {
+        "pyverse-payload",
+        "pyverse-trace-reference",
+        "p-args",
+    }  # owned by the page / json_script
+    lost = {
+        i
+        for i in glued - external
+        if f'id="{i}"' not in panel and f'id="{i}"' not in page
+    }
+    assert not lost, lost
+
+
+def test_worker_shim_covers_every_browser_call_the_shipped_python_makes():
+    """The grader/tracer were written for PyScript; the worker fakes the few DOM
+    objects they touch. If the Python grows a new `document.`/`window.` use, this fails."""
+    runner = (ROOT / "static/js/pyverse-runner.js").read_text(encoding="utf-8")
+    used = set()
+    for name in ("pyscript_runtime.html", "tracer_runtime.html"):
+        text = (ROOT / "templates/includes" / name).read_text(encoding="utf-8")
+        block = re.search(r'<script type="py">\n(.*?)</script>', text, re.DOTALL).group(
+            1
+        )
+        used |= set(re.findall(r"\bdocument\.(\w+)", block))
+        used |= set(re.findall(r"\bjs\.document\.(\w+)", block))
+    shimmed = {"createElement", "head", "body", "getElementById"}
+    assert used <= shimmed, used - shimmed
+    for member in shimmed:
+        assert member in runner
+
+
+# ── frames, final state, functions (the Python Tutor view) ───────────────────
+def test_every_step_carries_the_call_stack_with_each_frames_line(tracer):
+    code = "def fib(n):\n    if n < 2:\n        return n\n    return fib(n - 1) + fib(n - 2)\n"
+    result = _call(tracer, code, "fib", "3")
+    deepest = max(result["steps"], key=lambda step: len(step["stack"]))
+    assert [frame["fn"] for frame in deepest["stack"]] == [
+        "<module>",
+        "fib",
+        "fib",
+        "fib",
+    ]
+    assert deepest["stack"][-1]["vars"] == deepest["vars"]
+    caller = deepest["stack"][-2]
+    assert caller["line"] == 4  # a caller sits on the call in progress
+
+
+def test_stack_is_capped_but_keeps_the_global_frame(tracer):
+    result = _call(
+        tracer, "def f(n):\n    return 0 if n == 0 else f(n - 1)\n", "f", "30"
+    )
+    assert max(len(step["stack"]) for step in result["steps"]) == 8
+    assert all(step["stack"][0]["fn"] == "<module>" for step in result["steps"])
+    assert result["steps"][-1]["depth"] > 8  # the page reports how many were hidden
+
+
+def test_final_state_and_functions_are_reported_for_practice_only(tracer):
+    result = _call(tracer, "def f(a):\n    return a + 1\n", "f", "1")
+    assert result["final"]["_result"] == {"k": "int", "v": 2}
+    assert result["final"]["f"] == {"k": "func", "v": "f(a)"}
+    tracer.window._pendingLabCode = "def g():\n    pass\nx = 1\n"
+    labs = json.loads(tracer.trace())
+    assert labs["final"] == {"x": {"k": "int", "v": 1}}  # Labs never see functions
+    assert all("func" not in json.dumps(step["vars"]) for step in labs["steps"])
 
 
 # ── QA command ─────────────────────────────────────────────────────────────
@@ -225,7 +291,8 @@ def test_check_problem_traces_passes_a_good_problem(problem):
 
 def test_check_problem_traces_fails_a_wrong_reference(problem):
     problem.solution_code = problem.solution_code.replace(
-        "[seen[target - n], i]", "[i, i]",
+        "[seen[target - n], i]",
+        "[i, i]",
     )
     problem.save()
     with pytest.raises(CommandError):
@@ -255,3 +322,44 @@ def test_check_problem_traces_warns_when_trace_is_truncated(db):
     assert "step cap" in out.getvalue()
     with pytest.raises(CommandError):
         call_command("check_problem_traces", "--strict", stdout=StringIO())
+
+
+# ── site shell: no white/blue pages, no dependency on CSS load order ─────────
+def test_light_practice_pages_do_not_depend_on_tailwind_load_order():
+    """`.pe-on-light` used to rely on Tailwind arbitrary-property classes beating
+    `.pe-engine`; with the other stylesheet order the block went near-black."""
+    css = (ROOT / "static/css/practice-engine.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.pe-engine\.pe-on-light\s*\{(.*?)\}", css, re.DOTALL)
+    assert rule, "two-class rule missing"
+    for token in (
+        "bg0",
+        "bg1",
+        "bg2",
+        "bg3",
+        "bg4",
+        "border",
+        "border-hi",
+        "text0",
+        "text1",
+        "text2",
+        "accent",
+        "green",
+        "red",
+        "amber",
+    ):
+        assert f"--{token}:" in rule.group(1), token
+    assert "background: transparent" in rule.group(1)
+
+
+def test_notes_use_the_site_shell_not_the_bootstrap_theme():
+    base = (ROOT / "templates/puput/base.html").read_text(encoding="utf-8")
+    assert '{% extends "home/base_.html" %}' in base
+    assert "bootstrap" not in base
+    assert "puput/css/puput.css" not in base
+    for name in ("blog_page.html", "entry_page.html"):
+        text = (ROOT / "templates/puput" / name).read_text(encoding="utf-8")
+        assert "block blog_content" in text
+        assert "fa fa-" not in text
+    assert "fa fa-" not in (ROOT / "templates/puput/entry_links.html").read_text(
+        encoding="utf-8"
+    )

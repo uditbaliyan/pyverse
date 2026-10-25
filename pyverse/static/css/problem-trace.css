@@ -1,13 +1,8 @@
-/* Practice "watch it execute" — only what the Labs stylesheet does not cover.
- * Loaded after practice-engine.css and lab-engine.css on the problem page. */
+/* Practice "watch it execute": the controls around the step-through (source
+ * toggle, re-trace, the prompt after Run/Submit). The step-through itself is
+ * styled by tutor-view.css. */
 
-/* One column: the program is shown by the line view, there is no editor pane. */
-.lab-embedded .lab-main { grid-template-columns: 1fr; }
-
-/* Appended harness lines are not the learner's code. */
-.lab-line-harness code { opacity: 0.55; font-style: italic; }
-
-/* Source toggle + re-trace, on the cream chrome above the dark console. */
+/* Source toggle + re-trace, on the cream chrome above the step-through. */
 .pt-src, .pt-retrace {
   font-family: inherit;
   font-size: 11px;

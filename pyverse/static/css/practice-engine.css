@@ -49,6 +49,25 @@
   font-family: inherit;
   min-height: 0;
 }
+/* The site palette, re-pointed onto the engine tokens. This used to ride on
+ * Tailwind arbitrary-property classes (`[--bg0:#F5EEDA]` …) that only beat
+ * `.pe-engine` when Tailwind's stylesheet happened to land after this file:
+ * with the other order the whole block went near-black with white text on
+ * cream cards. Two classes outrank `.pe-engine` whatever the load order. */
+.pe-engine.pe-on-light {
+  --bg0: #f5eeda; --bg1: #f5eeda; --bg2: #ede6d2; --bg3: #d6cebd; --bg4: #d6cebd;
+  --border: rgba(26, 26, 26, 0.15); --border-hi: #1a1a1a;
+  --text0: #1a1a1a; --text1: #3a3529; --text2: #6b6355;
+  --accent: #c62828; --accent-dim: rgba(198, 40, 40, 0.12);
+  --green: #3d4f2f; --green-dim: rgba(200, 213, 185, 0.55);
+  --red: #c62828; --red-dim: rgba(198, 40, 40, 0.12);
+  --amber: #6b6355; --amber-dim: rgba(214, 206, 189, 0.7);
+  --sans: "Inter", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+  background: transparent;
+  color: #1a1a1a;
+  font-family: var(--sans);
+  min-height: 0;
+}
 .pe-on-light .pe-dot { background: rgba(26, 26, 26, 0.12); }
 .pe-on-light .pe-dot.on { background: #c62828; }
 

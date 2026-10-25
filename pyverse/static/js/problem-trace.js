@@ -1,7 +1,7 @@
 /* Practice → Labs: "solve a problem, then watch it execute".
  *
  * Glue only. The problem page owns the editor and the grader; the tracer
- * (`includes/tracer_runtime.html`) and its views (`lab-engine.js`) are the
+ * (`includes/tracer_runtime.html`) and its views (`tutor-view.js`) are the
  * Labs'. This file reads the editor and the Testcase arguments, asks the tracer
  * to trace ONE call of the learner's function, and hands the result to the
  * views. Nothing is sent anywhere and no hidden test case is ever traced: only
@@ -19,10 +19,6 @@
 
   var section = document.getElementById("trace-section");
   if (!section) return;
-
-  // Hard cap on executed lines for a traced call. Generous for any honest
-  // solution, small enough that `while True:` stops in about a second.
-  var LINE_LIMIT = 200000;
 
   var traceBtn = document.getElementById("trace-btn");
   var retraceBtn = document.getElementById("trace-retrace");
@@ -48,7 +44,7 @@
   var busy = false;
 
   function runtimeReady() {
-    return document.body.dataset.labReady === "1" && typeof window._pvTraceCall === "function";
+    return document.body.dataset.labReady === "1" && !!window.PyverseRuntime;
   }
 
   function learnerCode() {
@@ -94,11 +90,10 @@
     if (window.PyverseLab) window.PyverseLab.setStatus("busy", "Tracing…");
     section.scrollIntoView({ behavior: "smooth", block: "start" });
 
-    // Yield once so "Tracing…" paints before the synchronous Python call.
-    window.setTimeout(function () {
-      var raw = null;
+    // Runs in the Python worker under a time budget (pyverse-runtime.js): a call
+    // that never returns is killed and comes back as a trace with `error` set.
+    window.PyverseRuntime.trace(code, fn, args).then(function (raw) {
       try {
-        raw = window._pvTraceCall(code, fn, args, LINE_LIMIT);
         window.PyverseLab.show(raw);
         window.PyverseLab.setMode(
           document.getElementById("lab-root").getAttribute("data-mode") === "memory" ? "memory" : "line"
@@ -107,11 +102,11 @@
         if (window.PyverseLab) window.PyverseLab.setStatus("err", "Tracer failed: " + error);
       }
       busy = false;
-      setEnabled(true);
+      setEnabled(runtimeReady());
 
       var parsed = null;
       try {
-        parsed = raw ? JSON.parse(raw) : null;
+        parsed = JSON.parse(raw);
       } catch (error) {
         parsed = null;
       }
@@ -126,7 +121,7 @@
           },
         })
       );
-    }, 30);
+    });
   }
 
   // ── prompt shown under the console after Run / Submit ─────────────────────
@@ -229,17 +224,10 @@
     };
   }
 
-  // Pyodide loads asynchronously (and offline never does): enable on arrival,
-  // leave the controls disabled otherwise — the page's own status pill already
-  // tells the learner the runtime failed.
-  setEnabled(false);
-  var tries = 0;
-  var poll = window.setInterval(function () {
-    if (runtimeReady()) {
-      window.clearInterval(poll);
-      setEnabled(true);
-    } else if (++tries > 450) {
-      window.clearInterval(poll);
-    }
-  }, 100);
+  // Follow the runtime: disabled while it loads or restarts (after a runaway
+  // loop was killed), enabled when ready. The page's own status pill reports it.
+  setEnabled(runtimeReady());
+  document.addEventListener("pyverse:runtime", function () {
+    if (!busy) setEnabled(runtimeReady());
+  });
 })();

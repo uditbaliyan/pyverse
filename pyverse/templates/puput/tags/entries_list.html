@@ -1,33 +1,10 @@
 {% load i18n wagtailcore_tags wagtailimages_tags puput_tags %}
 
-<li class="divided">
-    {% for entry in entries %}
-        <div class="row lateralPosts">
-            <div class="col-md-12 col-xs-12">
-                <article class="box post-summary">
-                    <h5>
-                        <a href="{% pageurl entry %}">{{ entry.title }}</a>
-                    </h5>
-                    <ul class="meta">
-                        <li>
-                            <i class="fa fa-user"></i>
-                            {{ entry.owner.username }}
-                        </li>
-                        <li>
-                            <i class="fa fa-calendar"></i>
-                            {{ entry.date|date:"SHORT_DATE_FORMAT" }}
-                        </li>
-                        {% if blog_page.disqus_api_secret %}
-                            <li>
-                                <i class="fa fa-comments"></i>
-                                {{ entry.num_comments }}
-                            </li>
-                        {% endif %}
-                    </ul>
-                </article>
-            </div>
-        </div>
-    {% empty %}
-        {% trans 'No entries yet' %}
-    {% endfor %}
-</li>
+{% for entry in entries %}
+    <li>
+        <a href="{% pageurl entry %}">{{ entry.title }}</a>
+        <span class="pv-sub">{% if entry.owner %}{{ entry.owner.username }} · {% endif %}{{ entry.date|date:"SHORT_DATE_FORMAT" }}{% if blog_page.disqus_api_secret %} · {{ entry.num_comments }} comments{% endif %}</span>
+    </li>
+{% empty %}
+    <li class="pv-sub">{% trans 'No entries yet' %}</li>
+{% endfor %}

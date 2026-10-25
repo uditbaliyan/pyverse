@@ -27,7 +27,13 @@ Contract for any page that includes this partial:
  * call `window._pyNotebook()` — it returns a JSON string
  * `{"cells": [{"stdout": …, "error": …}], "ok": …}`. Markdown cells are rendered
  * server-side and never appear in that payload.
+
+`embedded=True` omits the PyScript tags below and leaves the `<script type="py">`
+block as inert text: the Practice problem page does not run it with PyScript on
+the main thread but hands the text to a Web Worker (`static/js/pyverse-runtime.js`
++ `pyverse-runner.js`) that can be killed when a learner's code never returns.
 {% endcomment %}
+{% if not embedded %}
 <link
   rel="stylesheet"
   href="https://pyscript.net/releases/2025.7.3/core.css"
@@ -37,6 +43,7 @@ Contract for any page that includes this partial:
   type="module"
   src="https://pyscript.net/releases/2025.7.3/core.js"
 ></script>
+{% endif %}
 
 <script type="py">
 import io

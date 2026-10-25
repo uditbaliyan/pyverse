@@ -4,9 +4,9 @@ Client-side Python tracer for Labs (spec §12/§18 tracer lab).
 One PyScript version for the whole site, pinned here exactly as in
 `includes/pyscript_runtime.html`: 2025.7.3. Do not add a second runtime tag.
 A page normally includes one of the two partials. The Practice problem page is
-the exception: it includes both, with `embedded=True` here so the PyScript
-`<link>`/`<script>` tags (already emitted by the grader partial) are not
-repeated — the two `<script type="py">` blocks then share one interpreter.
+the exception: it includes both with `embedded=True`, which omits the PyScript
+tags and leaves each `<script type="py">` as inert text for the Web Worker
+(`static/js/pyverse-runtime.js`) to run — in one interpreter, off the main thread.
 
 Contract for the including page:
   * Set `window._pendingLabCode` (the source to trace) and then call
@@ -50,6 +50,7 @@ Second entry point, used by the Practice problem page ("watch it execute"):
 {% endif %}
 
 <script type="py">
+import inspect
 import io
 import json
 import sys
@@ -68,6 +69,7 @@ _ITEM_CAP = 25
 _ATTR_CAP = 20
 _DEPTH_CAP = 3
 _STR_CAP = 28
+_FRAME_CAP = 8  # frames kept per step: the global frame + the innermost seven
 
 
 class TraceLimitExceeded(BaseException):
@@ -148,11 +150,27 @@ def _node(value, depth=0, seen=frozenset()):
     return {"k": "other", "t": type(value).__name__, "v": repr(value)[:40]}
 
 
-def _visible(frame):
-    """The frame's locals a learner would recognise, in definition order."""
+def _signature(function):
+    try:
+        return f"{function.__name__}{inspect.signature(function)}"
+    except (TypeError, ValueError):
+        return f"{function.__name__}(…)"
+
+
+def _visible(frame, functions=False):
+    """The locals a learner would recognise, in definition order.
+
+    `frame` is a live frame, or a plain namespace dict (the program's globals
+    once it has finished). `functions=True` also lists the program's own
+    functions, as `{"k": "func"}` — Practice shows them in the global frame; the
+    Labs views never asked for them and do not get them.
+    """
     found = {}
-    for name, value in frame.f_locals.items():
+    for name, value in getattr(frame, "f_locals", frame).items():
         if name.startswith("__"):
+            continue
+        if functions and isinstance(value, types.FunctionType):
+            found[name] = {"k": "func", "v": _signature(value)}
             continue
         if callable(value) or isinstance(value, (type, types.ModuleType)):
             continue
@@ -160,7 +178,7 @@ def _visible(frame):
     return found
 
 
-def trace(source=None, limit=None, name="__main__"):
+def trace(source=None, limit=None, name="__main__", functions=False):
     """Run `source` and return the step-by-step trace as JSON.
 
     With no arguments (how Labs call it) the source is `window._pendingLabCode`.
@@ -172,6 +190,7 @@ def trace(source=None, limit=None, name="__main__"):
     chunks = []
     printed = [0]
     stack = []
+    frames = []  # live frame objects, outermost first — parallel to `stack`
     events = [0]
 
     class _Writer(io.TextIOBase):
@@ -188,9 +207,12 @@ def trace(source=None, limit=None, name="__main__"):
         name = frame.f_code.co_name
         if event == "call":
             stack.append(name)
+            frames.append(frame)
         elif event == "return":
             if stack:
                 stack.pop()
+            if frames:
+                frames.pop()
             # Attach the value to the function's last executed line, so a
             # return is visible without inventing an extra step.
             if stack and name != "<module>" and steps and steps[-1]["fn"] == name:
@@ -202,13 +224,22 @@ def trace(source=None, limit=None, name="__main__"):
                     f"stopped after {limit:,} executed lines — is there an infinite loop?"
                 )
         if event == "line" and len(steps) < _STEP_CAP:
+            # Every active frame, outermost first, each with the line it is on
+            # (for a caller: the call in progress) — the call stack a debugger
+            # shows. The innermost entry is `frame`; its locals are `vars`.
+            shown = frames if len(frames) <= _FRAME_CAP else frames[:1] + frames[-(_FRAME_CAP - 1) :]
+            snapshot = [
+                {"fn": f.f_code.co_name, "line": f.f_lineno, "vars": _visible(f, functions)}
+                for f in shown
+            ]
             steps.append(
                 {
                     "line": frame.f_lineno,
                     "fn": name,
                     "depth": len(stack),
                     "out": printed[0],
-                    "vars": _visible(frame),
+                    "vars": snapshot[-1]["vars"] if snapshot else _visible(frame, functions),
+                    "stack": snapshot,
                 }
             )
         return record
@@ -217,9 +248,10 @@ def trace(source=None, limit=None, name="__main__"):
     error_line = None
     stdout = sys.stdout
     sys.stdout = _Writer()
+    namespace = {"__name__": name}
     sys.settrace(record)
     try:
-        exec(compile(source, _FILE, "exec"), {"__name__": name})
+        exec(compile(source, _FILE, "exec"), namespace)
     except SyntaxError as exc:
         error = f"SyntaxError: {exc.msg}"
         error_line = exc.lineno
@@ -242,6 +274,9 @@ def trace(source=None, limit=None, name="__main__"):
             "error_line": error_line,
             "truncated": len(steps) >= _STEP_CAP,
             "source": source,
+            # The program's globals once it stopped: the last state, which no
+            # "about to run this line" step can show.
+            "final": _visible(namespace, functions),
         }
     )
 
@@ -275,7 +310,7 @@ def trace_call(code, fn_name, args_src, limit=None):
     body = (code or "").rstrip()
     harness_from = body.count("\n") + 3  # blank line, then the marker
     program = f"{body}\n\n{_HARNESS_MARK}\n_result = {fn_name}({args_src})"
-    result = json.loads(trace(program, limit, "__pyverse_problem__"))
+    result = json.loads(trace(program, limit, "__pyverse_problem__", True))
     result["harness_from"] = harness_from
     return json.dumps(result)
 

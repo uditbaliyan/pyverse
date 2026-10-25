@@ -1,0 +1,100 @@
+/* Notes / blog, in the site's own look: cream surface, ink borders, hard
+ * shadows, mono labels. Replaces Puput's Bootstrap theme (white page, blue
+ * bars). Scoped under `.pv-blog`; colours are the site palette literals so the
+ * blog does not depend on Tailwind's load order. */
+
+.pv-blog { --ink: #1a1a1a; --bg2: #ede6d2; --device: #d6cebd; --red: #c62828; --muted: #6b6355; --body: #3a3529; }
+.pv-blog a { color: var(--ink); }
+
+/* cards: entry summaries and the entry itself */
+.pv-blog .pv-card {
+  background: var(--bg2); border: 3px solid var(--ink); box-shadow: 3px 3px 0 0 var(--ink);
+  padding: 22px 24px; margin-bottom: 22px;
+}
+.pv-blog .pv-title { margin: 0 0 8px; font-weight: 900; font-size: clamp(22px, 3vw, 30px); line-height: 1.1; letter-spacing: -0.02em; }
+.pv-blog .pv-title a { text-decoration: none; }
+.pv-blog .pv-title a:hover { color: var(--red); }
+
+/* meta line under a title */
+.pv-blog .pv-meta { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pv-blog .pv-meta a { color: var(--muted); text-decoration: none; }
+.pv-blog .pv-meta a:hover { color: var(--red); }
+.pv-blog .pv-meta ul { display: inline; list-style: none; margin: 0; padding: 0; }
+.pv-blog .pv-meta li { display: inline; }
+.pv-blog .pv-meta ul li + li::before { content: ", "; }
+
+/* bodies */
+.pv-blog .pv-excerpt, .pv-blog .pv-body { color: var(--body); line-height: 1.7; }
+.pv-blog .pv-excerpt p, .pv-blog .pv-body p { margin: 0 0 .8em; }
+.pv-blog .pv-body h2, .pv-blog .pv-body h3 { font-weight: 900; letter-spacing: -0.01em; margin: 1.4em 0 .5em; }
+.pv-blog .pv-body ul, .pv-blog .pv-body ol { padding-left: 1.3em; margin: 0 0 1em; }
+.pv-blog .pv-body ul { list-style: disc; } .pv-blog .pv-body ol { list-style: decimal; }
+.pv-blog .pv-body ul li { font-family: inherit; font-size: inherit; padding: 2px 0; border: 0; }
+.pv-blog .pv-body ul li::before { content: none; }
+.pv-blog .pv-body a { color: var(--red); text-decoration: underline; text-underline-offset: 3px; }
+.pv-blog .pv-body code, .pv-blog .pv-excerpt code { font-family: "JetBrains Mono", monospace; font-size: .88em; background: var(--device); padding: 1px 5px; }
+.pv-blog .pv-body pre { background: #1a1a1a; color: #f5eeda; padding: 14px 16px; overflow-x: auto; margin: 0 0 1em; font-size: 13px; line-height: 1.6; }
+.pv-blog .pv-body pre code { background: none; padding: 0; color: inherit; }
+.pv-blog .pv-body img, .pv-blog .pv-hero img, .pv-blog .pv-card img { max-width: 100%; height: auto; border: 3px solid var(--ink); }
+.pv-blog .pv-hero { display: block; margin: 0 0 16px; }
+
+/* footer row: share links + button */
+.pv-blog .pv-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(26,26,26,.18); }
+.pv-blog .pv-share { list-style: none; margin: 0; padding: 0; display: flex; gap: 12px;
+  font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.pv-blog .pv-share a { color: var(--muted); text-decoration: none; }
+.pv-blog .pv-share a:hover { color: var(--red); }
+.pv-blog .pv-btn, .pv-blog .pv-search button {
+  display: inline-block; font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 12px;
+  padding: 7px 14px; border: 3px solid var(--ink); background: var(--ink); color: #f5eeda !important; text-decoration: none; cursor: pointer;
+}
+.pv-blog .pv-btn:hover, .pv-blog .pv-search button:hover { background: var(--red); border-color: var(--ink); }
+
+/* sidebar */
+.pv-blog .pv-side { background: var(--bg2); border: 3px solid var(--ink); box-shadow: 3px 3px 0 0 var(--ink); padding: 16px 18px; }
+.pv-blog .pv-side h4 { margin: 0 0 10px; font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.pv-blog .pv-side ul { list-style: none; margin: 0; padding: 0; }
+.pv-blog .pv-side li { padding: 5px 0; font-size: 13.5px; border-bottom: 1px solid rgba(26,26,26,.1); }
+.pv-blog .pv-side li:last-child { border-bottom: 0; }
+.pv-blog .pv-side a { text-decoration: none; font-weight: 600; }
+.pv-blog .pv-side a:hover { color: var(--red); }
+.pv-blog .pv-sub { display: block; font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.pv-blog .pv-side li.tag { display: inline-block; border: 0; padding: 0; margin: 0 6px 6px 0; }
+.pv-blog .pv-side li.tag a { display: inline-block; border: 2px solid var(--ink); padding: 1px 8px; font-family: "JetBrains Mono", monospace; font-size: 11px; background: #f5eeda; }
+.pv-blog .pv-archive ul.sub { margin: 2px 0 6px 14px; }
+.pv-blog .pv-archive .open-sub { display: none; }
+
+.pv-blog .pv-feed { font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-decoration: none; }
+.pv-blog .pv-feed:hover { color: var(--red); }
+.pv-blog .pv-search { display: flex; }
+.pv-blog .pv-search input { flex: 1; min-width: 0; border: 3px solid var(--ink); border-right: 0; background: #f5eeda; padding: 7px 10px;
+  font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink); outline: none; border-radius: 0; }
+.pv-blog .pv-search input:focus { background: #fff9e8; }
+
+/* related */
+.pv-blog .pv-related { margin-top: 36px; }
+.pv-blog .pv-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+.pv-blog .pv-related .pv-card { margin: 0; padding: 16px; }
+.pv-blog .pv-related h3 { font-size: 15px; font-weight: 800; margin: 8px 0 4px; }
+.pv-blog .pv-related h3 a { text-decoration: none; }
+.pv-blog .pv-related p { font-size: 13px; color: var(--body); margin: 0; }
+
+/* django-el-pagination output */
+.pv-blog .pv-pagination { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+.pv-blog .pv-pagination a, .pv-blog .pv-pagination .endless_page_current, .pv-blog .pv-pagination .endless_separator {
+  border: 2px solid var(--ink); padding: 3px 10px; text-decoration: none; background: transparent; }
+.pv-blog .pv-pagination a:hover { background: var(--ink); color: #f5eeda; }
+.pv-blog .pv-pagination .endless_page_current { background: var(--ink); color: #f5eeda; }
+.pv-blog .pv-pagination .endless_separator { border-color: transparent; }
+
+/* Rich-text rules (underlined red links, "+ " list markers) must not leak into
+ * the button and share row that live inside the entry body. */
+.pv-blog .pv-body .pv-btn { color: #f5eeda !important; text-decoration: none; }
+.pv-blog .pv-body .pv-share { list-style: none; padding: 0; margin: 0; }
+.pv-blog .pv-body .pv-share li { padding: 0; border: 0; font-family: inherit; font-size: inherit; }
+.pv-blog .pv-body .pv-share li::before { content: none; }
+.pv-blog .pv-body .pv-share a { color: var(--muted); text-decoration: none; }
+.pv-blog .pv-body .pv-share a:hover { color: var(--red); }

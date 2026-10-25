@@ -19,9 +19,9 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     {# CodeMirror 5, same build the reference engine uses. #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
     <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
-    {# "Watch it execute": the Labs' tracer views, embedded below the workspace. #}
-    <link rel="stylesheet" href="{% static 'css/lab-engine.css' %}" />
+    {# "Watch it execute": a Python Tutor-style step-through below the workspace. #}
     <link rel="stylesheet" href="{% static 'css/problem-trace.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/tutor-view.css' %}" />
 
     <style>
       /* ── console interior ────────────────────────────────────────
@@ -288,7 +288,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
       <span>PyVerse Practice — {{ problem.slug }}</span>
       <span class="pe-runtime">
         <span class="sdot loading" id="sdot"></span>
-        <span id="stxt">Loading PyScript runtime…</span>
+        <span id="stxt">Loading Python…</span>
       </span>
     </div>
 
@@ -488,9 +488,10 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     {{ payload|json_script:"pyverse-payload" }}
     {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
     <script src="{% static 'js/pyverse-progress.js' %}"></script>
-    {% include "includes/pyscript_runtime.html" %}
-    {# Second `<script type="py">` in the same interpreter; PyScript tags are already loaded above. #}
+    {# Python for the grader and the tracer, as inert text: pyverse-runtime.js hands it to a Web Worker. #}
+    {% include "includes/pyscript_runtime.html" with embedded=True %}
     {% include "includes/tracer_runtime.html" with embedded=True %}
+    <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}"></script>
 
     <script>
       (function () {
@@ -555,14 +556,16 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
           return html;
         }
 
+        const rtReady = () => document.body.dataset.pyverseReady === "1";
+
         function setBusy(busy) {
-          runBtn.disabled = busy || !window._pyExec;
-          subBtn.disabled = busy || !window._pyExec;
+          runBtn.disabled = busy || !rtReady();
+          subBtn.disabled = busy || !rtReady();
           resetBtn.disabled = busy;
         }
 
         function trigger(isSubmit) {
-          if (!window._pyExec) return;
+          if (!rtReady()) return;
           setBusy(true);
           btab("out", document.querySelector('[data-btab="out"]'));
           metricsEl.classList.add("hidden");
@@ -571,12 +574,10 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
           outEl.innerHTML = '<span class="td">⚡ Running…</span>';
 
           const customJson = isSubmit ? "{}" : JSON.stringify({ args: (argsEl ? argsEl.value : "").trim() });
-          window._pendingCode = editor.getValue();
-
-          // Yield so the busy state paints before the synchronous Python call.
-          setTimeout(() => {
+          // Python runs in a worker with a time budget: a loop that never ends is
+          // killed and reported instead of freezing this tab.
+          window.PyverseRuntime.exec(editor.getValue(), isSubmit, customJson).then((result) => {
             try {
-              const result = window._pyExec(isSubmit, customJson);
               const meta = JSON.parse(result[0]);
               outEl.innerHTML = decorate(result[1]);
 
@@ -611,8 +612,8 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
             } catch (err) {
               outEl.innerHTML = '<span class="tr">Execution bridge error: ' + escapeHtml(String(err)) + "</span>";
             }
-            setBusy(false);
-          }, 20);
+            setBusy(rtReady() ? false : true);
+          });
         }
 
         function logSubmission(meta) {
@@ -752,26 +753,27 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
           document.body.style.userSelect = "";
         });
 
-        // Pyodide loads asynchronously; offline it never arrives, so stop
-        // waiting and say so instead of leaving the buttons greyed out.
-        const started = Date.now();
-        (function waitForRuntime() {
-          if (document.body.dataset.pyverseReady === "1") {
-            sdot.className = "sdot ready";
-            stxt.textContent = "PyScript ready";
-            setBusy(false);
-            return;
+        // The runtime lives in a worker (pyverse-runtime.js) and reports every
+        // state change, including a restart after a runaway loop was killed.
+        const pill = {
+          loading: ["loading", "Loading Python…"],
+          ready: ["ready", "Python ready"],
+          restarting: ["loading", "Restarting Python…"],
+          failed: ["failed", "Python runtime failed to load"],
+        };
+        function showRuntime(state, error) {
+          const [cls, text] = pill[state] || pill.loading;
+          sdot.className = "sdot " + cls;
+          stxt.textContent = text;
+          setBusy(state !== "ready");
+          if (state === "failed") {
+            outEl.innerHTML = '<span class="tr">The Pyodide runtime could not be started' + (error ? " (" + escapeHtml(String(error)) + ")" : "") + ". Check your connection and reload the page.</span>";
           }
-          if (Date.now() - started > 45000) {
-            sdot.className = "sdot failed";
-            stxt.textContent = "Python runtime failed to load";
-            outEl.innerHTML = '<span class="tr">The Pyodide runtime could not be downloaded. Check your connection and reload the page.</span>';
-            return;
-          }
-          setTimeout(waitForRuntime, 200);
-        })();
+        }
+        document.addEventListener("pyverse:runtime", (event) => showRuntime(event.detail.state, event.detail.error));
+        showRuntime(rtReady() ? "ready" : "loading");
       })();
     </script>
-    <script src="{% static 'js/lab-engine.js' %}"></script>
+    <script src="{% static 'js/tutor-view.js' %}"></script>
     <script src="{% static 'js/problem-trace.js' %}"></script>
 {% endblock extra_js %}
