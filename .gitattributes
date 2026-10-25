@@ -1,1 +1,4 @@
 * text=auto
+pyverse/static/vendor/** linguist-vendored
+pyverse/static/vendor/**/*.wasm binary
+pyverse/static/vendor/**/*.zip binary

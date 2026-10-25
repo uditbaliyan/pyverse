@@ -1,0 +1,835 @@
+From adc741a1fc5f607a2eac18bdf52c22561c1f785b Mon Sep 17 00:00:00 2001
+From: claude <claude@example.com>
+Date: Sun, 25 Oct 2026 17:36:47 +0000
+Subject: [PATCH] C1/C2: authored step notes and prediction prompts on the
+ reference trace
+
+- CodingProblem.trace_notes / trace_predictions (migration 0008), validated in clean()
+- trace_annotations payload only for the pinned example; baked via json_script
+- tutor-view.js renders notes/cards with textContent; reveal state in localStorage
+- check_problem_traces warns about dead notes / unpinned annotations
+- tests: payload, validation, rendering, escaping, checker; e2e for the viewer
+---
+ README.md                                     |   3 +
+ docs/design/labs.rst                          |  39 ++--
+ .../commands/check_problem_traces.py          |  32 +++
+ .../0008_problem_trace_annotations.py         |  24 +++
+ pyverse/coding/models.py                      | 116 +++++++++++
+ pyverse/coding/tracing.py                     |   5 +
+ pyverse/static/css/tutor-view.css             |   9 +
+ pyverse/static/js/problem-trace.js            |  15 ++
+ pyverse/static/js/tutor-view.js               |  95 ++++++++-
+ pyverse/templates/coding/problem_page.html    |   1 +
+ pyverse/templates/includes/trace_panel.html   |   3 +
+ pyverse/tests/e2e/test_browser_smoke.py       |  34 ++++
+ pyverse/tests/test_problem_trace.py           |   1 +
+ pyverse/tests/test_trace_annotations.py       | 182 ++++++++++++++++++
+ 14 files changed, 545 insertions(+), 14 deletions(-)
+ create mode 100644 pyverse/coding/migrations/0008_problem_trace_annotations.py
+ create mode 100644 pyverse/tests/test_trace_annotations.py
+
+diff --git a/README.md b/README.md
+index e0c0ee5..11441e6 100644
+--- a/README.md
++++ b/README.md
+@@ -186,11 +186,14 @@ uv run python manage.py check_problem_traces --apply              # pin the best
+ uv run python manage.py check_problem_traces --strict             # warnings fail too
+ ```
+ 
++Optional teaching layer (CMS → Coding Problem): **Trace notes** (a sentence of *why* shown when the trace reaches a line) and **Predictions** (a question with a *Reveal answer* button). Both refer to lines of the reference solution, need a pinned **Trace example**, and appear only while the reference is traced on exactly that call. `check_problem_traces` warns about notes on lines the example never runs. Design: `docs/design/labs.rst`.
++
+ Authoring checklist for a problem that traces well:
+ 
+ - Mark at least one small example **not hidden**; the traced example is always a visible one.
+ - Name the solution function exactly as `function_name`.
+ - Prefer a reference solution a beginner can follow over the cleverest one.
++- Pin a **Trace example** (or run `check_problem_traces --apply`) if you add notes or predictions.
+ - Run `check_problem_traces --report` before publishing.
+ 
+ ---
+diff --git a/docs/design/labs.rst b/docs/design/labs.rst
+index 8e0963a..d289b78 100644
+--- a/docs/design/labs.rst
++++ b/docs/design/labs.rst
+@@ -247,6 +247,11 @@ C1 — step notes
+ * **Validation.** ``clean()`` rejects a ``line`` beyond ``solution_code``'s
+   length; ``check_problem_traces`` *warns* on a note whose line the shown example
+   never executes (the note would be dead).
++* **Only for the pinned call.** Notes describe one specific example, so
++  ``problem-trace.js`` passes them to the viewer only when the *reference*
++  solution is traced on exactly the pinned ``trace_case`` arguments. Tracing the
++  learner's code, or editing the call, shows no notes (the note would be wrong).
++  Hence ``trace_annotations`` is ``None`` unless ``trace_case`` is pinned.
+ * **Not doing.** Markdown/HTML in notes, per-learner notes, notes on the
+   learner's own code.
+ 
+@@ -255,11 +260,13 @@ C2 — prediction prompts
+ 
+ * **Authoring.** StreamField ``trace_predictions`` (same migration), each item
+   ``{line, question, answer}``.
+-* **Behaviour.** The first time forward-stepping lands on ``line``, a card shows
+-  the question and a *Reveal answer* button. It never blocks the transport
+-  controls (a keyboard or impatient learner can always keep stepping); revealing
+-  is the only state. Focus moves to the card's button, and it is announced via
+-  the same live region.
++* **Behaviour.** On the step where ``line`` is about to run for the first time
++  (the viewer's "runs next" arrow), a card shows the question and a *Reveal
++  answer* button. It never blocks the transport controls (a keyboard or
++  impatient learner can always keep stepping); revealing is the only state. The
++  card is derived from the current step, so stepping back to that step shows it
++  again. Focus is **not** moved (that would break ←/→ stepping); the card sits
++  in an ``aria-live="polite"`` region and its button is a normal Tab stop.
+ * **Persistence.** ``pyverse-progress.js`` is an IndexedDB store keyed by problem
+   ``slug`` and records submissions; predictions are not progress truth, so no
+   schema bump (v3). Reuse its keying only: ``localStorage`` key
+@@ -280,10 +287,18 @@ design is therefore dropped; there is no URL-size limit to handle. Remaining
+ work is a test for the failed-submission path (currently unverified; the
+ passing-run path is covered by ``test_a_passing_run_offers_a_trace_that_steps``).
+ 
+-Tests planned
+-~~~~~~~~~~~~~
+-
+-Payload building (notes/predictions → JSON, omitted without a solution or case),
+-``clean()`` bounds, ``check_problem_traces`` dead-note warning, template renders
+-the ``json_script`` blocks and no ``|safe`` on authored text, and one e2e: step
+-to a noted line and see the note, reveal a prediction.
++Tests (``pyverse/tests/test_trace_annotations.py`` + one e2e)
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++Payload building (omitted without a solution, a pinned case, or any authored
++item), ``clean()`` bounds, ``check_problem_traces`` warnings (a note on a line
++the example never runs; annotations authored with no pinned example), the page
++bakes ``pyverse-trace-annotations`` only when there is something to show, a
++``</script>`` in authored text cannot escape ``json_script``, and the viewer
++writes authored text with ``textContent`` only. The e2e test drives the real
++viewer: note shown as text (not markup), reveal, persistence key, annotations
++off.
++
++Not tested: screen-reader output of the live regions (no AT available here);
++keyboard flow was reasoned from the markup (Tab reaches the button, ←/→ still
++step) and the e2e DOM checks, not exercised with a real keyboard-only session.
+diff --git a/pyverse/coding/management/commands/check_problem_traces.py b/pyverse/coding/management/commands/check_problem_traces.py
+index e121f15..9fefb03 100644
+--- a/pyverse/coding/management/commands/check_problem_traces.py
++++ b/pyverse/coding/management/commands/check_problem_traces.py
+@@ -115,6 +115,8 @@ def check_problem(problem: CodingProblem, tracer) -> ProblemCheck:  # noqa: C901
+     if shown.trivial:
+         warnings.append(f"{where} returns an empty value: it shows nothing")
+ 
++    _check_annotations(problem, shown, warnings)
++
+     best = check.best
+     if (
+         best is not None
+@@ -129,6 +131,36 @@ def check_problem(problem: CodingProblem, tracer) -> ProblemCheck:  # noqa: C901
+     return check
+ 
+ 
++def _check_annotations(
++    problem: CodingProblem,
++    shown: CaseTrace,
++    warnings: list[str],
++) -> None:
++    """Warn about authored notes/predictions the learner would never see."""
++    authored = [("note", block.value["line"]) for block in problem.trace_notes] + [
++        ("prediction", block.value["line"]) for block in problem.trace_predictions
++    ]
++    if not authored:
++        return
++    if not problem.trace_case_input:
++        warnings.append(
++            f"{len(authored)} trace note(s)/prediction(s) are authored but no "
++            "'Trace example' is pinned, so the page will not show them",
++        )
++        return
++    dead = sorted(
++        {
++            f"{kind} on line {line}"
++            for kind, line in authored
++            if line not in shown.lines
++        },
++    )
++    if dead:
++        warnings.append(
++            f"reference trace on ({shown.args}) never runs: {', '.join(dead)}",
++        )
++
++
+ def _yes_no(value: bool | None) -> str:  # noqa: FBT001
+     return "?" if value is None else "yes" if value else "NO"
+ 
+diff --git a/pyverse/coding/migrations/0008_problem_trace_annotations.py b/pyverse/coding/migrations/0008_problem_trace_annotations.py
+new file mode 100644
+index 0000000..642f0f1
+--- /dev/null
++++ b/pyverse/coding/migrations/0008_problem_trace_annotations.py
+@@ -0,0 +1,24 @@
++# Generated by Django 6.0.7 on 2026-10-25 17:31
++
++import wagtail.fields
++from django.db import migrations
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ('coding', '0007_problem_trace_case'),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name='codingproblem',
++            name='trace_notes',
++            field=wagtail.fields.StreamField([('note', 3)], blank=True, block_lookup={0: ('wagtail.blocks.IntegerBlock', (), {'help_text': '1-based line of the reference solution this note explains.', 'min_value': 1}), 1: ('wagtail.blocks.CharBlock', (), {'help_text': 'Plain text, one or two sentences. Say why, not what.', 'max_length': 240}), 2: ('wagtail.blocks.BooleanBlock', (), {'default': False, 'help_text': 'Off: shown the first time the trace reaches the line only.', 'required': False}), 3: ('wagtail.blocks.StructBlock', [[('line', 0), ('note', 1), ('every_visit', 2)]], {})}, help_text="Optional 'why' notes shown while the reference solution is traced on the pinned Trace example. Needs a reference solution and a Trace example."),
++        ),
++        migrations.AddField(
++            model_name='codingproblem',
++            name='trace_predictions',
++            field=wagtail.fields.StreamField([('prediction', 3)], blank=True, block_lookup={0: ('wagtail.blocks.IntegerBlock', (), {'help_text': '1-based line of the reference solution the question is about.', 'min_value': 1}), 1: ('wagtail.blocks.CharBlock', (), {'help_text': "E.g. 'What will seen contain after this line runs?'", 'max_length': 240}), 2: ('wagtail.blocks.CharBlock', (), {'help_text': 'Revealed on request. Must hold for the pinned Trace example.', 'max_length': 240}), 3: ('wagtail.blocks.StructBlock', [[('line', 0), ('question', 1), ('answer', 2)]], {})}, help_text="Optional 'what happens next?' questions for the same trace. Learners can always keep stepping; answers are revealed on request."),
++        ),
++    ]
+diff --git a/pyverse/coding/models.py b/pyverse/coding/models.py
+index 09396cf..c68f355 100644
+--- a/pyverse/coding/models.py
++++ b/pyverse/coding/models.py
+@@ -1,3 +1,4 @@
++from django.core.exceptions import ValidationError
+ from django.db import models
+ from django.utils.text import slugify
+ from modelcluster.fields import ParentalKey
+@@ -121,6 +122,49 @@ class HintBlock(blocks.StructBlock):
+         label = "Hint"
+ 
+ 
++class TraceNoteBlock(blocks.StructBlock):
++    """A sentence of *why*, shown while the reference trace is on `line`."""
++
++    line = blocks.IntegerBlock(
++        min_value=1,
++        help_text="1-based line of the reference solution this note explains.",
++    )
++    note = blocks.CharBlock(
++        max_length=240,
++        help_text="Plain text, one or two sentences. Say why, not what.",
++    )
++    every_visit = blocks.BooleanBlock(
++        required=False,
++        default=False,
++        help_text="Off: shown the first time the trace reaches the line only.",
++    )
++
++    class Meta:
++        icon = "comment"
++        label = "Trace note"
++
++
++class TracePredictionBlock(blocks.StructBlock):
++    """A question asked before the learner steps past `line`."""
++
++    line = blocks.IntegerBlock(
++        min_value=1,
++        help_text="1-based line of the reference solution the question is about.",
++    )
++    question = blocks.CharBlock(
++        max_length=240,
++        help_text="E.g. 'What will seen contain after this line runs?'",
++    )
++    answer = blocks.CharBlock(
++        max_length=240,
++        help_text="Revealed on request. Must hold for the pinned Trace example.",
++    )
++
++    class Meta:
++        icon = "help"
++        label = "Prediction"
++
++
+ class CodingProblem(ClusterableModel):
+     """
+     A single free-practice coding problem, addressable independently of the
+@@ -230,6 +274,24 @@ class CodingProblem(ClusterableModel):
+         blank=True,
+         help_text="Editorial tab content: one block per approach, cheapest first.",
+     )
++    trace_notes = StreamField(
++        [("note", TraceNoteBlock())],
++        use_json_field=True,
++        blank=True,
++        help_text=(
++            "Optional 'why' notes shown while the reference solution is traced on "
++            "the pinned Trace example. Needs a reference solution and a Trace example."
++        ),
++    )
++    trace_predictions = StreamField(
++        [("prediction", TracePredictionBlock())],
++        use_json_field=True,
++        blank=True,
++        help_text=(
++            "Optional 'what happens next?' questions for the same trace. "
++            "Learners can always keep stepping; answers are revealed on request."
++        ),
++    )
+     solution_code = models.TextField(
+         blank=True,
+         help_text="Reference solution shown in the Solutions tab.",
+@@ -310,6 +372,8 @@ class CodingProblem(ClusterableModel):
+         FieldPanel("hint_tiers"),
+         FieldPanel("editorial_approaches"),
+         FieldPanel("solution_code"),
++        FieldPanel("trace_notes"),
++        FieldPanel("trace_predictions"),
+         FieldPanel("solution_explanation"),
+         FieldPanel("companies"),
+         FieldPanel("patterns"),
+@@ -372,6 +436,58 @@ class CodingProblem(ClusterableModel):
+             return visible[self.trace_case - 1]["input"]
+         return ""
+ 
++    @property
++    def trace_annotations(self):
++        """Step notes and predictions for the reference trace, or None.
++
++        They describe one specific example, so they are only served when the
++        reference solution exists and a Trace example is pinned (the page then
++        shows them only while that exact call is traced). Plain JSON-safe data;
++        the page renders it with `json_script` and the viewer with `textContent`.
++        """
++        if not (self.solution_code.strip() and self.trace_case_input):
++            return None
++        notes = [
++            {
++                "line": block.value["line"],
++                "note": block.value["note"],
++                "every_visit": bool(block.value["every_visit"]),
++            }
++            for block in self.trace_notes
++        ]
++        predictions = [
++            {
++                "line": block.value["line"],
++                "question": block.value["question"],
++                "answer": block.value["answer"],
++            }
++            for block in self.trace_predictions
++        ]
++        if not (notes or predictions):
++            return None
++        return {"notes": notes, "predictions": predictions}
++
++    def clean(self):
++        super().clean()
++        total = len(self.solution_code.splitlines())
++        errors = {}
++        for field_name, label in (
++            ("trace_notes", "note"),
++            ("trace_predictions", "prediction"),
++        ):
++            bad = [
++                block.value["line"]
++                for block in getattr(self, field_name)
++                if not 1 <= block.value["line"] <= max(total, 1)
++            ]
++            if bad:
++                errors[field_name] = (
++                    f"Line {', '.join(map(str, bad))}: the reference solution has "
++                    f"{total} lines, so this {label} would never show."
++                )
++        if errors:
++            raise ValidationError(errors)
++
+     @property
+     def trace_status(self):
+         """Cheap authoring-time status for the admin list (no code is run).
+diff --git a/pyverse/coding/tracing.py b/pyverse/coding/tracing.py
+index 2eebe5a..b6ceb2c 100644
+--- a/pyverse/coding/tracing.py
++++ b/pyverse/coding/tracing.py
+@@ -40,6 +40,8 @@ class CaseTrace:
+     matches_expected: bool | None = None
+     trivial: bool = False
+     notes: list[str] = field(default_factory=list)
++    #: Source lines the tracer executed (for checking authored step notes).
++    lines: frozenset[int] = frozenset()
+ 
+     @property
+     def usable(self) -> bool:
+@@ -110,6 +112,9 @@ def trace_visible_case(problem: Any, tracer: Any, index: int) -> CaseTrace:
+         ),
+     )
+     result.steps = len(traced["steps"])
++    result.lines = frozenset(
++        step["line"] for step in traced["steps"] if step.get("line")
++    )
+     result.error = traced["error"]
+     result.truncated = bool(traced["truncated"])
+     if result.error is None:
+diff --git a/pyverse/static/css/tutor-view.css b/pyverse/static/css/tutor-view.css
+index 5ec314f..48a8f12 100644
+--- a/pyverse/static/css/tutor-view.css
++++ b/pyverse/static/css/tutor-view.css
+@@ -36,6 +36,15 @@
+ .tv-nav { padding: 10px 12px 12px; border-top: 2px solid var(--ink); background: var(--cream); }
+ .tv-status { display:flex; flex-wrap:wrap; gap: 4px 14px; align-items: baseline; font-family:"JetBrains Mono",monospace; font-size:12px; }
+ .tv-note { color: var(--screen-dk); font-weight:700; } .tv-note-bad { color: var(--red); }
++.tv-annot, .tv-predict { margin-top: 8px; font-family:"JetBrains Mono",monospace; font-size:12px; }
++.tv-annot p { margin: 0 0 4px; padding: 6px 10px; border-left: 4px solid var(--screen-dk); background: var(--bg2); color: var(--ink); }
++.tv-annot p::before { content: "why · "; font-weight: 700; color: var(--screen-dk); }
++.tv-predict > div { margin: 0 0 6px; padding: 6px 10px; border: 2px dashed var(--ink); background: var(--cream); }
++.tv-predict p { margin: 0 0 6px; color: var(--ink); } .tv-predict p::before { content: "predict · "; font-weight: 700; color: var(--red); }
++.tv-predict .tv-answer::before { content: "answer · "; color: var(--screen-dk); }
++.tv-predict button { font: inherit; font-weight: 700; padding: 4px 10px; border: 2px solid var(--ink); background: var(--cream); color: var(--ink); cursor: pointer; }
++.tv-predict button:hover { background: var(--ink); color: var(--cream); }
++.tv-predict button:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+ .tv-nav input[type=range] { width:100%; margin: 10px 0 8px; accent-color: var(--ink); }
+ .tv-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+ .tv-buttons button { font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:700; padding:5px 12px;
+diff --git a/pyverse/static/js/problem-trace.js b/pyverse/static/js/problem-trace.js
+index 365ee63..6fbdaa9 100644
+--- a/pyverse/static/js/problem-trace.js
++++ b/pyverse/static/js/problem-trace.js
+@@ -50,6 +50,16 @@
+     referenceArgs = "";
+   }
+ 
++  // Authored step notes / predictions. They describe the reference solution on
++  // the pinned example only, so they are shown just for that exact call.
++  var annotations = null;
++  try {
++    var annEl = document.getElementById("pyverse-trace-annotations");
++    annotations = annEl ? JSON.parse(annEl.textContent) || null : null;
++  } catch (error) {
++    annotations = null;
++  }
++
+   var source = "mine"; // "mine" | "ref"
+   var busy = false;
+ 
+@@ -105,6 +115,11 @@
+     window.PyverseRuntime.trace(code, fn, args).then(function (raw) {
+       try {
+         window.PyverseLab.show(raw);
++        var describesThisCall =
++          annotations && source === "ref" && referenceArgs && args === referenceArgs.trim();
++        if (window.PyverseLab.setAnnotations) {
++          window.PyverseLab.setAnnotations(describesThisCall ? annotations : null);
++        }
+         window.PyverseLab.setMode(
+           document.getElementById("lab-root").getAttribute("data-mode") === "memory" ? "memory" : "line"
+         );
+diff --git a/pyverse/static/js/tutor-view.js b/pyverse/static/js/tutor-view.js
+index e701602..7a8d726 100644
+--- a/pyverse/static/js/tutor-view.js
++++ b/pyverse/static/js/tutor-view.js
+@@ -6,7 +6,8 @@
+  * It renders the JSON of `includes/tracer_runtime.html` (`steps[].stack`,
+  * `final`, `stdout`, `error`, `harness_from`) and nothing else — no Python, no
+  * network. A host drives it through `window.PyverseLab`:
+- *     show(traceJson)  setStatus(kind, text)  setMode(_)  retrace (host-assigned)
++ *     show(traceJson)  setStatus(kind, text)  setMode(_)  setAnnotations(data|null)
++ *     retrace (host-assigned)
+  * the same surface the Labs engine exposes, so problem-trace.js is unchanged.
+  */
+ (function () {
+@@ -34,9 +35,11 @@
+     next: $("tv-next"),
+     last: $("tv-last"),
+     pill: $("lab-status"),
++    annot: $("tv-annot"),
++    predict: $("tv-predict"),
+   };
+ 
+-  var state = { trace: null, steps: [], i: 0, lines: [] };
++  var state = { trace: null, steps: [], i: 0, lines: [], annot: null, revealed: [] };
+ 
+   // ── helpers ──────────────────────────────────────────────────────────────
+   function esc(text) {
+@@ -291,6 +294,90 @@
+     svg.innerHTML = paths;
+   }
+ 
++  // ── authored notes + predictions (reference trace only) ──────────────────
++  // Everything authored goes in with textContent, never as markup.
++  var STORE_PREFIX = "pyverse:predict:";
++
++  function storeKey() {
++    return STORE_PREFIX + (document.body.dataset.problemSlug || "");
++  }
++
++  function loadRevealed() {
++    try {
++      var list = JSON.parse(window.localStorage.getItem(storeKey()) || "[]");
++      return Array.isArray(list) ? list.filter(Number.isInteger) : [];
++    } catch (error) {
++      return []; // private mode / blocked storage: just not remembered
++    }
++  }
++
++  function saveRevealed() {
++    try {
++      window.localStorage.setItem(storeKey(), JSON.stringify(state.revealed));
++    } catch (error) {
++      /* not remembered */
++    }
++  }
++
++  function lineOf(step) {
++    return step.next || step.exec || null;
++  }
++
++  function isFirstVisit(line) {
++    for (var j = 0; j < state.i; j += 1) {
++      if (lineOf(state.steps[j]) === line) return false;
++    }
++    return true;
++  }
++
++  function paragraph(text, cls) {
++    var p = document.createElement("p");
++    if (cls) p.className = cls;
++    p.textContent = text;
++    return p;
++  }
++
++  function renderAnnotations(step) {
++    if (!el.annot || !el.predict) return;
++    el.annot.textContent = "";
++    el.predict.textContent = "";
++    var a = state.annot;
++    var line = lineOf(step);
++    if (a && line) {
++      var first = isFirstVisit(line);
++      (a.notes || []).forEach(function (n) {
++        if (n.line === line && (n.every_visit || first)) el.annot.appendChild(paragraph(n.note));
++      });
++      (a.predictions || []).forEach(function (q, index) {
++        if (q.line !== line || !first) return;
++        var box = document.createElement("div");
++        box.appendChild(paragraph(q.question));
++        if (state.revealed.indexOf(index) >= 0) {
++          box.appendChild(paragraph(q.answer, "tv-answer"));
++        } else {
++          var button = document.createElement("button");
++          button.type = "button";
++          button.textContent = "Reveal answer";
++          button.addEventListener("click", function () {
++            state.revealed.push(index);
++            saveRevealed();
++            render();
++          });
++          box.appendChild(button);
++        }
++        el.predict.appendChild(box);
++      });
++    }
++    el.annot.classList.toggle("tv-hide", !el.annot.firstChild);
++    el.predict.classList.toggle("tv-hide", !el.predict.firstChild);
++  }
++
++  function setAnnotations(data) {
++    state.annot = data || null;
++    state.revealed = data ? loadRevealed() : [];
++    if (state.trace) render();
++  }
++
+   function render() {
+     var trace = state.trace;
+     if (!trace) return;
+@@ -326,6 +413,8 @@
+     el.first.disabled = el.prev.disabled = state.i === 0;
+     el.next.disabled = el.last.disabled = state.i >= total - 1;
+ 
++    renderAnnotations(step);
++
+     // output
+     var text = (trace.stdout || "").slice(0, step.out);
+     el.out.textContent = text;
+@@ -362,6 +451,7 @@
+     state.trace = trace;
+     state.steps = buildSteps(trace);
+     state.i = 0;
++    state.annot = null;
+     root.classList.remove("tv-empty-state");
+     if (!state.steps.length) {
+       // Nothing ran (bad arguments, syntax error): show the code and the reason.
+@@ -378,6 +468,7 @@
+     show: show,
+     setStatus: setStatus,
+     setMode: function () {},
++    setAnnotations: setAnnotations,
+     retrace: null, // the host assigns this; Ctrl/⌘+Enter calls it
+   };
+ 
+diff --git a/pyverse/templates/coding/problem_page.html b/pyverse/templates/coding/problem_page.html
+index f7a6e92..00fe284 100644
+--- a/pyverse/templates/coding/problem_page.html
++++ b/pyverse/templates/coding/problem_page.html
+@@ -488,6 +488,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
+     {{ payload|json_script:"pyverse-payload" }}
+     {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
+     {% if problem.solution_code and problem.trace_case_input %}{{ problem.trace_case_input|json_script:"pyverse-trace-case" }}{% endif %}
++    {% with annotations=problem.trace_annotations %}{% if annotations %}{{ annotations|json_script:"pyverse-trace-annotations" }}{% endif %}{% endwith %}
+     <script src="{% static 'js/pyverse-progress.js' %}"></script>
+     {# Python for the grader and the tracer, as inert text: pyverse-runtime.js hands it to a Web Worker. #}
+     {% include "includes/pyscript_runtime.html" with embedded=True %}
+diff --git a/pyverse/templates/includes/trace_panel.html b/pyverse/templates/includes/trace_panel.html
+index 8e1d07f..b56bd08 100644
+--- a/pyverse/templates/includes/trace_panel.html
++++ b/pyverse/templates/includes/trace_panel.html
+@@ -43,6 +43,9 @@ exactly as it did.
+         </div>
+         <div class="tv-nav">
+           <div class="tv-status"><span id="tv-status">Step 0 of 0</span><span class="tv-note" id="tv-note"></span></div>
++          {# Authored "why" notes and prediction cards (C1/C2); empty unless the reference trace is on its pinned example. #}
++          <div class="tv-annot tv-hide" id="tv-annot" aria-live="polite"></div>
++          <div class="tv-predict tv-hide" id="tv-predict" aria-live="polite"></div>
+           <input type="range" id="tv-slider" min="0" max="0" value="0" aria-label="Step" />
+           <div class="tv-buttons">
+             <button type="button" id="tv-first" disabled>« First</button>
+diff --git a/pyverse/tests/e2e/test_browser_smoke.py b/pyverse/tests/e2e/test_browser_smoke.py
+index 8dd2a0d..6c30c27 100644
+--- a/pyverse/tests/e2e/test_browser_smoke.py
++++ b/pyverse/tests/e2e/test_browser_smoke.py
+@@ -121,6 +121,40 @@ def test_a_passing_run_offers_a_trace_that_steps(page):
+     assert re.search(r"\d+", status), status
+ 
+ 
++def test_step_notes_and_predictions_render_as_text_and_reveal(page):
++    """C1/C2 in the real viewer. Annotations are injected through the viewer's
++    host API; the page-to-glue path (json_script) is covered by unit tests."""
++    _open_problem(page)
++    page.evaluate("localStorage.clear()")
++    _click(page, "#run-btn")
++    page.wait_for_selector("#trace-prompt button", timeout=30_000)
++    _click(page, "#trace-prompt button")
++    page.wait_for_function(
++        "document.querySelector('#tv-code .tv-next, #tv-code .tv-exec')",
++        timeout=60_000,
++    )
++    line = page.evaluate(
++        "Number(document.querySelector('#tv-code .tv-next, #tv-code .tv-exec').getAttribute('data-line'))",
++    )
++    page.evaluate(
++        "(l) => window.PyverseLab.setAnnotations({"
++        "notes: [{line: l, note: 'why <b>x</b>', every_visit: false}],"
++        "predictions: [{line: l, question: 'what next?', answer: 'forty-two'}]})",
++        line,
++    )
++    assert "why <b>x</b>" in page.inner_text("#tv-annot")  # text, not markup
++    assert page.locator("#tv-annot b").count() == 0
++    assert "forty-two" not in page.inner_text("#tv-predict")
++    _click(page, "#tv-predict button")
++    assert "forty-two" in page.inner_text("#tv-predict")
++    # Remembered for next time (localStorage, per problem).
++    assert page.evaluate(f"localStorage.getItem('pyverse:predict:{PROBLEM}')") == "[0]"
++    # Annotations off (e.g. the learner traced their own code): nothing shown.
++    page.evaluate("window.PyverseLab.setAnnotations(null)")
++    assert page.inner_text("#tv-annot") == ""
++    assert page.inner_text("#tv-predict") == ""
++
++
+ def _open_lab(page):
+     page.goto(f"{BASE}/labs/{LAB}/")
+     page.wait_for_selector(
+diff --git a/pyverse/tests/test_problem_trace.py b/pyverse/tests/test_problem_trace.py
+index eb37dfd..c7b0f6e 100644
+--- a/pyverse/tests/test_problem_trace.py
++++ b/pyverse/tests/test_problem_trace.py
+@@ -220,6 +220,7 @@ def test_viewer_ids_exist():
+         "pyverse-payload",
+         "pyverse-trace-reference",
+         "pyverse-trace-case",
++        "pyverse-trace-annotations",
+         "p-args",
+     }  # owned by the page / json_script
+     lost = {
+diff --git a/pyverse/tests/test_trace_annotations.py b/pyverse/tests/test_trace_annotations.py
+new file mode 100644
+index 0000000..157f47a
+--- /dev/null
++++ b/pyverse/tests/test_trace_annotations.py
+@@ -0,0 +1,182 @@
++"""C1/C2: authored step notes and prediction prompts on the reference trace.
++
++Payload building, authoring validation, the dead-note check and page rendering
++are covered here; the viewer's DOM behavior is covered by the e2e suite.
++"""
++
++from __future__ import annotations
++
++import json
++from io import StringIO
++
++import pytest
++from django.core.exceptions import ValidationError
++from django.core.management import call_command
++from django.template.loader import render_to_string
++from django.test import RequestFactory
++
++from pyverse.coding.models import CodingProblem
++
++SOLUTION = (
++    "def two_sum(nums, target):\n"  # 1
++    "    if not nums:\n"  # 2
++    "        return []\n"  # 3  (never runs on the example)
++    "    seen = {}\n"  # 4
++    "    for i, n in enumerate(nums):\n"  # 5
++    "        if target - n in seen:\n"  # 6
++    "            return [seen[target - n], i]\n"  # 7
++    "        seen[n] = i\n"  # 8
++)
++CASES = [
++    {
++        "type": "test_case",
++        "value": {
++            "input": "[2, 7, 11, 15], 9",
++            "expected_output": "[0, 1]",
++            "is_hidden": False,
++        },
++    },
++]
++
++
++def _note(line, text="because", *, every_visit=False):
++    return {
++        "type": "note",
++        "value": {"line": line, "note": text, "every_visit": every_visit},
++    }
++
++
++def _prediction(line, question="What is in seen?", answer="{2: 0}"):
++    return {
++        "type": "prediction",
++        "value": {"line": line, "question": question, "answer": answer},
++    }
++
++
++def _make(db, *, notes=(), predictions=(), trace_case=1, solution=SOLUTION):
++    return CodingProblem.objects.create(
++        title="Two Sum",
++        function_name="two_sum",
++        function_signature="(nums, target)",
++        solution_code=solution,
++        test_cases=json.dumps(CASES),
++        trace_case=trace_case,
++        trace_notes=json.dumps(list(notes)),
++        trace_predictions=json.dumps(list(predictions)),
++    )
++
++
++def _page(problem):
++    class _Page:
++        title = "Arrays"
++        url = "/practice/arrays/"
++
++    return render_to_string(
++        "coding/problem_page.html",
++        {
++            "page": _Page(),
++            "problem": problem,
++            "topic": None,
++            "payload": problem.grading_payload(),
++        },
++        request=RequestFactory().get(problem.get_absolute_url()),
++    )
++
++
++# ── payload ────────────────────────────────────────────────────────────────
++def test_annotations_are_plain_json_for_the_pinned_example(db):
++    problem = _make(
++        db,
++        notes=[_note(8, every_visit=True)],
++        predictions=[_prediction(8)],
++    )
++    assert problem.trace_annotations == {
++        "notes": [{"line": 8, "note": "because", "every_visit": True}],
++        "predictions": [
++            {"line": 8, "question": "What is in seen?", "answer": "{2: 0}"},
++        ],
++    }
++    json.dumps(problem.trace_annotations)  # must be JSON-safe as built
++
++
++def test_no_annotations_without_a_pinned_example(db):
++    # They describe one specific call, so without a pinned example they are not served.
++    assert _make(db, notes=[_note(8)], trace_case=0).trace_annotations is None
++
++
++def test_no_annotations_without_a_reference_solution(db):
++    assert _make(db, notes=[_note(8)], solution="").trace_annotations is None
++
++
++def test_no_annotations_when_nothing_is_authored(db):
++    assert _make(db).trace_annotations is None
++
++
++# ── authoring validation ───────────────────────────────────────────────────
++def test_clean_accepts_lines_inside_the_solution(db):
++    _make(db, notes=[_note(1), _note(8)], predictions=[_prediction(5)]).clean()
++
++
++@pytest.mark.parametrize("field", ["trace_notes", "trace_predictions"])
++def test_clean_rejects_a_line_past_the_end(db, field):
++    block = _note(99) if field == "trace_notes" else _prediction(99)
++    kwargs = {"notes" if field == "trace_notes" else "predictions": [block]}
++    with pytest.raises(ValidationError) as caught:
++        _make(db, **kwargs).clean()
++    assert field in caught.value.message_dict
++    assert "8 lines" in caught.value.message_dict[field][0]
++
++
++# ── page rendering ─────────────────────────────────────────────────────────
++def test_page_bakes_annotations_only_when_there_are_some(db):
++    assert 'id="pyverse-trace-annotations"' not in _page(_make(db))
++    page = _page(_make(db, notes=[_note(8)]))
++    assert 'id="pyverse-trace-annotations"' in page
++
++
++def test_authored_text_cannot_break_out_of_the_page(db):
++    evil = "</script><script>alert(1)</script>"
++    page = _page(
++        _make(db, notes=[_note(8, evil)], predictions=[_prediction(8, evil, evil)]),
++    )
++    assert evil not in page
++    assert "\\u003C/script\\u003E" in page
++
++
++def test_viewer_writes_authored_text_with_textcontent_only():
++    from pathlib import Path  # noqa: PLC0415
++
++    viewer = (
++        Path(__file__).resolve().parents[1] / "static/js/tutor-view.js"
++    ).read_text(
++        encoding="utf-8",
++    )
++    region = viewer[
++        viewer.index("authored notes + predictions") : viewer.index("function render()")
++    ]
++    assert "innerHTML" not in region
++    assert "textContent" in region
++
++
++# ── check_problem_traces ───────────────────────────────────────────────────
++def test_check_warns_about_a_note_on_a_line_that_never_runs(db):
++    _make(db, notes=[_note(3)], predictions=[_prediction(8)])
++    out = StringIO()
++    call_command("check_problem_traces", stdout=out)
++    text = out.getvalue()
++    assert "note on line 3" in text
++    assert "prediction on line 8" not in text  # line 8 runs on the example
++
++
++def test_check_is_quiet_when_every_annotated_line_runs(db):
++    _make(db, notes=[_note(6)], predictions=[_prediction(8)])
++    out = StringIO()
++    call_command("check_problem_traces", "--strict", stdout=out)
++    assert "[  ok] two-sum" in out.getvalue()
++
++
++def test_check_warns_when_annotations_have_no_pinned_example(db):
++    _make(db, notes=[_note(6)], trace_case=0)
++    out = StringIO()
++    call_command("check_problem_traces", stdout=out)
++    assert "no 'Trace example' is pinned" in out.getvalue()
+-- 
+2.43.0
+

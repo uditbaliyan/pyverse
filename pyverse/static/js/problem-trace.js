@@ -50,6 +50,16 @@
     referenceArgs = "";
   }
 
+  // Authored step notes / predictions. They describe the reference solution on
+  // the pinned example only, so they are shown just for that exact call.
+  var annotations = null;
+  try {
+    var annEl = document.getElementById("pyverse-trace-annotations");
+    annotations = annEl ? JSON.parse(annEl.textContent) || null : null;
+  } catch (error) {
+    annotations = null;
+  }
+
   var source = "mine"; // "mine" | "ref"
   var busy = false;
 
@@ -105,6 +115,11 @@
     window.PyverseRuntime.trace(code, fn, args).then(function (raw) {
       try {
         window.PyverseLab.show(raw);
+        var describesThisCall =
+          annotations && source === "ref" && referenceArgs && args === referenceArgs.trim();
+        if (window.PyverseLab.setAnnotations) {
+          window.PyverseLab.setAnnotations(describesThisCall ? annotations : null);
+        }
         window.PyverseLab.setMode(
           document.getElementById("lab-root").getAttribute("data-mode") === "memory" ? "memory" : "line"
         );

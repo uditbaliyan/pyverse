@@ -40,6 +40,8 @@ class CaseTrace:
     matches_expected: bool | None = None
     trivial: bool = False
     notes: list[str] = field(default_factory=list)
+    #: Source lines the tracer executed (for checking authored step notes).
+    lines: frozenset[int] = frozenset()
 
     @property
     def usable(self) -> bool:
@@ -110,6 +112,9 @@ def trace_visible_case(problem: Any, tracer: Any, index: int) -> CaseTrace:
         ),
     )
     result.steps = len(traced["steps"])
+    result.lines = frozenset(
+        step["line"] for step in traced["steps"] if step.get("line")
+    )
     result.error = traced["error"]
     result.truncated = bool(traced["truncated"])
     if result.error is None:

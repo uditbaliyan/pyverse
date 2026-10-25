@@ -43,6 +43,9 @@ exactly as it did.
         </div>
         <div class="tv-nav">
           <div class="tv-status"><span id="tv-status">Step 0 of 0</span><span class="tv-note" id="tv-note"></span></div>
+          {# Authored "why" notes and prediction cards (C1/C2); empty unless the reference trace is on its pinned example. #}
+          <div class="tv-annot tv-hide" id="tv-annot" aria-live="polite"></div>
+          <div class="tv-predict tv-hide" id="tv-predict" aria-live="polite"></div>
           <input type="range" id="tv-slider" min="0" max="0" value="0" aria-label="Step" />
           <div class="tv-buttons">
             <button type="button" id="tv-first" disabled>« First</button>

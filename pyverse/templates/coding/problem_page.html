@@ -488,6 +488,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     {{ payload|json_script:"pyverse-payload" }}
     {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
     {% if problem.solution_code and problem.trace_case_input %}{{ problem.trace_case_input|json_script:"pyverse-trace-case" }}{% endif %}
+    {% with annotations=problem.trace_annotations %}{% if annotations %}{{ annotations|json_script:"pyverse-trace-annotations" }}{% endif %}{% endwith %}
     <script src="{% static 'js/pyverse-progress.js' %}"></script>
     {# Python for the grader and the tracer, as inert text: pyverse-runtime.js hands it to a Web Worker. #}
     {% include "includes/pyscript_runtime.html" with embedded=True %}

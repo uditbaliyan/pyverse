@@ -121,6 +121,40 @@ def test_a_passing_run_offers_a_trace_that_steps(page):
     assert re.search(r"\d+", status), status
 
 
+def test_step_notes_and_predictions_render_as_text_and_reveal(page):
+    """C1/C2 in the real viewer. Annotations are injected through the viewer's
+    host API; the page-to-glue path (json_script) is covered by unit tests."""
+    _open_problem(page)
+    page.evaluate("localStorage.clear()")
+    _click(page, "#run-btn")
+    page.wait_for_selector("#trace-prompt button", timeout=30_000)
+    _click(page, "#trace-prompt button")
+    page.wait_for_function(
+        "document.querySelector('#tv-code .tv-next, #tv-code .tv-exec')",
+        timeout=60_000,
+    )
+    line = page.evaluate(
+        "Number(document.querySelector('#tv-code .tv-next, #tv-code .tv-exec').getAttribute('data-line'))",
+    )
+    page.evaluate(
+        "(l) => window.PyverseLab.setAnnotations({"
+        "notes: [{line: l, note: 'why <b>x</b>', every_visit: false}],"
+        "predictions: [{line: l, question: 'what next?', answer: 'forty-two'}]})",
+        line,
+    )
+    assert "why <b>x</b>" in page.inner_text("#tv-annot")  # text, not markup
+    assert page.locator("#tv-annot b").count() == 0
+    assert "forty-two" not in page.inner_text("#tv-predict")
+    _click(page, "#tv-predict button")
+    assert "forty-two" in page.inner_text("#tv-predict")
+    # Remembered for next time (localStorage, per problem).
+    assert page.evaluate(f"localStorage.getItem('pyverse:predict:{PROBLEM}')") == "[0]"
+    # Annotations off (e.g. the learner traced their own code): nothing shown.
+    page.evaluate("window.PyverseLab.setAnnotations(null)")
+    assert page.inner_text("#tv-annot") == ""
+    assert page.inner_text("#tv-predict") == ""
+
+
 def _open_lab(page):
     page.goto(f"{BASE}/labs/{LAB}/")
     page.wait_for_selector(

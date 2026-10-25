@@ -176,9 +176,11 @@ records it as one of three deliberate departures.
 Trade-offs accepted
 -------------------
 
-*Pyodide dependency.* The tracer needs the same PyScript 2025.7.3 runtime as the
-grading harness. Offline, the lab page renders but Trace never enables. One more
-surface relying on a CDN.
+*Pyodide dependency.* Pyodide 0.27.7 is vendored under ``static/vendor/``
+(``utility/vendor_assets.py``) and runs in a Web Worker with a wall-clock
+watchdog (``static/js/pyverse-runtime.js``), so a CDN outage or ``while True``
+cannot take the page down. Offline, pages render and the runtime still loads
+from the site's own files.
 
 *400-step cap.* A long-running program is truncated at 400 steps with a flag.
 Honest, but a learner tracing a 10,000-iteration loop sees only the beginning.
@@ -203,5 +205,100 @@ When to revisit
 * If a third rendering mode is wanted (e.g. a call-stack view). The contract is
   "one tracer, N renderers", and the step stream already carries ``depth`` and
   ``fn``.
-* If PyScript is ever vendored/self-hosted, both ``tracer_runtime.html`` and
-  ``pyscript_runtime.html`` must move together — they share the pin by design.
+* If the Pyodide pin moves, re-run ``utility/vendor_assets.py`` and the e2e
+  suite (``pytest -m e2e``); the pin lives in that script, not in templates.
+
+
+Two surfaces, one tracer
+------------------------
+
+*Labs* are **free-run playgrounds** (tracer today; pandas, numpy and other
+libraries later): paste anything, run it, nothing is graded and nothing is tied
+to a problem. *Watch it execute* is a panel **on the Practice problem page**
+(``includes/trace_panel.html`` → ``tutor-view.js``, fed by
+``problem-trace.js``). It traces the learner's own code or the reference
+solution on one example, on the same page. There is deliberately no
+``LabPage``-per-problem link: the loop never leaves the problem page.
+
+Teaching layer on the problem-page trace (increment C)
+------------------------------------------------------
+
+The tracer shows *what* happens; C adds *why*. Both C1 and C2 are optional
+authoring features on ``CodingProblem`` and only apply while the reference
+solution is being traced (they describe that code, not the learner's).
+
+C1 — step notes
+~~~~~~~~~~~~~~~
+
+* **Authoring.** New StreamField ``trace_notes`` (migration ``coding.0008``),
+  each item ``{line, note, every_visit}``. ``line`` is 1-based in
+  ``solution_code``; ``note`` ≤ 240 chars; ``every_visit`` false = show on the
+  first visit to that line only.
+* **Line mapping.** The traced program is ``solution_code`` plus an appended call
+  harness, so reference line numbers equal tracer ``step.line`` for every line
+  before ``harness_from``. No remapping.
+* **Payload.** ``{{ notes|json_script:"pyverse-trace-notes" }}``, emitted only
+  when ``solution_code`` and a trace case exist. No runtime fetch.
+* **Rendering.** ``problem-trace.js`` hands the list to the viewer; the viewer
+  writes the matching note into the existing ``#tv-note`` slot with
+  ``textContent`` (never ``innerHTML``), and ``#tv-status`` stays the
+  ``aria-live`` announcement of the step. When stepping back, the note for the
+  step shown is recomputed from step history, so "first visit" is stable.
+* **Validation.** ``clean()`` rejects a ``line`` beyond ``solution_code``'s
+  length; ``check_problem_traces`` *warns* on a note whose line the shown example
+  never executes (the note would be dead).
+* **Only for the pinned call.** Notes describe one specific example, so
+  ``problem-trace.js`` passes them to the viewer only when the *reference*
+  solution is traced on exactly the pinned ``trace_case`` arguments. Tracing the
+  learner's code, or editing the call, shows no notes (the note would be wrong).
+  Hence ``trace_annotations`` is ``None`` unless ``trace_case`` is pinned.
+* **Not doing.** Markdown/HTML in notes, per-learner notes, notes on the
+  learner's own code.
+
+C2 — prediction prompts
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* **Authoring.** StreamField ``trace_predictions`` (same migration), each item
+  ``{line, question, answer}``.
+* **Behaviour.** On the step where ``line`` is about to run for the first time
+  (the viewer's "runs next" arrow), a card shows the question and a *Reveal
+  answer* button. It never blocks the transport controls (a keyboard or
+  impatient learner can always keep stepping); revealing is the only state. The
+  card is derived from the current step, so stepping back to that step shows it
+  again. Focus is **not** moved (that would break ←/→ stepping); the card sits
+  in an ``aria-live="polite"`` region and its button is a normal Tab stop.
+* **Persistence.** ``pyverse-progress.js`` is an IndexedDB store keyed by problem
+  ``slug`` and records submissions; predictions are not progress truth, so no
+  schema bump (v3). Reuse its keying only: ``localStorage`` key
+  ``pyverse:predict:<slug>`` → JSON list of revealed prediction indexes, wrapped
+  in ``try/catch`` (private mode ⇒ simply not remembered). Nothing leaves the
+  browser.
+* **Not doing.** Scoring typed answers, streaks or XP (the progress module's
+  streak is existing behaviour, not extended here).
+
+C3 — compare with your attempt (already shipped, to be verified)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because the trace lives on the problem page, code never travels between pages:
+the *your code* / *reference solution* toggle and the *Watch your code run on
+it* button after a failed submission read the live editor (``#editor-ta``) and
+call ``PyverseRuntime.trace(code, fn, args)`` directly. The ``location.hash``
+design is therefore dropped; there is no URL-size limit to handle. Remaining
+work is a test for the failed-submission path (currently unverified; the
+passing-run path is covered by ``test_a_passing_run_offers_a_trace_that_steps``).
+
+Tests (``pyverse/tests/test_trace_annotations.py`` + one e2e)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Payload building (omitted without a solution, a pinned case, or any authored
+item), ``clean()`` bounds, ``check_problem_traces`` warnings (a note on a line
+the example never runs; annotations authored with no pinned example), the page
+bakes ``pyverse-trace-annotations`` only when there is something to show, a
+``</script>`` in authored text cannot escape ``json_script``, and the viewer
+writes authored text with ``textContent`` only. The e2e test drives the real
+viewer: note shown as text (not markup), reveal, persistence key, annotations
+off.
+
+Not tested: screen-reader output of the live regions (no AT available here);
+keyboard flow was reasoned from the markup (Tab reaches the button, ←/→ still
+step) and the e2e DOM checks, not exercised with a real keyboard-only session.

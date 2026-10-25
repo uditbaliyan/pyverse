@@ -115,6 +115,8 @@ def check_problem(problem: CodingProblem, tracer) -> ProblemCheck:  # noqa: C901
     if shown.trivial:
         warnings.append(f"{where} returns an empty value: it shows nothing")
 
+    _check_annotations(problem, shown, warnings)
+
     best = check.best
     if (
         best is not None
@@ -127,6 +129,36 @@ def check_problem(problem: CodingProblem, tracer) -> ProblemCheck:  # noqa: C901
             "set 'Trace example' or run with --apply",
         )
     return check
+
+
+def _check_annotations(
+    problem: CodingProblem,
+    shown: CaseTrace,
+    warnings: list[str],
+) -> None:
+    """Warn about authored notes/predictions the learner would never see."""
+    authored = [("note", block.value["line"]) for block in problem.trace_notes] + [
+        ("prediction", block.value["line"]) for block in problem.trace_predictions
+    ]
+    if not authored:
+        return
+    if not problem.trace_case_input:
+        warnings.append(
+            f"{len(authored)} trace note(s)/prediction(s) are authored but no "
+            "'Trace example' is pinned, so the page will not show them",
+        )
+        return
+    dead = sorted(
+        {
+            f"{kind} on line {line}"
+            for kind, line in authored
+            if line not in shown.lines
+        },
+    )
+    if dead:
+        warnings.append(
+            f"reference trace on ({shown.args}) never runs: {', '.join(dead)}",
+        )
 
 
 def _yes_no(value: bool | None) -> str:  # noqa: FBT001

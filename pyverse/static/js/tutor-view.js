@@ -6,7 +6,8 @@
  * It renders the JSON of `includes/tracer_runtime.html` (`steps[].stack`,
  * `final`, `stdout`, `error`, `harness_from`) and nothing else — no Python, no
  * network. A host drives it through `window.PyverseLab`:
- *     show(traceJson)  setStatus(kind, text)  setMode(_)  retrace (host-assigned)
+ *     show(traceJson)  setStatus(kind, text)  setMode(_)  setAnnotations(data|null)
+ *     retrace (host-assigned)
  * the same surface the Labs engine exposes, so problem-trace.js is unchanged.
  */
 (function () {
@@ -34,9 +35,11 @@
     next: $("tv-next"),
     last: $("tv-last"),
     pill: $("lab-status"),
+    annot: $("tv-annot"),
+    predict: $("tv-predict"),
   };
 
-  var state = { trace: null, steps: [], i: 0, lines: [] };
+  var state = { trace: null, steps: [], i: 0, lines: [], annot: null, revealed: [] };
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function esc(text) {
@@ -291,6 +294,90 @@
     svg.innerHTML = paths;
   }
 
+  // ── authored notes + predictions (reference trace only) ──────────────────
+  // Everything authored goes in with textContent, never as markup.
+  var STORE_PREFIX = "pyverse:predict:";
+
+  function storeKey() {
+    return STORE_PREFIX + (document.body.dataset.problemSlug || "");
+  }
+
+  function loadRevealed() {
+    try {
+      var list = JSON.parse(window.localStorage.getItem(storeKey()) || "[]");
+      return Array.isArray(list) ? list.filter(Number.isInteger) : [];
+    } catch (error) {
+      return []; // private mode / blocked storage: just not remembered
+    }
+  }
+
+  function saveRevealed() {
+    try {
+      window.localStorage.setItem(storeKey(), JSON.stringify(state.revealed));
+    } catch (error) {
+      /* not remembered */
+    }
+  }
+
+  function lineOf(step) {
+    return step.next || step.exec || null;
+  }
+
+  function isFirstVisit(line) {
+    for (var j = 0; j < state.i; j += 1) {
+      if (lineOf(state.steps[j]) === line) return false;
+    }
+    return true;
+  }
+
+  function paragraph(text, cls) {
+    var p = document.createElement("p");
+    if (cls) p.className = cls;
+    p.textContent = text;
+    return p;
+  }
+
+  function renderAnnotations(step) {
+    if (!el.annot || !el.predict) return;
+    el.annot.textContent = "";
+    el.predict.textContent = "";
+    var a = state.annot;
+    var line = lineOf(step);
+    if (a && line) {
+      var first = isFirstVisit(line);
+      (a.notes || []).forEach(function (n) {
+        if (n.line === line && (n.every_visit || first)) el.annot.appendChild(paragraph(n.note));
+      });
+      (a.predictions || []).forEach(function (q, index) {
+        if (q.line !== line || !first) return;
+        var box = document.createElement("div");
+        box.appendChild(paragraph(q.question));
+        if (state.revealed.indexOf(index) >= 0) {
+          box.appendChild(paragraph(q.answer, "tv-answer"));
+        } else {
+          var button = document.createElement("button");
+          button.type = "button";
+          button.textContent = "Reveal answer";
+          button.addEventListener("click", function () {
+            state.revealed.push(index);
+            saveRevealed();
+            render();
+          });
+          box.appendChild(button);
+        }
+        el.predict.appendChild(box);
+      });
+    }
+    el.annot.classList.toggle("tv-hide", !el.annot.firstChild);
+    el.predict.classList.toggle("tv-hide", !el.predict.firstChild);
+  }
+
+  function setAnnotations(data) {
+    state.annot = data || null;
+    state.revealed = data ? loadRevealed() : [];
+    if (state.trace) render();
+  }
+
   function render() {
     var trace = state.trace;
     if (!trace) return;
@@ -325,6 +412,8 @@
     el.slider.value = String(state.i);
     el.first.disabled = el.prev.disabled = state.i === 0;
     el.next.disabled = el.last.disabled = state.i >= total - 1;
+
+    renderAnnotations(step);
 
     // output
     var text = (trace.stdout || "").slice(0, step.out);
@@ -362,6 +451,7 @@
     state.trace = trace;
     state.steps = buildSteps(trace);
     state.i = 0;
+    state.annot = null;
     root.classList.remove("tv-empty-state");
     if (!state.steps.length) {
       // Nothing ran (bad arguments, syntax error): show the code and the reason.
@@ -378,6 +468,7 @@
     show: show,
     setStatus: setStatus,
     setMode: function () {},
+    setAnnotations: setAnnotations,
     retrace: null, // the host assigns this; Ctrl/⌘+Enter calls it
   };
 

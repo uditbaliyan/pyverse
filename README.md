@@ -31,14 +31,14 @@ Most practice sites tell you **whether** your code is right. PyVerse also shows 
    │  Read the   │ ───▶ │  Solve it in │ ───▶ │  Watch the        │
    │  problem    │      │  the browser │      │  reference solution│
    │  /practice/ │      │  (Pyodide)   │      │  run, line by line │
-   └─────────────┘      └──────────────┘      │  /labs/            │
+   └─────────────┘      └──────────────┘      │  (same page)       │
                               ▲               └─────────┬─────────┘
                               └── edit the call, trace again ◀┘
 ```
 
 - **Practice** — LeetCode-style problems that are graded entirely in your browser.
-- **Labs** — a tracer built on `sys.settrace` that records every executed line, every variable, and a memory graph of how values reference each other.
-- **The loop** — each problem links to a lab that traces its reference solution on the first example. Solve, then step through it.
+- **Labs** — free-run playgrounds (the tracer today; pandas, numpy and others later). Paste any program, trace it with `sys.settrace`, see every executed line, every variable and a memory graph. Not tied to a problem.
+- **The loop** — each problem page has a *Watch this solution run* panel that traces the reference solution on one example, on the same page. Solve, then step through it.
 - **Learn** — tracks → courses → lessons, with quizzes.
 - **Notes** — a small blog for longer write-ups.
 
@@ -87,7 +87,7 @@ pyverse/
 ├── topics/            Practice hub, topic pages, sheets; serves /practice/problem/<slug>/
 ├── coding/            CodingProblem snippet: tests, hints, editorial, reference solution
 ├── quiz/              Quiz pages + client-side scoring
-├── labs/              Trace labs (LabPage), tracing.py, build_trace_labs command
+├── labs/              Labs: free-run playgrounds (LabPage); the tracer runtime is shared with problem pages
 ├── puput/             Vendored blog for /python/notes/
 ├── ai_content/        Optional LLM-assisted drafting + out-of-process answer-key verifier
 ├── users/ theme/ common/   Auth scaffolding (authoring only), Tailwind, shared blocks
@@ -105,7 +105,7 @@ Page tree in the CMS:
 Home
 ├── Learn  (LMSIndexPage)  → Track → Course → Lesson
 ├── Practice (PracticeHubPage) → Topic pages, Sheets   ·  Problems are snippets
-├── Labs   (LabsIndexPage) → LabPage …                 ·  trace-<problem> labs
+├── Labs   (LabsIndexPage) → LabPage …                 ·  free playgrounds
 └── Python notes (blog)
 ```
 
@@ -174,24 +174,27 @@ test -f _site/sitemap.xml && test -f _site/404.html && echo ok
 This is the part that makes PyVerse different from "a site with a code box".
 
 1. **A problem** (`CodingProblem`) has a function name, starter code, test cases (some hidden), hints, an editorial and a **reference solution**.
-2. **`build_trace_labs`** turns the reference solution into a *lab*: your solution + one call on the first **visible** example + `print("returned:", result)`.
-3. Before creating anything it **runs the program out of process** and counts the steps the in-browser tracer would record. Programs that error, time out, or exceed the tracer's step cap are skipped with a reason, so a bad trace never ships.
-4. Labs are created as **drafts** by default. Open them in `/cms/`, read the program, then publish.
-5. The problem page's *Solutions* tab gets **▶ Watch this solution run**, and the lab links back with **← Solve "…" yourself**.
+2. The problem page's **▶ Watch this solution run** panel (`includes/trace_panel.html`, `static/js/problem-trace.js`) traces the reference solution on one visible example, in the learner's browser. The example is the problem's `trace_case` (1-based among visible cases) or, if unset, the first visible case.
+3. **`check_problem_traces`** is the quality gate. For every problem it checks, out of process with the same tracer that ships to the browser: the solution passes all tests; the traced call *returns* the answer key under the problem's comparator; the trace fits the step cap and is between `MIN_STEPS` (6) and `MAX_STEPS` (250) steps. Errors exit 1; warnings only with `--strict`.
+4. Nothing is published by the command; it reports, and `--apply` only pins `trace_case` where it is unset. The admin problem list shows each problem's trace status.
 
 ```bash
-uv run python manage.py build_trace_labs                 # drafts for every problem with a solution
-uv run python manage.py build_trace_labs --publish       # create them live
-uv run python manage.py build_trace_labs --slug two-sum  # one problem
-uv run python manage.py build_trace_labs --refresh       # re-sync after editing a solution
+uv run python manage.py check_problem_traces                      # all problems
+uv run python manage.py check_problem_traces --slug two-sum       # one (repeatable)
+uv run python manage.py check_problem_traces --report             # one table row per problem
+uv run python manage.py check_problem_traces --apply              # pin the best example where unset
+uv run python manage.py check_problem_traces --strict             # warnings fail too
 ```
+
+Optional teaching layer (CMS → Coding Problem): **Trace notes** (a sentence of *why* shown when the trace reaches a line) and **Predictions** (a question with a *Reveal answer* button). Both refer to lines of the reference solution, need a pinned **Trace example**, and appear only while the reference is traced on exactly that call. `check_problem_traces` warns about notes on lines the example never runs. Design: `docs/design/labs.rst`.
 
 Authoring checklist for a problem that traces well:
 
-- Put the **smallest** meaningful example first and mark it **not hidden** — that is what gets traced.
-- Keep the first example under the tracer's step cap (`TRACER_STEP_CAP` in `pyverse/labs/tracing.py`, mirrored from `tracer_runtime.html`).
-- Name the solution function exactly as `function_name`; the builder refuses otherwise.
+- Mark at least one small example **not hidden**; the traced example is always a visible one.
+- Name the solution function exactly as `function_name`.
 - Prefer a reference solution a beginner can follow over the cleverest one.
+- Pin a **Trace example** (or run `check_problem_traces --apply`) if you add notes or predictions.
+- Run `check_problem_traces --report` before publishing.
 
 ---
 
@@ -202,7 +205,7 @@ Authoring checklist for a problem that traces well:
 | Add a problem | CMS → Snippets → **Coding Problems** → Add. Attach it to a Practice topic. |
 | Add a lesson | CMS → Pages → Learn → Track → Course → add Lesson. |
 | Add a quiz | Under Practice (quizzes are pages). |
-| Add a lab by hand | CMS → Pages → Labs → add **Lab Page** (paste a program; optionally link a problem). |
+| Add a lab by hand | CMS → Pages → Labs → add **Lab Page** (paste a program; labs are free playgrounds, not tied to a problem). |
 | Draft with an LLM | `uv run python manage.py ai_create` — pick a type, describe it, review the draft. |
 | Redirect an old URL | Wagtail Redirects. The export writes both HTML stubs and `_redirects`. |
 
@@ -243,7 +246,7 @@ Real `.envs/` files and `*.sqlite3` are gitignored. Start from `.envs.example/`.
 | Static export, sitemap, canonicals, redirects, 404 | working, verified |
 | Practice (browser grading) | working |
 | Labs (line trace + memory graph) | working |
-| Practice → trace loop | working; content is the bottleneck |
+| Practice → trace loop (same page) | working; content is the bottleneck |
 | Learn (tracks/courses/lessons) | early |
 | Accounts / sync | intentionally absent in production |
 | Ads | not implemented |

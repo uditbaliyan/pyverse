@@ -36,6 +36,15 @@
 .tv-nav { padding: 10px 12px 12px; border-top: 2px solid var(--ink); background: var(--cream); }
 .tv-status { display:flex; flex-wrap:wrap; gap: 4px 14px; align-items: baseline; font-family:"JetBrains Mono",monospace; font-size:12px; }
 .tv-note { color: var(--screen-dk); font-weight:700; } .tv-note-bad { color: var(--red); }
+.tv-annot, .tv-predict { margin-top: 8px; font-family:"JetBrains Mono",monospace; font-size:12px; }
+.tv-annot p { margin: 0 0 4px; padding: 6px 10px; border-left: 4px solid var(--screen-dk); background: var(--bg2); color: var(--ink); }
+.tv-annot p::before { content: "why · "; font-weight: 700; color: var(--screen-dk); }
+.tv-predict > div { margin: 0 0 6px; padding: 6px 10px; border: 2px dashed var(--ink); background: var(--cream); }
+.tv-predict p { margin: 0 0 6px; color: var(--ink); } .tv-predict p::before { content: "predict · "; font-weight: 700; color: var(--red); }
+.tv-predict .tv-answer::before { content: "answer · "; color: var(--screen-dk); }
+.tv-predict button { font: inherit; font-weight: 700; padding: 4px 10px; border: 2px solid var(--ink); background: var(--cream); color: var(--ink); cursor: pointer; }
+.tv-predict button:hover { background: var(--ink); color: var(--cream); }
+.tv-predict button:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
 .tv-nav input[type=range] { width:100%; margin: 10px 0 8px; accent-color: var(--ink); }
 .tv-buttons { display:flex; flex-wrap:wrap; gap:8px; }
 .tv-buttons button { font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:700; padding:5px 12px;

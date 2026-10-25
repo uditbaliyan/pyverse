@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
 from modelcluster.fields import ParentalKey
@@ -121,6 +122,49 @@ class HintBlock(blocks.StructBlock):
         label = "Hint"
 
 
+class TraceNoteBlock(blocks.StructBlock):
+    """A sentence of *why*, shown while the reference trace is on `line`."""
+
+    line = blocks.IntegerBlock(
+        min_value=1,
+        help_text="1-based line of the reference solution this note explains.",
+    )
+    note = blocks.CharBlock(
+        max_length=240,
+        help_text="Plain text, one or two sentences. Say why, not what.",
+    )
+    every_visit = blocks.BooleanBlock(
+        required=False,
+        default=False,
+        help_text="Off: shown the first time the trace reaches the line only.",
+    )
+
+    class Meta:
+        icon = "comment"
+        label = "Trace note"
+
+
+class TracePredictionBlock(blocks.StructBlock):
+    """A question asked before the learner steps past `line`."""
+
+    line = blocks.IntegerBlock(
+        min_value=1,
+        help_text="1-based line of the reference solution the question is about.",
+    )
+    question = blocks.CharBlock(
+        max_length=240,
+        help_text="E.g. 'What will seen contain after this line runs?'",
+    )
+    answer = blocks.CharBlock(
+        max_length=240,
+        help_text="Revealed on request. Must hold for the pinned Trace example.",
+    )
+
+    class Meta:
+        icon = "help"
+        label = "Prediction"
+
+
 class CodingProblem(ClusterableModel):
     """
     A single free-practice coding problem, addressable independently of the
@@ -230,6 +274,24 @@ class CodingProblem(ClusterableModel):
         blank=True,
         help_text="Editorial tab content: one block per approach, cheapest first.",
     )
+    trace_notes = StreamField(
+        [("note", TraceNoteBlock())],
+        use_json_field=True,
+        blank=True,
+        help_text=(
+            "Optional 'why' notes shown while the reference solution is traced on "
+            "the pinned Trace example. Needs a reference solution and a Trace example."
+        ),
+    )
+    trace_predictions = StreamField(
+        [("prediction", TracePredictionBlock())],
+        use_json_field=True,
+        blank=True,
+        help_text=(
+            "Optional 'what happens next?' questions for the same trace. "
+            "Learners can always keep stepping; answers are revealed on request."
+        ),
+    )
     solution_code = models.TextField(
         blank=True,
         help_text="Reference solution shown in the Solutions tab.",
@@ -310,6 +372,8 @@ class CodingProblem(ClusterableModel):
         FieldPanel("hint_tiers"),
         FieldPanel("editorial_approaches"),
         FieldPanel("solution_code"),
+        FieldPanel("trace_notes"),
+        FieldPanel("trace_predictions"),
         FieldPanel("solution_explanation"),
         FieldPanel("companies"),
         FieldPanel("patterns"),
@@ -371,6 +435,58 @@ class CodingProblem(ClusterableModel):
         if self.trace_case and 1 <= self.trace_case <= len(visible):
             return visible[self.trace_case - 1]["input"]
         return ""
+
+    @property
+    def trace_annotations(self):
+        """Step notes and predictions for the reference trace, or None.
+
+        They describe one specific example, so they are only served when the
+        reference solution exists and a Trace example is pinned (the page then
+        shows them only while that exact call is traced). Plain JSON-safe data;
+        the page renders it with `json_script` and the viewer with `textContent`.
+        """
+        if not (self.solution_code.strip() and self.trace_case_input):
+            return None
+        notes = [
+            {
+                "line": block.value["line"],
+                "note": block.value["note"],
+                "every_visit": bool(block.value["every_visit"]),
+            }
+            for block in self.trace_notes
+        ]
+        predictions = [
+            {
+                "line": block.value["line"],
+                "question": block.value["question"],
+                "answer": block.value["answer"],
+            }
+            for block in self.trace_predictions
+        ]
+        if not (notes or predictions):
+            return None
+        return {"notes": notes, "predictions": predictions}
+
+    def clean(self):
+        super().clean()
+        total = len(self.solution_code.splitlines())
+        errors = {}
+        for field_name, label in (
+            ("trace_notes", "note"),
+            ("trace_predictions", "prediction"),
+        ):
+            bad = [
+                block.value["line"]
+                for block in getattr(self, field_name)
+                if not 1 <= block.value["line"] <= max(total, 1)
+            ]
+            if bad:
+                errors[field_name] = (
+                    f"Line {', '.join(map(str, bad))}: the reference solution has "
+                    f"{total} lines, so this {label} would never show."
+                )
+        if errors:
+            raise ValidationError(errors)
 
     @property
     def trace_status(self):
