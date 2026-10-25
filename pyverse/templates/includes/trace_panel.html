@@ -1,0 +1,95 @@
+{% comment %}
+"Watch it execute" panel for the Practice problem page.
+
+The same tracer views the Labs use (`static/js/lab-engine.js`: line trace and
+memory graph), minus the program editor — here the program is the learner's own
+solution, and `static/js/problem-trace.js` feeds it. The element ids are the
+engine's contract (`lab-*`); a page hosts one lab-engine, so they do not clash
+with `labs/lab_page.html`, which is a different page.
+
+Hidden until the learner first traces (the Trace button, or the prompt that
+appears after Run/Submit), so a problem page that is never traced looks
+exactly as it did.
+{% endcomment %}
+<section id="trace-section" class="hidden mt-9" aria-label="Watch it execute">
+  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+    <span class="text-red">trace/</span> watch it execute
+  </p>
+
+  <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
+    <span class="text-muted">Tracing</span>
+    <button type="button" class="pt-src pt-src-on" id="trace-src-mine" data-src="mine">your code</button>
+    {% if problem.solution_code %}
+      <button type="button" class="pt-src" id="trace-src-ref" data-src="ref">reference solution</button>
+    {% endif %}
+    <span class="text-muted">on</span>
+    <code class="pt-call" id="trace-call">—</code>
+    <button type="button" class="pt-retrace" id="trace-retrace">↻ Re-trace</button>
+  </div>
+
+  <section class="pe-console mt-5 h-[min(80vh,700px)] min-h-[520px]" aria-label="Execution trace">
+    <div class="pe-console-bar">
+      <span>PyVerse Trace — {{ problem.slug }}</span>
+      <span class="lab-status" id="lab-status">Waiting for the Python runtime…</span>
+    </div>
+
+    <div class="pe-engine lab-app lab-embedded flex-1 min-h-0" id="lab-root"
+         data-mode="line" data-embedded data-empty="Pick Trace to record this call.">
+      <main class="lab-main">
+        <section class="lab-col">
+          <div class="lab-tabs" role="tablist" aria-label="Trace view">
+            <button class="lab-tab" type="button" role="tab" data-mode="line" aria-selected="false">Line trace</button>
+            <button class="lab-tab" type="button" role="tab" data-mode="memory" aria-selected="false">Memory graph</button>
+          </div>
+
+          <div class="lab-view" id="lab-panel-line">
+            <div class="lab-source-col"><div class="lab-source" id="lab-source"></div></div>
+            <div class="lab-side-col">
+              <div class="lab-side-block">
+                <div class="lab-side-title">Where</div>
+                <div id="lab-where"></div>
+              </div>
+              <div class="lab-side-block grow">
+                <div class="lab-side-title">Variables</div>
+                <div id="lab-vars"></div>
+              </div>
+              <div class="lab-side-block">
+                <div class="lab-side-title">Output</div>
+                <pre class="lab-stdout" id="lab-stdout"></pre>
+                <div class="lab-error hidden" id="lab-error"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-view hidden" id="lab-panel-memory">
+            <div class="lab-viewport" id="lab-viewport">
+              <div class="lab-graph" id="lab-graph"><p class="lab-empty">Trace a call to draw memory.</p></div>
+              <div class="lab-zoom">
+                <button type="button" id="lab-zoom-in" title="Zoom in">+</button>
+                <button type="button" id="lab-zoom-out" title="Zoom out">−</button>
+                <button type="button" id="lab-zoom-fit" title="Fit">⌂</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-transport">
+            <button class="lab-btn" type="button" id="lab-first" title="First step" disabled>⏮</button>
+            <button class="lab-btn" type="button" id="lab-back" title="Previous step" disabled>◀</button>
+            <button class="lab-btn" type="button" id="lab-play" title="Play / pause">▶</button>
+            <button class="lab-btn" type="button" id="lab-next" title="Next step" disabled>▶</button>
+            <button class="lab-btn" type="button" id="lab-last" title="Last step" disabled>⏭</button>
+            <label class="lab-speed">speed <input type="range" id="lab-speed" min="1" max="9" value="5" /></label>
+            <span class="lab-step">step <span id="lab-step-cur">0</span> / <span id="lab-step-tot">0</span></span>
+          </div>
+          <div class="lab-progress"><span id="lab-progress"></span></div>
+          <div class="lab-timeline hidden" id="lab-timeline"></div>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <p class="mt-3 font-mono text-[10.5px] text-muted">
+    ← → step · Space plays · the dimmed last lines are the call PyVerse adds to run your function ·
+    only the visible case's arguments are traced, never a hidden one.
+  </p>
+</section>

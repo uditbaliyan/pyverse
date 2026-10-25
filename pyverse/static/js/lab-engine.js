@@ -177,6 +177,13 @@
       setStatus("err", "Tracer failed: " + error);
       return;
     }
+    showTrace(raw);
+  }
+
+  // Render a finished trace (the JSON string from `_pvTrace` / `_pvTraceCall`).
+  // Split from runTrace so an embedding page can drive the tracer itself and
+  // hand the result over through `window.PyverseLab.show`.
+  function showTrace(raw) {
     var trace = JSON.parse(raw);
     state.trace = trace;
     state.steps = trace.steps || [];
@@ -201,6 +208,11 @@
       var row = document.createElement("div");
       row.className = "lab-line";
       row.setAttribute("data-line", String(index + 1));
+      // Lines the page appended to drive the learner's code (Practice's
+      // "watch it execute" call) are drawn dimmed: they are not the learner's.
+      if (state.trace.harness_from && index + 1 >= state.trace.harness_from) {
+        row.className += " lab-line-harness";
+      }
       var num = document.createElement("span");
       num.className = "lab-line-num";
       num.textContent = String(index + 1);
@@ -281,7 +293,7 @@
 
   function renderWhere(step) {
     if (!step) {
-      el.where.textContent = "Press Trace to record the program.";
+      el.where.textContent = root.getAttribute("data-empty") || "Press Trace to record the program.";
       return;
     }
     el.where.innerHTML = "";
@@ -579,6 +591,17 @@
     }, 100);
   }
 
+  // Hooks for a page that hosts the engine without its own editor (Practice).
+  window.PyverseLab = {
+    show: function (raw) {
+      stopPlay();
+      showTrace(raw);
+    },
+    setStatus: setStatus,
+    setMode: setMode,
+    retrace: null, // the host assigns this; Ctrl/⌘+Enter calls it when embedded
+  };
+
   initEditor();
   setMode(state.mode);
   render();
@@ -656,7 +679,11 @@
     if (tag === "textarea" || tag === "input" || tag === "select" || event.target.isContentEditable) return;
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
-      runTrace();
+      if (root.hasAttribute("data-embedded")) {
+        if (window.PyverseLab && window.PyverseLab.retrace) window.PyverseLab.retrace();
+      } else {
+        runTrace();
+      }
       return;
     }
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {

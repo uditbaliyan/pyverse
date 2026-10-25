@@ -2,8 +2,11 @@
 Client-side Python tracer for Labs (spec §12/§18 tracer lab).
 
 One PyScript version for the whole site, pinned here exactly as in
-`includes/pyscript_runtime.html`: 2025.7.3. Do not add a second runtime tag —
-a page includes one of the two partials, never both.
+`includes/pyscript_runtime.html`: 2025.7.3. Do not add a second runtime tag.
+A page normally includes one of the two partials. The Practice problem page is
+the exception: it includes both, with `embedded=True` here so the PyScript
+`<link>`/`<script>` tags (already emitted by the grader partial) are not
+repeated — the two `<script type="py">` blocks then share one interpreter.
 
 Contract for the including page:
   * Set `window._pendingLabCode` (the source to trace) and then call
@@ -19,7 +22,22 @@ Contract for the including page:
     interned, and drawing a shared node for two independent `5`s would lie.
   * Poll `document.body.dataset.labReady === "1"` before enabling Trace —
     Pyodide loads asynchronously and offline it never arrives.
+
+Second entry point, used by the Practice problem page ("watch it execute"):
+  * `window._pvTraceCall(code, fn, args, limit)` traces ONE CALL of the learner's
+    function: it appends `_result = fn(args)` to `code` and traces the whole
+    program. It returns the same JSON as `_pvTrace()` plus `harness_from` — the
+    first source line that belongs to the appended harness rather than to the
+    learner — so the view can dim it. `args` is Python source for the argument
+    list, exactly as the grader receives it.
+  * `limit` (optional) is a hard cap on executed line events. `_pvTrace()` only
+    stops *recording* at the step cap; a runaway loop would still run forever.
+    With a limit the tracer raises `TraceLimitExceeded` (a BaseException, so a
+    learner's `except Exception` cannot swallow it) and the trace comes back
+    with `error` set. Labs do not pass a limit, so they behave as before.
+  * Poll `document.body.dataset.labReady` exactly as above.
 {% endcomment %}
+{% if not embedded %}
 <link
   rel="stylesheet"
   href="https://pyscript.net/releases/2025.7.3/core.css"
@@ -29,6 +47,7 @@ Contract for the including page:
   type="module"
   src="https://pyscript.net/releases/2025.7.3/core.js"
 ></script>
+{% endif %}
 
 <script type="py">
 import io
@@ -49,6 +68,10 @@ _ITEM_CAP = 25
 _ATTR_CAP = 20
 _DEPTH_CAP = 3
 _STR_CAP = 28
+
+
+class TraceLimitExceeded(BaseException):
+    """Raised from the trace hook when a caller-supplied line-event limit is hit."""
 
 
 def _node(value, depth=0, seen=frozenset()):
@@ -137,13 +160,19 @@ def _visible(frame):
     return found
 
 
-def trace():
-    """Run `window._pendingLabCode` and return the step-by-step trace as JSON."""
-    source = window._pendingLabCode or ""
+def trace(source=None, limit=None, name="__main__"):
+    """Run `source` and return the step-by-step trace as JSON.
+
+    With no arguments (how Labs call it) the source is `window._pendingLabCode`.
+    `limit` caps executed line events, `name` is the program's `__name__`.
+    """
+    if source is None:
+        source = window._pendingLabCode or ""
     steps = []
     chunks = []
     printed = [0]
     stack = []
+    events = [0]
 
     class _Writer(io.TextIOBase):
         def write(self, text):
@@ -166,7 +195,13 @@ def trace():
             # return is visible without inventing an extra step.
             if stack and name != "<module>" and steps and steps[-1]["fn"] == name:
                 steps[-1]["returned"] = _node(arg)
-        elif event == "line" and len(steps) < _STEP_CAP:
+        elif event == "line":
+            events[0] += 1
+            if limit is not None and events[0] > limit:
+                raise TraceLimitExceeded(
+                    f"stopped after {limit:,} executed lines — is there an infinite loop?"
+                )
+        if event == "line" and len(steps) < _STEP_CAP:
             steps.append(
                 {
                     "line": frame.f_lineno,
@@ -184,7 +219,7 @@ def trace():
     sys.stdout = _Writer()
     sys.settrace(record)
     try:
-        exec(compile(source, _FILE, "exec"), {"__name__": "__main__"})
+        exec(compile(source, _FILE, "exec"), {"__name__": name})
     except SyntaxError as exc:
         error = f"SyntaxError: {exc.msg}"
         error_line = exc.lineno
@@ -211,8 +246,43 @@ def trace():
     )
 
 
+_HARNESS_MARK = "# ── PyVerse harness · the call being traced ──"
+
+
+def trace_call(code, fn_name, args_src, limit=None):
+    """Trace one call of the learner's function — the Practice "watch it run".
+
+    The program is `code`, then a marked harness line `_result = fn(args)`, so
+    the learner sees their own lines execute and then the call that drives them.
+    `__name__` is not "__main__": the grader execs the code in a bare namespace,
+    so an `if __name__ == "__main__":` block must stay dormant here too.
+    """
+    args_src = (args_src or "").strip()
+    try:
+        compile(f"{fn_name}({args_src})", "<arguments>", "eval")
+    except SyntaxError as exc:
+        return json.dumps(
+            {
+                "steps": [],
+                "stdout": "",
+                "error": f"SyntaxError in the arguments: {exc.msg}",
+                "error_line": None,
+                "truncated": False,
+                "source": code or "",
+                "harness_from": None,
+            }
+        )
+    body = (code or "").rstrip()
+    harness_from = body.count("\n") + 3  # blank line, then the marker
+    program = f"{body}\n\n{_HARNESS_MARK}\n_result = {fn_name}({args_src})"
+    result = json.loads(trace(program, limit, "__pyverse_problem__"))
+    result["harness_from"] = harness_from
+    return json.dumps(result)
+
+
 import js
 
 js.window._pvTrace = trace
+js.window._pvTraceCall = trace_call
 document.body.dataset.labReady = "1"
 </script>

@@ -1,0 +1,44 @@
+/* Practice "watch it execute" — only what the Labs stylesheet does not cover.
+ * Loaded after practice-engine.css and lab-engine.css on the problem page. */
+
+/* One column: the program is shown by the line view, there is no editor pane. */
+.lab-embedded .lab-main { grid-template-columns: 1fr; }
+
+/* Appended harness lines are not the learner's code. */
+.lab-line-harness code { opacity: 0.55; font-style: italic; }
+
+/* Source toggle + re-trace, on the cream chrome above the dark console. */
+.pt-src, .pt-retrace {
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border: 2px solid #1a1a1a;
+  background: transparent;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+.pt-src:hover, .pt-retrace:hover { background: rgba(26, 26, 26, 0.08); }
+.pt-src-on { background: #1a1a1a; color: #f5eeda; }
+.pt-src-on:hover { background: #1a1a1a; }
+.pt-retrace:disabled { opacity: 0.4; cursor: not-allowed; }
+.pt-call { font-size: 11.5px; max-width: 60ch; overflow-x: auto; white-space: nowrap; }
+
+/* The prompt strip under the console, after Run/Submit. */
+.pt-prompt {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 9px 12px;
+  border: 3px solid #1a1a1a; background: #f5eeda;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+}
+.pt-prompt.hidden { display: none; }
+.pt-prompt-ok { border-color: #15803d; }
+.pt-prompt-bad { border-color: #c62828; }
+.pt-prompt button {
+  font: inherit; font-weight: 700; padding: 4px 11px;
+  border: 2px solid #1a1a1a; background: #1a1a1a; color: #f5eeda; cursor: pointer;
+}
+.pt-prompt button.pt-ghost { background: transparent; color: #1a1a1a; }
+.pt-prompt button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pt-prompt code { font-size: 12px; }

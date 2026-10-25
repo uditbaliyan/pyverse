@@ -19,6 +19,9 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     {# CodeMirror 5, same build the reference engine uses. #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
     <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+    {# "Watch it execute": the Labs' tracer views, embedded below the workspace. #}
+    <link rel="stylesheet" href="{% static 'css/lab-engine.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/problem-trace.css' %}" />
 
     <style>
       /* ── console interior ────────────────────────────────────────
@@ -399,6 +402,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
             <div class="lang-tag"><span class="ldot"></span> Python · {{ problem.comparator }}</div>
             <div class="eactions">
               <button class="btn btn-ghost" id="reset-btn" type="button">Reset</button>
+              <button class="btn btn-ghost" id="trace-btn" type="button" disabled title="Step through your code, line by line">Trace</button>
               <button class="btn btn-run" id="run-btn" type="button" disabled>Run <kbd>⌃↵</kbd></button>
               <button class="btn btn-acc" id="sub-btn" type="button" disabled>Submit <kbd>⌃⇧↵</kbd></button>
             </div>
@@ -459,6 +463,12 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     </div>
   </section>
 
+  {# ── after Run/Submit: the way into the trace (filled by problem-trace.js) ── #}
+  <div class="pt-prompt hidden" id="trace-prompt" role="status" aria-live="polite"></div>
+
+  {# ── solve it, then watch it execute ─────────────────────────── #}
+  {% include "includes/trace_panel.html" %}
+
   {# ── how to drive it ─────────────────────────────────────────── #}
   <div class="mt-5 font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5">
     ⌃/⌘ + ↵ runs the visible case · ⌃/⌘ + ⇧ + ↵ submits every case ·
@@ -476,8 +486,11 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
 
     {{ payload|json_script:"pyverse-payload" }}
+    {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
     <script src="{% static 'js/pyverse-progress.js' %}"></script>
     {% include "includes/pyscript_runtime.html" %}
+    {# Second `<script type="py">` in the same interpreter; PyScript tags are already loaded above. #}
+    {% include "includes/tracer_runtime.html" with embedded=True %}
 
     <script>
       (function () {
@@ -582,6 +595,19 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
               verdictEl.className = "mval " + tone;
 
               if (isSubmit) logSubmission(meta);
+
+              // Lets problem-trace.js offer "watch it execute" for this result.
+              document.dispatchEvent(
+                new CustomEvent("pyverse:run-result", {
+                  detail: {
+                    isSubmit: isSubmit,
+                    status: meta.status,
+                    passed: meta.passed,
+                    total: meta.total,
+                    log: result[1],
+                  },
+                })
+              );
             } catch (err) {
               outEl.innerHTML = '<span class="tr">Execution bridge error: ' + escapeHtml(String(err)) + "</span>";
             }
@@ -746,4 +772,6 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
         })();
       })();
     </script>
+    <script src="{% static 'js/lab-engine.js' %}"></script>
+    <script src="{% static 'js/problem-trace.js' %}"></script>
 {% endblock extra_js %}
