@@ -156,7 +156,8 @@ window.__CURRENT_LESSON__ = "{{ page.slug }}";
 <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
 
 {% if has_notebook %}
-{% include "includes/pyscript_runtime.html" %}
+{% include "includes/pyscript_runtime.html" with embedded=True %}
+<script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
 <script src="{% static 'lms/js/notebook.js' %}"></script>
 {% endif %}
 

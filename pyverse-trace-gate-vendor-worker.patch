@@ -1,0 +1,2020 @@
+From 78242360d91190c8aa7a543ba643728a5e576438 Mon Sep 17 00:00:00 2001
+From: claude <c@x>
+Date: Sun, 25 Oct 2026 12:08:23 +0000
+Subject: [PATCH 1/3] Trace quality gate: compare returned value, step bounds,
+ best example, --report/--apply, admin column
+
+---
+ .../commands/check_problem_traces.py          | 209 +++++++++++----
+ .../migrations/0007_problem_trace_case.py     |  18 ++
+ pyverse/coding/models.py                      |  38 +++
+ pyverse/coding/tracing.py                     | 142 ++++++++++
+ pyverse/coding/wagtail_hooks.py               |   2 +-
+ pyverse/static/js/problem-trace.js            |  12 +-
+ pyverse/templates/coding/problem_page.html    |   1 +
+ .../templates/includes/tracer_runtime.html    |  40 ++-
+ pyverse/tests/test_problem_trace.py           |   1 +
+ pyverse/tests/test_trace_quality.py           | 248 ++++++++++++++++++
+ 10 files changed, 652 insertions(+), 59 deletions(-)
+ create mode 100644 pyverse/coding/migrations/0007_problem_trace_case.py
+ create mode 100644 pyverse/coding/tracing.py
+ create mode 100644 pyverse/tests/test_trace_quality.py
+
+diff --git a/pyverse/coding/management/commands/check_problem_traces.py b/pyverse/coding/management/commands/check_problem_traces.py
+index afffd64..e121f15 100644
+--- a/pyverse/coding/management/commands/check_problem_traces.py
++++ b/pyverse/coding/management/commands/check_problem_traces.py
+@@ -5,20 +5,25 @@ Every problem is supposed to have a trace worth watching. This checks, for each
+ 
+ * the reference solution passes every test case (same out-of-process verifier
+   the AI authoring pipeline uses, so a wrong answer key is caught here too);
+-* it traces cleanly on the first *visible* case, with the tracer that ships to
+-  the browser (`includes/tracer_runtime.html`, loaded by `trace_harness`);
+-* that trace is not cut off by the step cap, which would end the walk-through
+-  mid-loop on the very example the learner is shown first.
++* it traces cleanly on the example the page shows (the pinned `trace_case`, else
++  the first visible case), with the tracer that ships to the browser, and the
++  value it *returns* equals the answer key under the problem's comparator, the
++  grader's own rule (a mismatch means the walk-through shows a wrong answer);
++* that trace is not cut off by the step cap and is neither trivial nor too long
++  to follow (`MIN_STEPS`..`MAX_STEPS`, see `pyverse/coding/tracing.py`).
+ 
+ Errors fail the run (exit 1); warnings do not unless `--strict`.
+ 
+     manage.py check_problem_traces
+     manage.py check_problem_traces --slug two-sum --slug valid-anagram --strict
++    manage.py check_problem_traces --report        # one table row per problem
++    manage.py check_problem_traces --apply         # pin the best example where unset
+ """
+ 
+ from __future__ import annotations
+ 
+-import json
++from dataclasses import dataclass
++from dataclasses import field
+ 
+ from django.core.management.base import BaseCommand
+ from django.core.management.base import CommandError
+@@ -26,16 +31,35 @@ from django.core.management.base import CommandError
+ from pyverse.ai_content.verify import verify
+ from pyverse.coding.models import CodingProblem
+ from pyverse.coding.trace_harness import load_tracer
++from pyverse.coding.tracing import MAX_STEPS
++from pyverse.coding.tracing import MIN_STEPS
++from pyverse.coding.tracing import CaseTrace
++from pyverse.coding.tracing import choose_trace_case
++from pyverse.coding.tracing import trace_all_visible
+ 
+-# Mirrors LINE_LIMIT in static/js/problem-trace.js.
+-LINE_LIMIT = 200_000
+-MIN_STEPS = 3
+ 
++@dataclass
++class ProblemCheck:
++    errors: list[str] = field(default_factory=list)
++    warnings: list[str] = field(default_factory=list)
++    #: The case the page shows today (pinned, else first visible).
++    shown: CaseTrace | None = None
++    #: The best usable case, or the fallback first one (see choose_trace_case).
++    best: CaseTrace | None = None
+ 
+-def check_problem(problem: CodingProblem, tracer) -> tuple[list[str], list[str]]:
+-    """Return `(errors, warnings)` for one problem."""
+-    errors: list[str] = []
+-    warnings: list[str] = []
++    @property
++    def status(self) -> str:
++        return "FAIL" if self.errors else "warn" if self.warnings else "ok"
++
++
++def _shown_index(problem: CodingProblem, count: int) -> int:
++    pinned = problem.trace_case
++    return pinned - 1 if pinned and 1 <= pinned <= count else 0
++
++
++def check_problem(problem: CodingProblem, tracer) -> ProblemCheck:  # noqa: C901, PLR0912
++    check = ProblemCheck()
++    errors, warnings = check.errors, check.warnings
+ 
+     cases = problem.test_case_payload()
+     visible = [case for case in cases if not case["hidden"]]
+@@ -45,10 +69,10 @@ def check_problem(problem: CodingProblem, tracer) -> tuple[list[str], list[str]]
+         )
+     if not problem.solution_code.strip():
+         warnings.append("no reference solution: the page offers no reference trace")
+-        return errors, warnings
++        return check
+     if not cases:
+         errors.append("no test cases: the reference solution cannot be verified")
+-        return errors, warnings
++        return check
+ 
+     result = verify(
+         function_name=problem.function_name,
+@@ -59,28 +83,83 @@ def check_problem(problem: CodingProblem, tracer) -> tuple[list[str], list[str]]
+     )
+     if not result.ok:
+         errors.append(f"reference solution fails:\n{result.failure_report()}")
+-        return errors, warnings
++        return check
+     if not visible:
+-        return errors, warnings
+-
+-    args = visible[0]["input"]
+-    traced = json.loads(
+-        tracer.trace_call(
+-            problem.solution_code, problem.function_name, args, LINE_LIMIT,
+-        ),
+-    )
+-    if traced["error"]:
+-        errors.append(f"reference trace on ({args}) stopped: {traced['error']}")
+-    elif len(traced["steps"]) < MIN_STEPS:
++        return check
++
++    traces = trace_all_visible(problem, tracer)
++    check.best = choose_trace_case(traces)
++    shown = check.shown = traces[_shown_index(problem, len(traces))]
++    where = f"reference trace on ({shown.args})"
++
++    if shown.error:
++        errors.append(f"{where} stopped: {shown.error}")
++        return check
++    if shown.matches_expected is False:
++        errors.append(
++            f"{where} returned a value the answer key rejects: the "
++            "walk-through would show a wrong answer",
++        )
++    elif shown.matches_expected is None:
++        warnings.append(f"{where}: the returned value could not be compared")
++    if shown.truncated:
++        warnings.append(f"{where} hits the step cap; use a smaller example")
++    elif shown.steps < MIN_STEPS:
+         warnings.append(
+-            f"reference trace on ({args}) has only {len(traced['steps'])} steps",
++            f"{where} has only {shown.steps} steps (< {MIN_STEPS}): too trivial",
+         )
+-    if traced["truncated"]:
++    elif shown.steps > MAX_STEPS:
+         warnings.append(
+-            f"reference trace on ({args}) hits the step cap; "
+-            "use a smaller first visible example",
++            f"{where} has {shown.steps} steps (> {MAX_STEPS}): too long to follow",
+         )
+-    return errors, warnings
++    if shown.trivial:
++        warnings.append(f"{where} returns an empty value: it shows nothing")
++
++    best = check.best
++    if (
++        best is not None
++        and best.usable
++        and best.index != shown.index
++        and not shown.usable
++    ):
++        warnings.append(
++            f"visible case {best.index + 1} ({best.steps} steps) would trace better; "
++            "set 'Trace example' or run with --apply",
++        )
++    return check
++
++
++def _yes_no(value: bool | None) -> str:  # noqa: FBT001
++    return "?" if value is None else "yes" if value else "NO"
++
++
++def _report(rows: list[tuple[CodingProblem, ProblemCheck]]) -> list[str]:
++    header = ("slug", "case", "steps", "fits", "matches", "best", "status")
++    table = [header]
++    for problem, check in rows:
++        shown, best = check.shown, check.best
++        table.append(
++            (
++                problem.slug,
++                str(shown.index + 1) if shown else "-",
++                str(shown.steps) if shown else "-",
++                _yes_no(
++                    None
++                    if shown is None
++                    else not shown.truncated and shown.steps <= MAX_STEPS,
++                ),
++                _yes_no(shown.matches_expected) if shown else "-",
++                str(best.index + 1) if best and best.usable else "-",
++                check.status,
++            ),
++        )
++    widths = [max(len(row[i]) for row in table) for i in range(len(header))]
++    return [
++        "  ".join(
++            cell.ljust(width) for cell, width in zip(row, widths, strict=True)
++        ).rstrip()
++        for row in table
++    ]
+ 
+ 
+ class Command(BaseCommand):
+@@ -88,13 +167,29 @@ class Command(BaseCommand):
+ 
+     def add_arguments(self, parser) -> None:
+         parser.add_argument(
+-            "--slug", action="append", default=[], help="Limit to a slug (repeatable).",
++            "--slug",
++            action="append",
++            default=[],
++            help="Limit to a slug (repeatable).",
++        )
++        parser.add_argument(
++            "--strict",
++            action="store_true",
++            help="Treat warnings as errors.",
+         )
+         parser.add_argument(
+-            "--strict", action="store_true", help="Treat warnings as errors.",
++            "--report",
++            action="store_true",
++            help="Print a table: slug, case, steps, fits cap, matches, best.",
++        )
++        parser.add_argument(
++            "--apply",
++            action="store_true",
++            help="Save the best usable example as 'Trace example' on problems that "
++            "have none pinned (an author's pin is never overwritten).",
+         )
+ 
+-    def handle(self, *args, **options) -> None:
++    def handle(self, *args, **options) -> None:  # noqa: C901, PLR0912
+         problems = CodingProblem.objects.order_by("slug")
+         if options["slug"]:
+             problems = problems.filter(slug__in=options["slug"])
+@@ -104,28 +199,54 @@ class Command(BaseCommand):
+             raise CommandError(msg)
+ 
+         tracer = load_tracer()
+-        failed = warned = 0
++        failed = warned = applied = 0
++        rows: list[tuple[CodingProblem, ProblemCheck]] = []
+         for problem in problems:
+-            errors, warnings = check_problem(problem, tracer)
+-            if errors:
++            check = check_problem(problem, tracer)
++            rows.append((problem, check))
++
++            if (
++                options["apply"]
++                and problem.trace_case is None
++                and check.best is not None
++                and check.best.usable
++                and check.best.index != 0
++            ):
++                problem.trace_case = check.best.index + 1
++                problem.save(update_fields=["trace_case"])
++                applied += 1
++                # The page will now show the better case; re-judge against it.
++                check = check_problem(problem, tracer)
++                rows[-1] = (problem, check)
++
++            if check.errors:
+                 failed += 1
+-            elif warnings:
++            elif check.warnings:
+                 warned += 1
+-            status = "FAIL" if errors else "warn" if warnings else "ok"
++            if options["report"]:
++                continue
+             style = {
+                 "FAIL": self.style.ERROR,
+                 "warn": self.style.WARNING,
+                 "ok": self.style.SUCCESS,
+-            }[status]
+-            self.stdout.write(style(f"[{status:>4}] {problem.slug}"))
+-            for line in errors:
++            }[check.status]
++            self.stdout.write(style(f"[{check.status:>4}] {problem.slug}"))
++            for line in check.errors:
+                 self.stdout.write(self.style.ERROR(f"         ✗ {line}"))
+-            for line in warnings:
++            for line in check.warnings:
+                 self.stdout.write(self.style.WARNING(f"         ! {line}"))
+ 
++        if options["report"]:
++            for line in _report(rows):
++                self.stdout.write(line)
++            for problem, check in rows:
++                for line in (*check.errors, *check.warnings):
++                    self.stdout.write(f"{problem.slug}: {line}")
++
+         self.stdout.write(
+             f"\n{len(problems)} problems: {len(problems) - failed - warned} ok, "
+-            f"{warned} with warnings, {failed} failing.",
++            f"{warned} with warnings, {failed} failing."
++            + (f" Pinned an example on {applied}." if options["apply"] else ""),
+         )
+         if failed or (options["strict"] and warned):
+             msg = "problem check failed"
+diff --git a/pyverse/coding/migrations/0007_problem_trace_case.py b/pyverse/coding/migrations/0007_problem_trace_case.py
+new file mode 100644
+index 0000000..77ddcf7
+--- /dev/null
++++ b/pyverse/coding/migrations/0007_problem_trace_case.py
+@@ -0,0 +1,18 @@
++# Generated by Django 6.0.7 on 2026-10-25 12:05
++
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ('coding', '0006_problemcompany_codingproblem_companies_and_more'),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name='codingproblem',
++            name='trace_case',
++            field=models.PositiveSmallIntegerField(blank=True, help_text="Which visible case (1 = first) 'Trace the reference solution' shows after a pass. Leave empty to use the first. `manage.py check_problem_traces --apply` picks one for you.", null=True, verbose_name='Trace example'),
++        ),
++    ]
+diff --git a/pyverse/coding/models.py b/pyverse/coding/models.py
+index 124f2c2..09396cf 100644
+--- a/pyverse/coding/models.py
++++ b/pyverse/coding/models.py
+@@ -281,6 +281,16 @@ class CodingProblem(ClusterableModel):
+         blank=True,
+         help_text="The ordered list of test cases used to grade submissions to this problem. Add at least one non-hidden case so students can self-check.",
+     )
++    trace_case = models.PositiveSmallIntegerField(
++        null=True,
++        blank=True,
++        verbose_name="Trace example",
++        help_text=(
++            "Which visible case (1 = first) 'Trace the reference solution' shows "
++            "after a pass. Leave empty to use the first. "
++            "`manage.py check_problem_traces --apply` picks one for you."
++        ),
++    )
+ 
+     panels = [
+         FieldPanel("topic"),
+@@ -296,6 +306,7 @@ class CodingProblem(ClusterableModel):
+         FieldPanel("comparator"),
+         FieldPanel("custom_comparator_code"),
+         FieldPanel("test_cases"),
++        FieldPanel("trace_case"),
+         FieldPanel("hint_tiers"),
+         FieldPanel("editorial_approaches"),
+         FieldPanel("solution_code"),
+@@ -349,6 +360,33 @@ class CodingProblem(ClusterableModel):
+     def technique_names(self):
+         return ",".join(sorted(self.techniques.names()))
+ 
++    @property
++    def trace_case_input(self):
++        """Argument source for the reference trace's example, or "" for none.
++
++        `trace_case` is 1-based among the visible cases; an out-of-range value
++        (cases were removed after it was set) is ignored, not an error.
++        """
++        visible = self.visible_test_cases
++        if self.trace_case and 1 <= self.trace_case <= len(visible):
++            return visible[self.trace_case - 1]["input"]
++        return ""
++
++    @property
++    def trace_status(self):
++        """Cheap authoring-time status for the admin list (no code is run).
++
++        The full check (does it verify, how many steps) is the
++        `check_problem_traces` command; running it per list row would be slow.
++        """
++        if not self.solution_code.strip():
++            return "no reference solution"
++        if not self.visible_test_cases:
++            return "no visible example"
++        if self.trace_case_input:
++            return f"ready (example {self.trace_case})"
++        return "ready (first example)"
++
+     def test_case_payload(self):
+         """Test cases as plain JSON-safe dicts, for the client-side grader.
+ 
+diff --git a/pyverse/coding/tracing.py b/pyverse/coding/tracing.py
+new file mode 100644
+index 0000000..2eebe5a
+--- /dev/null
++++ b/pyverse/coding/tracing.py
+@@ -0,0 +1,142 @@
++"""Which example a problem's trace should show, and whether that trace is sound.
++
++Authoring-time only (used by `check_problem_traces` and tests); never imported
++by the exported site. Pure functions over a problem-like object and the tracer
++from `trace_harness.load_tracer()`, so they can be unit-tested with fakes.
++
++A trace is *sound* when the reference solution, run by the shipped tracer on
++the example, returns what the answer key says under the problem's own
++comparator, the same rule the learner's grader applies (`verify_runner`).
++"""
++
++from __future__ import annotations
++
++import json
++from dataclasses import dataclass
++from dataclasses import field
++from typing import Any
++
++from pyverse.ai_content.verify_runner import _load_comparator
++from pyverse.ai_content.verify_runner import _matches
++
++# Mirrors LINE_LIMIT in static/js/problem-trace.js.
++LINE_LIMIT = 200_000
++#: Fewer steps than this is too trivial to teach anything (warning).
++MIN_STEPS = 6
++#: More steps than this is too long to follow (warning). Below the tracer's cap.
++MAX_STEPS = 250
++
++
++@dataclass
++class CaseTrace:
++    """The reference solution traced on one visible case."""
++
++    index: int  # position among the visible cases, 0-based
++    args: str
++    steps: int = 0
++    error: str | None = None
++    truncated: bool = False
++    #: None = could not be decided (no/oversized repr, bad comparator).
++    matches_expected: bool | None = None
++    trivial: bool = False
++    notes: list[str] = field(default_factory=list)
++
++    @property
++    def usable(self) -> bool:
++        """Sound and instructive: a candidate for the page's example."""
++        return (
++            self.error is None
++            and not self.truncated
++            and self.matches_expected is True
++            and not self.trivial
++            and MIN_STEPS <= self.steps <= MAX_STEPS
++        )
++
++
++def _is_trivial(value: Any) -> bool:
++    """An answer that shows nothing: None or an empty container/string."""
++    return value is None or (
++        isinstance(value, (str, list, tuple, dict, set, frozenset)) and not value
++    )
++
++
++def returned_matches(
++    returned_repr: str | None,
++    expected_source: str,
++    comparator: str,
++    custom_comparator_code: str = "",
++) -> tuple[bool | None, bool]:
++    """`(matches, trivial)` for a traced return value, per the grader's rules.
++
++    `matches` is None when the comparison cannot be made (repr unavailable, or
++    not evaluable, or the custom comparator is broken).
++    """
++    if returned_repr is None:
++        return None, False
++    try:
++        actual = eval(returned_repr, {})  # noqa: S307 - our own tracer's repr()
++    except Exception:  # noqa: BLE001
++        # Not a literal (e.g. a custom object): the grader falls back to repr.
++        if comparator != "custom":
++            return (
++                returned_repr.strip() == str(expected_source).strip(),
++                False,
++            )
++        return None, False
++    namespace, error = _load_comparator(
++        {"comparator": comparator, "custom_comparator_code": custom_comparator_code},
++    )
++    if error is not None:
++        return None, _is_trivial(actual)
++    try:
++        matched = bool(
++            _matches(actual, expected_source, comparator or "exact", namespace),
++        )
++    except Exception:  # noqa: BLE001 - a throwing custom compare() is "unknown"
++        return None, _is_trivial(actual)
++    return matched, _is_trivial(actual)
++
++
++def trace_visible_case(problem: Any, tracer: Any, index: int) -> CaseTrace:
++    """Trace the reference solution on the `index`-th visible case."""
++    case = problem.visible_test_cases[index]
++    result = CaseTrace(index=index, args=case["input"])
++    traced = json.loads(
++        tracer.trace_call(
++            problem.solution_code,
++            problem.function_name,
++            case["input"],
++            LINE_LIMIT,
++        ),
++    )
++    result.steps = len(traced["steps"])
++    result.error = traced["error"]
++    result.truncated = bool(traced["truncated"])
++    if result.error is None:
++        result.matches_expected, result.trivial = returned_matches(
++            traced.get("returned_repr"),
++            case["expected"],
++            problem.comparator,
++            problem.custom_comparator_code,
++        )
++    return result
++
++
++def trace_all_visible(problem: Any, tracer: Any) -> list[CaseTrace]:
++    return [
++        trace_visible_case(problem, tracer, index)
++        for index in range(len(problem.visible_test_cases))
++    ]
++
++
++def choose_trace_case(traces: list[CaseTrace]) -> CaseTrace | None:
++    """The best example to show: fewest steps among the usable ones.
++
++    Usable = sound, not cut off, non-trivial answer, and MIN_STEPS..MAX_STEPS
++    steps. Ties go to the earlier case. With no usable case, fall back to the
++    first visible one (what the page did before), or None if there is none.
++    """
++    usable = [trace for trace in traces if trace.usable]
++    if usable:
++        return min(usable, key=lambda trace: (trace.steps, trace.index))
++    return traces[0] if traces else None
+diff --git a/pyverse/coding/wagtail_hooks.py b/pyverse/coding/wagtail_hooks.py
+index 318f1ad..50e60ac 100644
+--- a/pyverse/coding/wagtail_hooks.py
++++ b/pyverse/coding/wagtail_hooks.py
+@@ -11,7 +11,7 @@ class CodingProblemViewSet(SnippetViewSet):
+     menu_label = "Coding Problems"
+     menu_name = "coding-problems"
+     add_to_admin_menu = True
+-    list_display = ("title", "difficulty", "function_name", "topic")
++    list_display = ("title", "difficulty", "function_name", "topic", "trace_status")
+     # Enables the AJAX admin chooser (used by the `lms` app when linking
+     # LessonSteps to problems) to search by title at 10k+ scale without
+     # loading the full queryset client-side.
+diff --git a/pyverse/static/js/problem-trace.js b/pyverse/static/js/problem-trace.js
+index 867de7b..365ee63 100644
+--- a/pyverse/static/js/problem-trace.js
++++ b/pyverse/static/js/problem-trace.js
+@@ -40,6 +40,16 @@
+     reference = "";
+   }
+ 
++  // The example "Trace the reference solution" shows (authored/picked by
++  // check_problem_traces); empty = leave the Arguments box as it is.
++  var referenceArgs = "";
++  try {
++    var caseEl = document.getElementById("pyverse-trace-case");
++    referenceArgs = caseEl ? JSON.parse(caseEl.textContent) || "" : "";
++  } catch (error) {
++    referenceArgs = "";
++  }
++
+   var source = "mine"; // "mine" | "ref"
+   var busy = false;
+ 
+@@ -174,7 +184,7 @@
+       });
+       if (reference) {
+         addButton("Trace the reference solution", true, function () {
+-          trace("accepted", { source: "ref" });
++          trace("accepted", referenceArgs ? { source: "ref", args: referenceArgs } : { source: "ref" });
+         });
+       }
+     } else if (result.status === "WRONG_ANSWER" || result.status === "RUNTIME_ERROR") {
+diff --git a/pyverse/templates/coding/problem_page.html b/pyverse/templates/coding/problem_page.html
+index b568e56..55750e1 100644
+--- a/pyverse/templates/coding/problem_page.html
++++ b/pyverse/templates/coding/problem_page.html
+@@ -487,6 +487,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
+ 
+     {{ payload|json_script:"pyverse-payload" }}
+     {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
++    {% if problem.solution_code and problem.trace_case_input %}{{ problem.trace_case_input|json_script:"pyverse-trace-case" }}{% endif %}
+     <script src="{% static 'js/pyverse-progress.js' %}"></script>
+     {# Python for the grader and the tracer, as inert text: pyverse-runtime.js hands it to a Web Worker. #}
+     {% include "includes/pyscript_runtime.html" with embedded=True %}
+diff --git a/pyverse/templates/includes/tracer_runtime.html b/pyverse/templates/includes/tracer_runtime.html
+index cd27336..83e04aa 100644
+--- a/pyverse/templates/includes/tracer_runtime.html
++++ b/pyverse/templates/includes/tracer_runtime.html
+@@ -64,6 +64,7 @@ _hide.textContent = "py-config, py-script, .py-error, .py-terminal { display: no
+ document.head.appendChild(_hide)
+ 
+ _FILE = "<lab>"
++_REPR_CAP = 20_000  # longest return value repr() kept for the QA comparison
+ _STEP_CAP = 400  # a runaway loop would otherwise fill the bridge with JSON
+ _ITEM_CAP = 25
+ _ATTR_CAP = 20
+@@ -266,19 +267,32 @@ def trace(source=None, limit=None, name="__main__", functions=False):
+         sys.settrace(None)
+         sys.stdout = stdout
+ 
+-    return json.dumps(
+-        {
+-            "steps": steps,
+-            "stdout": "".join(chunks),
+-            "error": error,
+-            "error_line": error_line,
+-            "truncated": len(steps) >= _STEP_CAP,
+-            "source": source,
+-            # The program's globals once it stopped: the last state, which no
+-            # "about to run this line" step can show.
+-            "final": _visible(namespace, functions),
+-        }
+-    )
++    returned_repr = None
++    if functions and "_result" in namespace:
++        # Practice only: the call's exact return value as source text, so the
++        # QA command can run the grader's comparator on it. `final` carries a
++        # clipped projection that cannot be compared. None if too long / odd.
++        try:
++            returned_repr = repr(namespace["_result"])
++        except Exception:  # a repr() that raises must not break the trace
++            returned_repr = None
++        if returned_repr is not None and len(returned_repr) > _REPR_CAP:
++            returned_repr = None
++
++    payload = {
++        "steps": steps,
++        "stdout": "".join(chunks),
++        "error": error,
++        "error_line": error_line,
++        "truncated": len(steps) >= _STEP_CAP,
++        "source": source,
++        # The program's globals once it stopped: the last state, which no
++        # "about to run this line" step can show.
++        "final": _visible(namespace, functions),
++    }
++    if functions:  # Labs output keeps its exact shape
++        payload["returned_repr"] = returned_repr
++    return json.dumps(payload)
+ 
+ 
+ _HARNESS_MARK = "# ── PyVerse harness · the call being traced ──"
+diff --git a/pyverse/tests/test_problem_trace.py b/pyverse/tests/test_problem_trace.py
+index 2494e41..eb37dfd 100644
+--- a/pyverse/tests/test_problem_trace.py
++++ b/pyverse/tests/test_problem_trace.py
+@@ -219,6 +219,7 @@ def test_viewer_ids_exist():
+     external = {
+         "pyverse-payload",
+         "pyverse-trace-reference",
++        "pyverse-trace-case",
+         "p-args",
+     }  # owned by the page / json_script
+     lost = {
+diff --git a/pyverse/tests/test_trace_quality.py b/pyverse/tests/test_trace_quality.py
+new file mode 100644
+index 0000000..c791a11
+--- /dev/null
++++ b/pyverse/tests/test_trace_quality.py
+@@ -0,0 +1,248 @@
++# ruff: noqa: E501, PLR2004, SLF001
++"""Trace quality gate: is the walk-through correct, instructive, and the best example?
++
++Runs the shipped tracer (`trace_harness`) in CPython, like `test_problem_trace.py`.
++"""
++
++from __future__ import annotations
++
++import json
++from io import StringIO
++from types import SimpleNamespace
++
++import pytest
++from django.core.management import call_command
++from django.core.management.base import CommandError
++from django.template.loader import render_to_string
++from django.test import RequestFactory
++
++from pyverse.coding.management.commands import check_problem_traces as cmd
++from pyverse.coding.models import CodingProblem
++from pyverse.coding.trace_harness import load_tracer
++from pyverse.coding.tracing import MAX_STEPS
++from pyverse.coding.tracing import MIN_STEPS
++from pyverse.coding.tracing import CaseTrace
++from pyverse.coding.tracing import choose_trace_case
++from pyverse.coding.tracing import returned_matches
++from pyverse.coding.tracing import trace_all_visible
++
++TOTAL = (
++    "def total(n):\n    t = 0\n    for i in range(n):\n        t += i\n    return t\n"
++)
++#: (input, expected, steps once traced): 0 is too trivial, 500 hits the step cap.
++CASES = [("0", "0"), ("60", "1770"), ("5", "10"), ("3", "3"), ("500", "124750")]
++
++
++@pytest.fixture(scope="module")
++def tracer():
++    return load_tracer()
++
++
++def _fake(solution=TOTAL, cases=CASES, comparator="exact", custom=""):
++    return SimpleNamespace(
++        function_name="total",
++        solution_code=solution,
++        comparator=comparator,
++        custom_comparator_code=custom,
++        visible_test_cases=[
++            {"input": a, "expected": e, "hidden": False} for a, e in cases
++        ],
++    )
++
++
++def _db_problem(cases=CASES, solution=TOTAL, **extra):
++    return CodingProblem.objects.create(
++        title="Total",
++        function_name="total",
++        function_signature="(n)",
++        solution_code=solution,
++        test_cases=json.dumps(
++            [
++                {
++                    "type": "test_case",
++                    "value": {"input": a, "expected_output": e, "is_hidden": False},
++                }
++                for a, e in cases
++            ],
++        ),
++        **extra,
++    )
++
++
++# ── the tracer reports what the call returned ──────────────────────────────
++def test_practice_trace_reports_return_value_labs_trace_does_not(tracer):
++    practice = json.loads(tracer.trace_call(TOTAL, "total", "5"))
++    assert practice["returned_repr"] == "10"
++    tracer.window._pendingLabCode = "x = 1\n"
++    assert "returned_repr" not in json.loads(tracer.trace())  # Labs shape unchanged
++
++
++def test_unrepresentable_or_missing_return_is_none(tracer):
++    boom = "class B:\n    def __repr__(self):\n        raise RuntimeError\n\ndef f():\n    return B()\n"
++    assert json.loads(tracer.trace_call(boom, "f", ""))["returned_repr"] is None
++    crash = json.loads(tracer.trace_call("def f():\n    1 / 0\n", "f", ""))
++    assert crash["error"]
++    assert crash["returned_repr"] is None
++
++
++# ── same comparator semantics as the grader ────────────────────────────────
++@pytest.mark.parametrize(
++    ("returned", "expected", "comparator", "custom", "matches"),
++    [
++        ("[0, 1]", "[0, 1]", "exact", "", True),
++        ("[1, 0]", "[0, 1]", "exact", "", False),
++        ("[1, 0]", "[0, 1]", "sorted_list", "", True),
++        ("0.3000000001", "0.3", "float_tolerance", "", True),
++        ("0.31", "0.3", "float_tolerance", "", False),
++        ("5", "10", "custom", "def compare(a, e):\n    return a * 2 == e\n", True),
++        ("5", "11", "custom", "def compare(a, e):\n    return a * 2 == e\n", False),
++        ("5", "5", "custom", "", None),  # custom declared, no code: undecidable
++        (None, "5", "exact", "", None),  # repr unavailable
++    ],
++)
++def test_returned_matches_follows_the_graders_comparators(
++    returned,
++    expected,
++    comparator,
++    custom,
++    matches,
++):
++    assert returned_matches(returned, expected, comparator, custom)[0] is matches
++
++
++def test_empty_answers_are_trivial():
++    assert returned_matches("[]", "[]", "exact")[1] is True
++    assert (
++        returned_matches("0", "0", "exact")[1] is False
++    )  # 0 / False can be real answers
++
++
++# ── choosing the example ───────────────────────────────────────────────────
++def test_best_case_is_the_fewest_steps_that_is_still_instructive(tracer):
++    traces = trace_all_visible(_fake(), tracer)
++    assert [t.steps for t in traces][:4] == [5, 125, 15, 11]
++    assert traces[0].steps < MIN_STEPS
++    assert not traces[0].usable  # trivial: skipped
++    assert traces[4].truncated
++    assert not traces[4].usable  # cut off: skipped
++    best = choose_trace_case(traces)
++    assert (best.index, best.args, best.steps) == (3, "3", 11)
++
++
++def test_choice_skips_cases_whose_value_the_answer_key_rejects(tracer):
++    wrong_key = [("0", "0"), ("60", "1770"), ("5", "10"), ("3", "999")]
++    best = choose_trace_case(trace_all_visible(_fake(cases=wrong_key), tracer))
++    assert best.args == "5"  # 3 would be shorter but its traced value is "wrong"
++
++
++def test_choice_falls_back_to_first_visible_when_nothing_is_usable(tracer):
++    traces = trace_all_visible(_fake(cases=[("0", "0"), ("500", "124750")]), tracer)
++    assert not any(t.usable for t in traces)
++    assert choose_trace_case(traces).index == 0
++    assert choose_trace_case([]) is None
++
++
++def test_ties_go_to_the_earlier_case():
++    mk = lambda i: CaseTrace(index=i, args=str(i), steps=10, matches_expected=True)  # noqa: E731
++    assert choose_trace_case([mk(0), mk(1)]).index == 0
++    assert MIN_STEPS < 10 < MAX_STEPS
++
++
++# ── the command: gate, report, apply ───────────────────────────────────────
++def test_a_solution_returning_the_wrong_value_fails_the_gate(db, monkeypatch):
++    """Even if verification were fooled, a traced value the key rejects is an error."""
++    _db_problem(cases=[("3", "3")], solution=TOTAL.replace("return t", "return t + 1"))
++    monkeypatch.setattr(cmd, "verify", lambda **_: SimpleNamespace(ok=True))
++    out = StringIO()
++    with pytest.raises(CommandError):
++        call_command("check_problem_traces", stdout=out)
++    assert "answer key rejects" in out.getvalue()
++
++
++def test_wrong_reference_fails_even_without_the_stub(db):
++    _db_problem(cases=[("3", "3")], solution=TOTAL.replace("return t", "return t + 1"))
++    with pytest.raises(CommandError):
++        call_command("check_problem_traces", stdout=StringIO())
++
++
++def test_too_short_and_too_long_traces_warn(db):
++    _db_problem(cases=[("0", "0")])
++    out = StringIO()
++    call_command("check_problem_traces", stdout=out)
++    assert "too trivial" in out.getvalue()
++    CodingProblem.objects.all().delete()
++    _db_problem(cases=[("150", "11175")])  # ~305 steps: under the cap, over MAX_STEPS
++    out = StringIO()
++    call_command("check_problem_traces", stdout=out)
++    assert f"> {MAX_STEPS}" in out.getvalue()
++
++
++def test_report_prints_one_row_per_problem(db):
++    _db_problem()
++    out = StringIO()
++    call_command("check_problem_traces", "--report", stdout=out)
++    lines = out.getvalue().splitlines()
++    assert lines[0].split() == [
++        "slug",
++        "case",
++        "steps",
++        "fits",
++        "matches",
++        "best",
++        "status",
++    ]
++    row = next(line for line in lines if line.startswith("total"))
++    assert row.split()[:7] == ["total", "1", "5", "yes", "yes", "4", "warn"]
++
++
++def test_apply_pins_the_best_case_and_never_overwrites_an_authors_pin(db):
++    first = _db_problem()
++    pinned = _db_problem(trace_case=3)
++    pinned.title = "Total pinned"
++    pinned.slug = "total-pinned"
++    pinned.save()
++    call_command("check_problem_traces", "--apply", stdout=StringIO())
++    first.refresh_from_db()
++    pinned.refresh_from_db()
++    assert first.trace_case == 4
++    assert first.trace_case_input == "3"
++    assert pinned.trace_case == 3  # the author's choice stands
++
++
++def test_page_offers_the_chosen_example_only_when_set(db):
++    problem = _db_problem()
++
++    class _Page:
++        title = "T"
++        url = "/practice/t/"
++
++    def render():
++        return render_to_string(
++            "coding/problem_page.html",
++            {
++                "page": _Page(),
++                "problem": problem,
++                "topic": None,
++                "payload": problem.grading_payload(),
++            },
++            request=RequestFactory().get(problem.get_absolute_url()),
++        )
++
++    assert "pyverse-trace-case" not in render()
++    problem.trace_case = 4
++    assert (
++        '<script id="pyverse-trace-case" type="application/json">"3"</script>'
++        in render()
++    )
++    problem.trace_case = 99  # stale after cases were removed: ignored, not an error
++    assert "pyverse-trace-case" not in render()
++
++
++def test_admin_column_reports_trace_readiness(db):
++    assert _db_problem().trace_status == "ready (first example)"
++    assert _db_problem(solution="").trace_status == "no reference solution"
++    assert _db_problem(cases=[], trace_case=None).trace_status == "no visible example"
++    assert _db_problem(trace_case=4).trace_status == "ready (example 4)"
++    from pyverse.coding.wagtail_hooks import CodingProblemViewSet  # noqa: PLC0415
++
++    assert "trace_status" in CodingProblemViewSet.list_display
+-- 
+2.43.0
+
+
+From 9a300736e7ba1002b13b91b6ef8bdd1501c51038 Mon Sep 17 00:00:00 2001
+From: claude <c@x>
+Date: Sun, 25 Oct 2026 13:09:36 +0000
+Subject: [PATCH 2/3] Self-host Pyodide/CodeMirror/viz-js; browser smoke test
+ (e2e) and CI job; docs
+
+---
+ .github/workflows/ci.yml                    |  38 ++++++
+ docs/howto.rst                              |  38 ++++++
+ pyproject.toml                              |   5 +
+ pyverse/static/js/lab-engine.js             |   2 +-
+ pyverse/static/vendor/README.md             |  16 +++
+ pyverse/templates/coding/problem_page.html  |  16 +--
+ pyverse/templates/includes/trace_panel.html |   3 +-
+ pyverse/templates/labs/lab_page.html        |  14 +-
+ pyverse/tests/e2e/__init__.py               |   0
+ pyverse/tests/e2e/test_browser_smoke.py     | 140 ++++++++++++++++++++
+ pyverse/tests/test_vendor.py                |  46 +++++++
+ utility/vendor_assets.py                    | 112 ++++++++++++++++
+ 12 files changed, 413 insertions(+), 17 deletions(-)
+ create mode 100644 pyverse/static/vendor/README.md
+ create mode 100644 pyverse/tests/e2e/__init__.py
+ create mode 100644 pyverse/tests/e2e/test_browser_smoke.py
+ create mode 100644 pyverse/tests/test_vendor.py
+ create mode 100644 utility/vendor_assets.py
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index c50fb76..88f402a 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -76,3 +76,41 @@ jobs:
+ 
+       - name: Test with pytest
+         run: uv run pytest
++
++  e2e:
++    # Headless-browser smoke test of the learner loop (pyverse/tests/e2e).
++    # Uses the committed db.sqlite3 content and the vendored Pyodide, so it needs
++    # no internet beyond installing Chromium. Playwright is added per run with
++    # `--with` so it stays out of pyproject.toml / uv.lock.
++    runs-on: ubuntu-latest
++    env:
++      DJANGO_SETTINGS_MODULE: config.settings.local
++      PYVERSE_E2E_URL: http://127.0.0.1:8000
++    steps:
++      - name: Checkout Code Repository
++        uses: actions/checkout@v6
++
++      - name: Install uv
++        uses: astral-sh/setup-uv@v5
++        with:
++          enable-cache: "true"
++
++      - name: Set up Python
++        uses: actions/setup-python@v6
++        with:
++          python-version-file: ".python-version"
++
++      - name: Install dependencies
++        run: uv sync --locked
++
++      - name: Install Chromium
++        run: uv run --with playwright playwright install --with-deps chromium
++
++      - name: Migrate and start the site
++        run: |
++          uv run python manage.py migrate
++          nohup uv run python manage.py runserver 127.0.0.1:8000 --noreload > server.log 2>&1 &
++          for i in $(seq 1 30); do curl -sf "$PYVERSE_E2E_URL/practice/problem/two-sum/" -o /dev/null && break; sleep 2; done
++
++      - name: Browser smoke test
++        run: uv run --with playwright pytest -m e2e pyverse/tests/e2e
+diff --git a/docs/howto.rst b/docs/howto.rst
+index 1b94b31..cdaf855 100644
+--- a/docs/howto.rst
++++ b/docs/howto.rst
+@@ -32,3 +32,41 @@ To compile all docstrings automatically into documentation source files, use the
+ 
+         uv run make apidocs
+ 
++
++Updating vendored assets
++------------------------
++
++Pyodide, CodeMirror and viz-js are served from ``pyverse/static/vendor/`` rather
++than a CDN, so Practice keeps working when a CDN is down. The only place their
++versions are chosen is the ``ASSETS`` table in ``utility/vendor_assets.py``.
++
++1. Edit the version (and the destination folder name, which contains it) in
++   ``ASSETS``.
++2. ``python utility/vendor_assets.py`` downloads the npm package and copies only
++   the listed files (needs ``npm``). ``--check`` verifies they exist, offline.
++3. Update the same version string where it is referenced:
++   ``coding/problem_page.html`` (CodeMirror, Pyodide), ``labs/lab_page.html``
++   (CodeMirror) and the ``data-viz`` attribute in ``includes/trace_panel.html`` and
++   ``labs/lab_page.html``. ``pyverse/tests/test_vendor.py`` fails until every
++   reference points at a file that exists.
++4. Update ``pyverse/static/vendor/README.md`` (version, licence) and run
++   ``uv run pytest`` and the browser smoke test (see below).
++
++Still on a CDN: PyScript 2025.7.3 (Labs pages and lesson notebooks; it also
++downloads its own Pyodide), Tailwind play CDN, Alpine, Mermaid, Lucide and Google
++Fonts.
++
++Browser smoke test
++------------------
++
++``pyverse/tests/e2e/`` drives headless Chromium through the learner loop: a
++``while True:`` run must come back as "Time limit exceeded" while the page's own
++timers keep firing, and a passing run must open a trace that steps. It is skipped
++unless ``PYVERSE_E2E_URL`` points at a running site::
++
++   uv run python manage.py runserver 127.0.0.1:8000 &
++   uv pip install playwright && uv run playwright install chromium
++   PYVERSE_E2E_URL=http://127.0.0.1:8000 uv run pytest -m e2e
++
++The default ``pytest`` run deselects it (``-m "not e2e"``); CI runs it in the
++``e2e`` job.
+diff --git a/pyproject.toml b/pyproject.toml
+index 777aa9c..b056643 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -153,6 +153,11 @@ addopts = [
+   "--ds=config.settings.test",
+   "--reuse-db",
+   "--import-mode=importlib",
++  "-m",
++  "not e2e",
++]
++markers = [
++  "e2e: headless-browser tests; need a running site, run with `pytest -m e2e`",
+ ]
+ minversion = "9.0"
+ python_files = [
+diff --git a/pyverse/static/js/lab-engine.js b/pyverse/static/js/lab-engine.js
+index e66ab83..41656bf 100644
+--- a/pyverse/static/js/lab-engine.js
++++ b/pyverse/static/js/lab-engine.js
+@@ -377,7 +377,7 @@
+     if (state.vizLoading) return state.vizLoading;
+     state.vizLoading = new Promise(function (resolve, reject) {
+       var script = document.createElement("script");
+-      script.src = VIZ_URL;
++      script.src = (root && root.getAttribute("data-viz")) || VIZ_URL; // vendored copy; CDN only if the attribute is missing
+       script.onload = function () {
+         window.Viz.instance().then(resolve, reject);
+       };
+diff --git a/pyverse/static/vendor/README.md b/pyverse/static/vendor/README.md
+new file mode 100644
+index 0000000..06da846
+--- /dev/null
++++ b/pyverse/static/vendor/README.md
+@@ -0,0 +1,16 @@
++# Vendored browser assets
++
++Pinned third-party files served from this site instead of a CDN, so Practice and
++Labs keep working when a CDN is down. Do not edit by hand: change the version in
++`utility/vendor_assets.py`, run it, and see `docs/howto.rst` ("Updating vendored
++assets").
++
++| Asset | Version | Licence | Upstream |
++|---|---|---|---|
++| Pyodide (core, stdlib only) | 0.27.7 | MPL-2.0 | https://github.com/pyodide/pyodide |
++| CodeMirror 5 | 5.65.17 | MIT (see `codemirror/5.65.17/LICENSE`) | https://github.com/codemirror/codemirror5 |
++| @viz-js/viz | 3.11.0 | MIT (bundles Graphviz, EPL-2.0) | https://github.com/mdaines/viz-js |
++
++Not vendored yet: PyScript 2025.7.3 (still loaded from pyscript.net by Labs
++pages and lesson notebooks; it also fetches its own Pyodide at runtime), Tailwind
++play CDN, Alpine, Mermaid, Lucide and Google Fonts.
+diff --git a/pyverse/templates/coding/problem_page.html b/pyverse/templates/coding/problem_page.html
+index 55750e1..f7a6e92 100644
+--- a/pyverse/templates/coding/problem_page.html
++++ b/pyverse/templates/coding/problem_page.html
+@@ -17,7 +17,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
+ 
+ {% block extra_head %}
+     {# CodeMirror 5, same build the reference engine uses. #}
+-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
++    <link rel="stylesheet" href="{% static 'vendor/codemirror/5.65.17/lib/codemirror.css' %}" />
+     <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+     {# "Watch it execute": a Python Tutor-style step-through below the workspace. #}
+     <link rel="stylesheet" href="{% static 'css/problem-trace.css' %}" />
+@@ -478,12 +478,12 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
+ {% endblock content %}
+ 
+ {% block extra_js %}
+-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
+-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
++    <script src="{% static 'vendor/codemirror/5.65.17/lib/codemirror.js' %}"></script>
++    <script src="{% static 'vendor/codemirror/5.65.17/mode/python/python.js' %}"></script>
++    <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/closebrackets.js' %}"></script>
++    <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/matchbrackets.js' %}"></script>
++    <script src="{% static 'vendor/codemirror/5.65.17/addon/selection/active-line.js' %}"></script>
++    <script src="{% static 'vendor/codemirror/5.65.17/addon/comment/comment.js' %}"></script>
+ 
+     {{ payload|json_script:"pyverse-payload" }}
+     {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
+@@ -492,7 +492,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
+     {# Python for the grader and the tracer, as inert text: pyverse-runtime.js hands it to a Web Worker. #}
+     {% include "includes/pyscript_runtime.html" with embedded=True %}
+     {% include "includes/tracer_runtime.html" with embedded=True %}
+-    <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}"></script>
++    <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
+ 
+     <script>
+       (function () {
+diff --git a/pyverse/templates/includes/trace_panel.html b/pyverse/templates/includes/trace_panel.html
+index a623ab0..8e1d07f 100644
+--- a/pyverse/templates/includes/trace_panel.html
++++ b/pyverse/templates/includes/trace_panel.html
+@@ -1,3 +1,4 @@
++{% load static %}
+ {% comment %}
+ "Watch it execute" panel for the Practice problem page.
+ 
+@@ -27,7 +28,7 @@ exactly as it did.
+     <button type="button" class="pt-retrace" id="trace-retrace">↻ Re-trace</button>
+   </div>
+ 
+-  <div class="tv mt-5" id="lab-root" data-mode="line" data-embedded tabindex="-1">
++  <div class="tv mt-5" id="lab-root" data-mode="line" data-embedded data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}" tabindex="-1">
+     <div class="tv-bar">
+       <span>Visualize execution — {{ problem.slug }}</span>
+       <span class="lab-status tv-pill" id="lab-status">Waiting for the Python runtime…</span>
+diff --git a/pyverse/templates/labs/lab_page.html b/pyverse/templates/labs/lab_page.html
+index 6452a32..714d65c 100644
+--- a/pyverse/templates/labs/lab_page.html
++++ b/pyverse/templates/labs/lab_page.html
+@@ -13,7 +13,7 @@ executes learner code, and the page ships as static HTML.
+ {% endcomment %}
+ 
+ {% block extra_head %}
+-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
++  <link rel="stylesheet" href="{% static 'vendor/codemirror/5.65.17/lib/codemirror.css' %}" />
+   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
+   <link rel="stylesheet" href="{% static 'css/lab-engine.css' %}" />
+ {% endblock extra_head %}
+@@ -51,7 +51,7 @@ executes learner code, and the page ships as static HTML.
+         <span class="lab-status" id="lab-status">Loading Python runtime…</span>
+       </div>
+ 
+-      <div class="pe-engine lab-app flex-1 min-h-0" id="lab-root" data-mode="{{ lab_payload.mode }}">
++      <div class="pe-engine lab-app flex-1 min-h-0" id="lab-root" data-mode="{{ lab_payload.mode }}" data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}">
+         <main class="lab-main">
+           {# ── program ─────────────────────────────────────────── #}
+           <section class="lab-col">
+@@ -156,11 +156,11 @@ executes learner code, and the page ships as static HTML.
+ {% endblock content %}
+ 
+ {% block extra_js %}
+-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
+-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
+-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
++  <script src="{% static 'vendor/codemirror/5.65.17/lib/codemirror.js' %}"></script>
++  <script src="{% static 'vendor/codemirror/5.65.17/mode/python/python.js' %}"></script>
++  <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/closebrackets.js' %}"></script>
++  <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/matchbrackets.js' %}"></script>
++  <script src="{% static 'vendor/codemirror/5.65.17/addon/selection/active-line.js' %}"></script>
+   {% include "includes/tracer_runtime.html" %}
+   <script src="{% static 'js/lab-engine.js' %}"></script>
+ {% endblock extra_js %}
+diff --git a/pyverse/tests/e2e/__init__.py b/pyverse/tests/e2e/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/pyverse/tests/e2e/test_browser_smoke.py b/pyverse/tests/e2e/test_browser_smoke.py
+new file mode 100644
+index 0000000..bb15bfe
+--- /dev/null
++++ b/pyverse/tests/e2e/test_browser_smoke.py
+@@ -0,0 +1,140 @@
++# ruff: noqa: E501, PLR2004
++"""Headless-browser smoke test of the learner loop. Not part of the default run.
++
++    PYVERSE_E2E_URL=http://127.0.0.1:8000 uv run pytest -m e2e
++
++`PYVERSE_E2E_URL` is the root of a running site: `manage.py runserver`, or a
++built `_site/` served with `python -m http.server -d _site 8000`. Optional:
++
++    PYVERSE_E2E_PROBLEM   slug of a problem with a reference solution (two-sum)
++    PYVERSE_E2E_CHROMIUM  path to a Chromium binary (else Playwright's own)
++    PYVERSE_E2E_LAB       slug of a /labs/ page (skipped if unset: Labs still
++                          load PyScript from pyscript.net, so they need internet)
++
++Needs `playwright` (`uv pip install playwright && playwright install chromium`).
++"""
++
++from __future__ import annotations
++
++import os
++import re
++
++import pytest
++
++pytestmark = pytest.mark.e2e
++
++BASE = os.environ.get("PYVERSE_E2E_URL", "").rstrip("/")
++PROBLEM = os.environ.get("PYVERSE_E2E_PROBLEM", "two-sum")
++LAB = os.environ.get("PYVERSE_E2E_LAB", "")
++BOOT_MS = 120_000  # Pyodide cold start
++
++if not BASE:
++    pytest.skip("set PYVERSE_E2E_URL to run the browser tests", allow_module_level=True)
++sync_api = pytest.importorskip("playwright.sync_api")
++
++LOOP = "def two_sum(nums, target):\n    while True:\n        pass\n"
++HEARTBEAT = "window.__ticks = 0; setInterval(() => { window.__ticks += 1; }, 50);"
++
++
++@pytest.fixture(scope="module")
++def browser():
++    with sync_api.sync_playwright() as pw:
++        exe = os.environ.get("PYVERSE_E2E_CHROMIUM") or None
++        launched = pw.chromium.launch(
++            executable_path=exe,
++            args=["--no-sandbox", "--disable-gpu"],
++        )
++        yield launched
++        launched.close()
++
++
++@pytest.fixture
++def page(browser):
++    page = browser.new_page()
++    yield page
++    page.close()
++
++
++def _open_problem(page):
++    page.goto(f"{BASE}/practice/problem/{PROBLEM}/")
++    page.wait_for_selector(
++        "body[data-pyverse-ready='1']",
++        timeout=BOOT_MS,
++        state="attached",
++    )
++    page.wait_for_function(
++        "document.getElementById('run-btn') && !document.getElementById('run-btn').disabled",
++    )
++
++
++def _click(page, selector):
++    """DOM click: immune to the dev server's debug-toolbar overlay (absent in `_site/`)."""
++    page.wait_for_selector(selector, state="attached")
++    page.evaluate("(s) => document.querySelector(s).click()", selector)
++
++
++def _set_code(page, code):
++    page.evaluate(
++        "(c) => { const h = document.querySelector('#editor-host .CodeMirror');"
++        " if (h) h.CodeMirror.setValue(c); else document.getElementById('editor-ta').value = c; }",
++        code,
++    )
++
++
++def test_infinite_loop_times_out_and_never_freezes_the_page(page):
++    _open_problem(page)
++    page.evaluate(HEARTBEAT)
++    _set_code(page, LOOP)
++    _click(page, "#run-btn")
++
++    # Mid-loop (budget is 5 s): the page's own timers must still be firing.
++    page.wait_for_timeout(2000)
++    ticks_mid_loop = page.evaluate("window.__ticks")
++    assert ticks_mid_loop > 10, "main thread was blocked while the loop ran"
++
++    page.wait_for_function(
++        "document.getElementById('out-area').textContent.includes('Time limit exceeded')",
++        timeout=15_000,
++    )
++    assert "ran for too long" in page.inner_text("#out-area")
++
++    # The worker was killed and re-created: the page recovers and still grades.
++    page.wait_for_selector(
++        "body[data-pyverse-ready='1']",
++        timeout=BOOT_MS,
++        state="attached",
++    )
++    page.wait_for_function("!document.getElementById('run-btn').disabled")
++
++
++def test_a_passing_run_offers_a_trace_that_steps(page):
++    _open_problem(page)
++    _click(page, "#run-btn")
++    page.wait_for_selector("#trace-prompt button", timeout=30_000)
++    _click(page, "#trace-prompt button")  # "Trace your solution" / "Trace this call"
++    page.wait_for_selector("#tv-code", timeout=60_000)
++    page.wait_for_function(
++        "/\\d+/.test((document.getElementById('tv-status') || {}).textContent || '')",
++        timeout=60_000,
++    )
++    status = page.inner_text("#tv-status")
++    assert re.search(r"\d+", status), status
++
++
++@pytest.mark.skipif(
++    not LAB,
++    reason="set PYVERSE_E2E_LAB (Labs need PyScript from the CDN)",
++)
++def test_lab_trace_button_produces_steps(page):
++    page.goto(f"{BASE}/labs/{LAB}/")
++    page.wait_for_selector(
++        "body[data-lab-ready='1']",
++        timeout=BOOT_MS,
++        state="attached",
++    )
++    page.wait_for_function("!document.getElementById('lab-run').disabled")
++    _click(page, "#lab-run")
++    page.wait_for_function(
++        "Number(document.getElementById('lab-step-tot').textContent) > 0",
++        timeout=60_000,
++    )
+diff --git a/pyverse/tests/test_vendor.py b/pyverse/tests/test_vendor.py
+new file mode 100644
+index 0000000..0d2a6f8
+--- /dev/null
++++ b/pyverse/tests/test_vendor.py
+@@ -0,0 +1,46 @@
++"""Vendored assets exist and the pages point at them, not at a CDN."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT.parent / "utility"))
++import vendor_assets  # noqa: E402
++
++PAGES = [
++    ROOT / "templates/coding/problem_page.html",
++    ROOT / "templates/labs/lab_page.html",
++    ROOT / "templates/includes/trace_panel.html",
++]
++
++
++def test_every_vendored_file_is_present_and_nonempty():
++    missing = [
++        p
++        for p in vendor_assets.expected_files()
++        if not p.is_file() or p.stat().st_size == 0
++    ]
++    assert not missing, missing
++
++
++@pytest.mark.parametrize("page", PAGES, ids=lambda p: p.name)
++def test_pages_reference_only_vendored_files_that_exist(page):
++    text = page.read_text(encoding="utf-8")
++    refs = re.findall(r"\{% static 'vendor/([^']+)' %\}", text)
++    assert refs, f"{page.name} no longer references vendor/"
++    assert not [r for r in refs if not (ROOT / "static/vendor" / r).is_file()]
++
++
++@pytest.mark.parametrize("page", PAGES[:2], ids=lambda p: p.name)
++def test_codemirror_is_not_loaded_from_a_cdn(page):
++    assert "jsdelivr.net/npm/codemirror" not in page.read_text(encoding="utf-8")
++
++
++def test_problem_page_boots_pyodide_from_the_vendored_copy():
++    html = PAGES[0].read_text(encoding="utf-8")
++    assert "data-pyodide=\"{% static 'vendor/pyodide/0.27.7/pyodide.js' %}\"" in html
+diff --git a/utility/vendor_assets.py b/utility/vendor_assets.py
+new file mode 100644
+index 0000000..c4293ef
+--- /dev/null
++++ b/utility/vendor_assets.py
+@@ -0,0 +1,112 @@
++# ruff: noqa: INP001
++"""Download the pinned third-party browser assets into pyverse/static/vendor/.
++
++    uv run python utility/vendor_assets.py          # fetch + copy (needs npm)
++    uv run python utility/vendor_assets.py --check  # verify files exist, no network
++
++Versions live ONLY in `ASSETS` below; templates and JS reference the vendored
++paths. To upgrade: change a version here, run the script, commit the result,
++and update the same version string in the templates/JS (the tests tell you
++which, see pyverse/tests/test_vendor.py).
++"""
++
++from __future__ import annotations
++
++import argparse
++import shutil
++import subprocess
++import sys
++import tarfile
++import tempfile
++from pathlib import Path
++
++VENDOR = Path(__file__).resolve().parents[1] / "pyverse" / "static" / "vendor"
++
++# npm package -> (version, {path inside the package: destination under VENDOR})
++_CM = "codemirror/5.65.17/"
++
++ASSETS: dict[str, tuple[str, dict[str, str]]] = {
++    "pyodide": (
++        "0.27.7",
++        {  # MPL-2.0. Everything the grader/tracer need (stdlib only, no wheels).
++            "pyodide.js": "pyodide/0.27.7/pyodide.js",
++            "pyodide.asm.js": "pyodide/0.27.7/pyodide.asm.js",
++            "pyodide.asm.wasm": "pyodide/0.27.7/pyodide.asm.wasm",
++            "python_stdlib.zip": "pyodide/0.27.7/python_stdlib.zip",
++            "pyodide-lock.json": "pyodide/0.27.7/pyodide-lock.json",
++        },
++    ),
++    "codemirror": (
++        "5.65.17",  # MIT
++        {
++            "lib/codemirror.js": "codemirror/5.65.17/lib/codemirror.js",
++            "lib/codemirror.css": "codemirror/5.65.17/lib/codemirror.css",
++            "mode/python/python.js": "codemirror/5.65.17/mode/python/python.js",
++            "addon/edit/closebrackets.js": _CM + "addon/edit/closebrackets.js",
++            "addon/edit/matchbrackets.js": _CM + "addon/edit/matchbrackets.js",
++            "addon/selection/active-line.js": _CM + "addon/selection/active-line.js",
++            "addon/comment/comment.js": "codemirror/5.65.17/addon/comment/comment.js",
++        },
++    ),
++    "@viz-js/viz": (
++        "3.11.0",  # MIT (bundles Graphviz, EPL-2.0)
++        {"lib/viz-standalone.js": "viz/3.11.0/viz-standalone.js"},
++    ),
++}
++
++
++def expected_files() -> list[Path]:
++    return [VENDOR / dest for _, files in ASSETS.values() for dest in files.values()]
++
++
++def fetch() -> None:
++    npm = shutil.which("npm")
++    if npm is None:
++        sys.exit("npm is required to download the vendored assets")
++    with tempfile.TemporaryDirectory() as tmp:
++        for package, (version, files) in ASSETS.items():
++            subprocess.run(  # noqa: S603
++                [npm, "pack", f"{package}@{version}", "--silent"],
++                cwd=tmp,
++                check=True,
++                capture_output=True,
++            )
++            tarball = next(Path(tmp).glob("*.tgz"))
++            with tarfile.open(tarball) as archive:
++                for source, dest in files.items():
++                    member = archive.extractfile(f"package/{source}")
++                    if member is None:
++                        sys.exit(f"{package}@{version}: {source} not in the package")
++                    target = VENDOR / dest
++                    target.parent.mkdir(parents=True, exist_ok=True)
++                    target.write_bytes(member.read())
++                licence = next(
++                    (
++                        m
++                        for m in archive.getmembers()
++                        if m.name.upper().startswith("PACKAGE/LICENSE")
++                    ),
++                    None,
++                )
++                if licence is not None:
++                    root = VENDOR.joinpath(*Path(next(iter(files.values()))).parts[:2])
++                    (root / "LICENSE").write_bytes(archive.extractfile(licence).read())
++            tarball.unlink()
++            print(f"vendored {package}@{version} ({len(files)} files)")  # noqa: T201
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--check", action="store_true", help="only verify files exist")
++    args = parser.parse_args()
++    if args.check:
++        missing = [path for path in expected_files() if not path.is_file()]
++        if missing:
++            sys.exit("missing vendored files:\n" + "\n".join(f"  {p}" for p in missing))
++        print(f"{len(expected_files())} vendored files present")  # noqa: T201
++        return
++    fetch()
++
++
++if __name__ == "__main__":
++    main()
+-- 
+2.43.0
+
+
+From 675d863c0364d2641492dfdaa03f4ac5c41070e6 Mon Sep 17 00:00:00 2001
+From: claude <c@x>
+Date: Sun, 25 Oct 2026 13:33:25 +0000
+Subject: [PATCH 3/3] Run Labs and lesson notebooks in the Python worker with
+ time budgets; browser tests
+
+---
+ docs/howto.rst                          |  20 ++++-
+ pyverse/static/js/lab-engine.js         |  29 ++++---
+ pyverse/static/js/pyverse-runner.js     |  16 +++-
+ pyverse/static/js/pyverse-runtime.js    |  41 +++++++++-
+ pyverse/static/lms/js/notebook.js       |  34 +++++---
+ pyverse/static/vendor/README.md         |   5 +-
+ pyverse/templates/labs/lab_page.html    |   4 +-
+ pyverse/templates/lms/lesson_page.html  |   3 +-
+ pyverse/tests/e2e/test_browser_smoke.py | 103 ++++++++++++++++++++++--
+ pyverse/tests/test_worker_pages.py      |  60 ++++++++++++++
+ 10 files changed, 274 insertions(+), 41 deletions(-)
+ create mode 100644 pyverse/tests/test_worker_pages.py
+
+diff --git a/docs/howto.rst b/docs/howto.rst
+index cdaf855..cd2b535 100644
+--- a/docs/howto.rst
++++ b/docs/howto.rst
+@@ -52,9 +52,9 @@ versions are chosen is the ``ASSETS`` table in ``utility/vendor_assets.py``.
+ 4. Update ``pyverse/static/vendor/README.md`` (version, licence) and run
+    ``uv run pytest`` and the browser smoke test (see below).
+ 
+-Still on a CDN: PyScript 2025.7.3 (Labs pages and lesson notebooks; it also
+-downloads its own Pyodide), Tailwind play CDN, Alpine, Mermaid, Lucide and Google
+-Fonts.
++Still on a CDN: Tailwind play CDN, Alpine, Mermaid, Lucide and Google Fonts.
++PyScript is no longer used by any page: Practice, Labs and lesson notebooks all run
++Python in the Web Worker (see below).
+ 
+ Browser smoke test
+ ------------------
+@@ -70,3 +70,17 @@ unless ``PYVERSE_E2E_URL`` points at a running site::
+ 
+ The default ``pytest`` run deselects it (``-m "not e2e"``); CI runs it in the
+ ``e2e`` job.
++
++Where learner Python runs
++-------------------------
++
++Every page that runs learner code (Practice problems, Labs, lesson notebooks)
++includes the Python partials with ``embedded=True`` (inert ``<script type="py">``
++text) plus ``js/pyverse-runtime.js``, which hands that text to a Web Worker
++(``js/pyverse-runner.js``) and kills the worker if a call exceeds its budget:
++Run 5 s, Submit 10 s, Trace 8 s, Lab trace 8 s, notebook Run all 10 s. A killed
++worker restarts in the background and the page shows "Time limit exceeded".
++Labs additionally stop after 200,000 executed lines, which ends a Python-level
++``while True:`` in well under a second; the watchdog covers loops that never
++reach a new line (a single huge C call). A timed-out notebook run loses that run's
++partial cell output.
+diff --git a/pyverse/static/js/lab-engine.js b/pyverse/static/js/lab-engine.js
+index 41656bf..5411a3c 100644
+--- a/pyverse/static/js/lab-engine.js
++++ b/pyverse/static/js/lab-engine.js
+@@ -166,18 +166,27 @@
+     el.status.textContent = text;
+   }
+ 
++  var tracing = false;
++
++  // Runs in the Python worker under a time budget (pyverse-runtime.js): a program
++  // that never returns is killed and comes back as a trace with `error` set.
+   function runTrace() {
+-    if (typeof window._pvTrace !== "function") return;
++    if (tracing || !window.PyverseRuntime) return;
++    tracing = true;
++    if (el.run) el.run.disabled = true;
+     setStatus("busy", "Tracing…");
+-    window._pendingLabCode = currentCode();
+-    var raw;
+-    try {
+-      raw = window._pvTrace();
+-    } catch (error) {
+-      setStatus("err", "Tracer failed: " + error);
+-      return;
+-    }
+-    showTrace(raw);
++    window.PyverseRuntime.labTrace(currentCode()).then(
++      function (raw) {
++        tracing = false;
++        if (el.run) el.run.disabled = false;
++        showTrace(raw);
++      },
++      function (error) {
++        tracing = false;
++        if (el.run) el.run.disabled = false;
++        setStatus("err", "Tracer failed: " + error);
++      }
++    );
+   }
+ 
+   // Render a finished trace (the JSON string from `_pvTrace` / `_pvTraceCall`).
+diff --git a/pyverse/static/js/pyverse-runner.js b/pyverse/static/js/pyverse-runner.js
+index 816d62a..5cb2f92 100644
+--- a/pyverse/static/js/pyverse-runner.js
++++ b/pyverse/static/js/pyverse-runner.js
+@@ -14,6 +14,8 @@
+  * Protocol (main -> worker):  {type:"init", sources:[py…], payload:"<json text>", pyodideUrl?}
+  *                             {type:"exec",  id, code, isSubmit, customJson}
+  *                             {type:"trace", id, code, fn, args, limit}
++ *                             {type:"lab",   id, code, limit}      Labs: trace a whole program
++ *                             {type:"notebook", id, cells}         lesson notebook: Run all
+  *           (worker -> main): {type:"ready"} | {type:"fatal", error}
+  *                             {type:"result", id, value} | {type:"error", id, error}
+  */
+@@ -26,7 +28,8 @@ var payloadText = "";
+ // The shipped Python does `from js import document, window` and only these calls:
+ //   document.createElement("style") / .head.appendChild / .body.dataset.<flag>
+ //   document.getElementById("pyverse-payload").textContent
+-//   window._pendingCode, js.window._pyExec = …, js.window._pvTraceCall = …
++//   window._pendingCode, js.window._pyExec = …, js.window._pvTraceCall = …,
++//   js.window._pvTrace / _pyNotebook, window._pendingNotebook
+ self.window = self;
+ self.document = {
+   createElement: function () {
+@@ -75,6 +78,17 @@ self.onmessage = async function (event) {
+       self.postMessage({ type: "result", id: msg.id, value: String(raw) });
+       return;
+     }
++    if (msg.type === "lab") {
++      // Labs run a whole program, not one call: `trace(source, limit)`.
++      var program = self._pvTrace(msg.code || "", msg.limit || null);
++      self.postMessage({ type: "result", id: msg.id, value: String(program) });
++      return;
++    }
++    if (msg.type === "notebook") {
++      self._pendingNotebook = JSON.stringify({ cells: msg.cells || [] });
++      self.postMessage({ type: "result", id: msg.id, value: String(self._pyNotebook()) });
++      return;
++    }
+   } catch (error) {
+     var text = String((error && error.message) || error);
+     self.postMessage(
+diff --git a/pyverse/static/js/pyverse-runtime.js b/pyverse/static/js/pyverse-runtime.js
+index 5d914e5..98e2c0e 100644
+--- a/pyverse/static/js/pyverse-runtime.js
++++ b/pyverse/static/js/pyverse-runtime.js
+@@ -2,6 +2,8 @@
+  *
+  *   PyverseRuntime.exec(code, isSubmit, customJson) -> Promise<[metaJson, log]>
+  *   PyverseRuntime.trace(code, fn, args)            -> Promise<traceJson>
++ *   PyverseRuntime.labTrace(code)                   -> Promise<traceJson>   (Labs)
++ *   PyverseRuntime.notebook(cells)                  -> Promise<resultJson>  (lessons)
+  *   PyverseRuntime.ready()                          -> boolean
+  *
+  * Both calls always resolve (never reject): a run that exceeds its time budget
+@@ -23,7 +25,7 @@
+   var WORKER_URL = script ? script.getAttribute("data-worker") : "";
+   // Optional: where pyodide.js lives (self-hosting). The worker defaults to the CDN.
+   var PYODIDE_URL = (script && script.getAttribute("data-pyodide")) || "";
+-  var BUDGET = { run: 5000, submit: 10000, trace: 8000 }; // ms per call, after ready
++  var BUDGET = { run: 5000, submit: 10000, trace: 8000, lab: 8000, notebook: 10000 }; // ms per call, after ready
+ 
+   var worker = null;
+   var readyPromise = null;
+@@ -151,9 +153,46 @@
+     });
+   }
+ 
++  // Labs: trace a whole program. Same JSON as `trace`, minus the call harness.
++  function labTrace(code) {
++    return call({ type: "lab", code: code, limit: 200000 }, BUDGET.lab).then(function (r) {
++      if (r.ok) return r.value;
++      return JSON.stringify({
++        steps: [],
++        stdout: "",
++        error: r.timeout
++          ? "Time limit exceeded (" + seconds(BUDGET.lab) + " s) — the program never finished " +
++            "(an endless loop?). The Python runtime was restarted; your editor is untouched."
++          : "RuntimeError: " + r.error,
++        error_line: null,
++        truncated: false,
++        source: code || "",
++      });
++    });
++  }
++
++  // Lesson notebooks: run every code cell in order. `{cells:[{stdout,error}], ok}`;
++  // on a timeout `cells` is empty and `error` says why (the worker, and with it
++  // the cells' partial output, is gone).
++  function notebook(cells) {
++    return call({ type: "notebook", cells: cells }, BUDGET.notebook).then(function (r) {
++      if (r.ok) return r.value;
++      return JSON.stringify({
++        cells: [],
++        ok: false,
++        error: r.timeout
++          ? "Time limit exceeded (" + seconds(BUDGET.notebook) + " s) — a cell never finished " +
++            "(an endless loop?). The Python runtime was restarted; nothing was changed on the page."
++          : "RuntimeError: " + r.error,
++      });
++    });
++  }
++
+   window.PyverseRuntime = {
+     exec: exec,
+     trace: trace,
++    labTrace: labTrace,
++    notebook: notebook,
+     ready: function () {
+       return isReady;
+     },
+diff --git a/pyverse/static/lms/js/notebook.js b/pyverse/static/lms/js/notebook.js
+index a59d31d..b9b89dc 100644
+--- a/pyverse/static/lms/js/notebook.js
++++ b/pyverse/static/lms/js/notebook.js
+@@ -1,9 +1,10 @@
+ /* Client-side notebook runner (LMS lesson bodies).
+  *
+  * Markdown cells arrive already rendered (`wagtailmarkdown`); this file drives
+- * only the code cells, through the shared PyScript runtime
+- * (`includes/pyscript_runtime.html` → `window._pyNotebook`), which executes them
+- * in order in one namespace, in the learner's browser. Nothing runs on the
++ * only the code cells, through the shared Python worker
++ * (`static/js/pyverse-runtime.js` -> `PyverseRuntime.notebook`), which executes them
++ * in order in one namespace, in the learner's browser, under a time limit: a cell
++ * that never returns is killed and the status line says so. Nothing runs on the
+  * server, exactly like Labs and the Practice grader.
+  *
+  * DOM contract
+@@ -46,6 +47,10 @@
+   }
+ 
+   function paintResult(notebook, result) {
++    if (result.error) {
++      paintStatus(notebook, result.error);
++      return;
++    }
+     var outputs = outputsOf(notebook);
+     var failures = 0;
+     outputs.forEach(function (out) {
+@@ -69,20 +74,23 @@
+ 
+   function run(notebook) {
+     var button = notebook.querySelector("[data-notebook-run]");
+-    if (!window._pyNotebook || !button) return;
++    if (!window.PyverseRuntime || !button) return;
+     button.disabled = true;
+     paintStatus(notebook, "Running…");
+-    window._pendingNotebook = JSON.stringify({ cells: cellsOf(notebook) });
+-
+-    // Yield so "Running…" paints before the synchronous Python call.
+-    setTimeout(function () {
+-      try {
+-        paintResult(notebook, JSON.parse(window._pyNotebook()));
+-      } catch (err) {
++    window.PyverseRuntime.notebook(cellsOf(notebook)).then(
++      function (raw) {
++        try {
++          paintResult(notebook, JSON.parse(raw));
++        } catch (err) {
++          paintStatus(notebook, "Execution bridge error: " + String(err));
++        }
++        button.disabled = false;
++      },
++      function (err) {
+         paintStatus(notebook, "Execution bridge error: " + String(err));
++        button.disabled = false;
+       }
+-      button.disabled = false;
+-    }, 20);
++    );
+   }
+ 
+   notebooks.forEach(function (notebook) {
+diff --git a/pyverse/static/vendor/README.md b/pyverse/static/vendor/README.md
+index 06da846..22b6fc3 100644
+--- a/pyverse/static/vendor/README.md
++++ b/pyverse/static/vendor/README.md
+@@ -11,6 +11,5 @@ assets").
+ | CodeMirror 5 | 5.65.17 | MIT (see `codemirror/5.65.17/LICENSE`) | https://github.com/codemirror/codemirror5 |
+ | @viz-js/viz | 3.11.0 | MIT (bundles Graphviz, EPL-2.0) | https://github.com/mdaines/viz-js |
+ 
+-Not vendored yet: PyScript 2025.7.3 (still loaded from pyscript.net by Labs
+-pages and lesson notebooks; it also fetches its own Pyodide at runtime), Tailwind
+-play CDN, Alpine, Mermaid, Lucide and Google Fonts.
++Not vendored: Tailwind play CDN, Alpine, Mermaid, Lucide and Google Fonts.
++PyScript is no longer loaded by any page.
+diff --git a/pyverse/templates/labs/lab_page.html b/pyverse/templates/labs/lab_page.html
+index 714d65c..5199228 100644
+--- a/pyverse/templates/labs/lab_page.html
++++ b/pyverse/templates/labs/lab_page.html
+@@ -161,6 +161,8 @@ executes learner code, and the page ships as static HTML.
+   <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/closebrackets.js' %}"></script>
+   <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/matchbrackets.js' %}"></script>
+   <script src="{% static 'vendor/codemirror/5.65.17/addon/selection/active-line.js' %}"></script>
+-  {% include "includes/tracer_runtime.html" %}
++  {# Python as inert text; pyverse-runtime.js runs it in a killable Web Worker. #}
++  {% include "includes/tracer_runtime.html" with embedded=True %}
++  <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
+   <script src="{% static 'js/lab-engine.js' %}"></script>
+ {% endblock extra_js %}
+diff --git a/pyverse/templates/lms/lesson_page.html b/pyverse/templates/lms/lesson_page.html
+index e28f935..05c9895 100644
+--- a/pyverse/templates/lms/lesson_page.html
++++ b/pyverse/templates/lms/lesson_page.html
+@@ -156,7 +156,8 @@ window.__CURRENT_LESSON__ = "{{ page.slug }}";
+ <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
+ 
+ {% if has_notebook %}
+-{% include "includes/pyscript_runtime.html" %}
++{% include "includes/pyscript_runtime.html" with embedded=True %}
++<script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
+ <script src="{% static 'lms/js/notebook.js' %}"></script>
+ {% endif %}
+ 
+diff --git a/pyverse/tests/e2e/test_browser_smoke.py b/pyverse/tests/e2e/test_browser_smoke.py
+index bb15bfe..8dd2a0d 100644
+--- a/pyverse/tests/e2e/test_browser_smoke.py
++++ b/pyverse/tests/e2e/test_browser_smoke.py
+@@ -121,20 +121,107 @@ def test_a_passing_run_offers_a_trace_that_steps(page):
+     assert re.search(r"\d+", status), status
+ 
+ 
+-@pytest.mark.skipif(
+-    not LAB,
+-    reason="set PYVERSE_E2E_LAB (Labs need PyScript from the CDN)",
+-)
+-def test_lab_trace_button_produces_steps(page):
++def _open_lab(page):
+     page.goto(f"{BASE}/labs/{LAB}/")
+     page.wait_for_selector(
+-        "body[data-lab-ready='1']",
+-        timeout=BOOT_MS,
+-        state="attached",
++        "body[data-lab-ready='1']", timeout=BOOT_MS, state="attached"
+     )
+     page.wait_for_function("!document.getElementById('lab-run').disabled")
++
++
++def _set_lab_code(page, code):
++    page.evaluate(
++        "(c) => document.querySelector('#lab-new-editor .CodeMirror').CodeMirror.setValue(c)",
++        code,
++    )
++
++
++needs_lab = pytest.mark.skipif(not LAB, reason="set PYVERSE_E2E_LAB to a lab slug")
++
++
++@needs_lab
++def test_lab_trace_button_produces_steps(page):
++    _open_lab(page)
+     _click(page, "#lab-run")
+     page.wait_for_function(
+         "Number(document.getElementById('lab-step-tot').textContent) > 0",
+         timeout=60_000,
+     )
++
++
++@needs_lab
++@pytest.mark.parametrize(
++    ("program", "message"),
++    [
++        # Python-level loop: the tracer's own 200,000-line limit stops it fast.
++        ("while True:\n    pass\n", "executed lines"),
++        # One C-level call, no line events: only the watchdog can end this.
++        ("total = sum(range(10**13))\n", "Time limit exceeded"),
++    ],
++)
++def test_lab_runaway_program_is_stopped_and_the_page_stays_alive(
++    page, program, message
++):
++    _open_lab(page)
++    page.evaluate(HEARTBEAT)
++    _set_lab_code(page, program)
++    _click(page, "#lab-run")
++    page.wait_for_timeout(2000)
++    assert page.evaluate("window.__ticks") > 10, "main thread was blocked"
++    page.wait_for_function(
++        "(m) => document.getElementById('lab-status').textContent.includes(m)",
++        arg=message,
++        timeout=20_000,
++    )
++    # Still usable afterwards (after a kill the worker has restarted).
++    _set_lab_code(page, "x = 1\ny = x + 1\n")
++    page.wait_for_function("!document.getElementById('lab-run').disabled")
++    _click(page, "#lab-run")
++    page.wait_for_function(
++        "document.getElementById('lab-status').textContent.includes('steps')",
++        timeout=BOOT_MS,
++    )
++
++
++NOTEBOOK_DOM = """
++<div data-notebook id="nb"><span data-notebook-status></span>
++  <button data-notebook-run>Run</button>
++  <div data-cell data-cell-type="code"><pre data-cell-source></pre>
++    <pre data-cell-out class="hidden"></pre></div>
++</div>"""
++
++
++def test_lesson_notebook_cell_that_never_ends_is_stopped(page):
++    """notebook.js is the real file; the DOM is injected into the problem page (which
++    ships the notebook runner's Python), so no lesson fixture is needed."""
++    _open_problem(page)
++    page.evaluate(HEARTBEAT)
++    page.evaluate(
++        "(h) => document.body.insertAdjacentHTML('beforeend', h)", NOTEBOOK_DOM
++    )
++    page.add_script_tag(url=f"{BASE}/static/lms/js/notebook.js")
++    page.wait_for_function(
++        "document.querySelector('[data-notebook-status]').textContent === 'Ready'",
++    )
++
++    def run(source):
++        page.evaluate(
++            "(s) => { document.querySelector('[data-cell-source]').textContent = s; }",
++            source,
++        )
++        _click(page, "[data-notebook-run]")
++
++    run("while True:\n    pass\n")
++    page.wait_for_timeout(2000)
++    assert page.evaluate("window.__ticks") > 10, "main thread was blocked"
++    page.wait_for_function(
++        "document.querySelector('[data-notebook-status]').textContent"
++        ".includes('Time limit exceeded')",
++        timeout=25_000,
++    )
++    page.wait_for_function("!document.querySelector('[data-notebook-run]').disabled")
++    run("print(1 + 2)")
++    page.wait_for_function(
++        "document.querySelector('[data-cell-out]').textContent.trim() === '3'",
++        timeout=BOOT_MS,
++    )
+diff --git a/pyverse/tests/test_worker_pages.py b/pyverse/tests/test_worker_pages.py
+new file mode 100644
+index 0000000..7972cdf
+--- /dev/null
++++ b/pyverse/tests/test_worker_pages.py
+@@ -0,0 +1,60 @@
++# ruff: noqa: PLR2004
++"""Every page that runs learner Python does it in the killable worker."""
++
++from __future__ import annotations
++
++import re
++from pathlib import Path
++
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++PAGES = [
++    "templates/coding/problem_page.html",
++    "templates/labs/lab_page.html",
++    "templates/lms/lesson_page.html",
++]
++
++
++def _read(rel):
++    return (ROOT / rel).read_text(encoding="utf-8")
++
++
++@pytest.mark.parametrize("rel", PAGES)
++def test_page_hands_python_to_the_worker_not_to_pyscript(rel):
++    html = _read(rel)
++    assert "with embedded=True" in html
++    assert "js/pyverse-runtime.js" in html
++    assert "js/pyverse-runner.js" in html
++    assert "vendor/pyodide/" in html
++    assert "pyscript.net" not in html
++
++
++@pytest.mark.parametrize(
++    "rel",
++    ["static/js/lab-engine.js", "static/lms/js/notebook.js"],
++)
++def test_page_scripts_no_longer_call_python_on_the_main_thread(rel):
++    js = _read(rel)
++    assert "window._pyNotebook" not in js.replace("`window._pyNotebook`", "")
++    assert "_pvTrace(" not in js
++    assert "PyverseRuntime" in js
++
++
++def test_runner_handles_every_message_type_the_runtime_sends():
++    sent = set(
++        re.findall(r'call\(\{ type: "(\w+)"', _read("static/js/pyverse-runtime.js")),
++    )
++    handled = set(
++        re.findall(r'msg\.type === "(\w+)"', _read("static/js/pyverse-runner.js")),
++    )
++    assert sent == {"exec", "trace", "lab", "notebook"}
++    assert sent <= handled
++
++
++def test_every_call_has_a_time_budget():
++    runtime = _read("static/js/pyverse-runtime.js")
++    body = re.search(r"var BUDGET = \{(.*?)\}", runtime).group(1)
++    budgets = dict(re.findall(r"(\w+): (\d+)", body))
++    assert set(budgets) == {"run", "submit", "trace", "lab", "notebook"}
++    assert all(int(ms) <= 10_000 for ms in budgets.values())
+-- 
+2.43.0
+

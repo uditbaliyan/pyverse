@@ -166,18 +166,27 @@
     el.status.textContent = text;
   }
 
+  var tracing = false;
+
+  // Runs in the Python worker under a time budget (pyverse-runtime.js): a program
+  // that never returns is killed and comes back as a trace with `error` set.
   function runTrace() {
-    if (typeof window._pvTrace !== "function") return;
+    if (tracing || !window.PyverseRuntime) return;
+    tracing = true;
+    if (el.run) el.run.disabled = true;
     setStatus("busy", "Tracing…");
-    window._pendingLabCode = currentCode();
-    var raw;
-    try {
-      raw = window._pvTrace();
-    } catch (error) {
-      setStatus("err", "Tracer failed: " + error);
-      return;
-    }
-    showTrace(raw);
+    window.PyverseRuntime.labTrace(currentCode()).then(
+      function (raw) {
+        tracing = false;
+        if (el.run) el.run.disabled = false;
+        showTrace(raw);
+      },
+      function (error) {
+        tracing = false;
+        if (el.run) el.run.disabled = false;
+        setStatus("err", "Tracer failed: " + error);
+      }
+    );
   }
 
   // Render a finished trace (the JSON string from `_pvTrace` / `_pvTraceCall`).
@@ -377,7 +386,7 @@
     if (state.vizLoading) return state.vizLoading;
     state.vizLoading = new Promise(function (resolve, reject) {
       var script = document.createElement("script");
-      script.src = VIZ_URL;
+      script.src = (root && root.getAttribute("data-viz")) || VIZ_URL; // vendored copy; CDN only if the attribute is missing
       script.onload = function () {
         window.Viz.instance().then(resolve, reject);
       };

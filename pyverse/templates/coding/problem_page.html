@@ -17,7 +17,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
 
 {% block extra_head %}
     {# CodeMirror 5, same build the reference engine uses. #}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
+    <link rel="stylesheet" href="{% static 'vendor/codemirror/5.65.17/lib/codemirror.css' %}" />
     <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
     {# "Watch it execute": a Python Tutor-style step-through below the workspace. #}
     <link rel="stylesheet" href="{% static 'css/problem-trace.css' %}" />
@@ -478,20 +478,21 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
 {% endblock content %}
 
 {% block extra_js %}
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/comment/comment.js"></script>
+    <script src="{% static 'vendor/codemirror/5.65.17/lib/codemirror.js' %}"></script>
+    <script src="{% static 'vendor/codemirror/5.65.17/mode/python/python.js' %}"></script>
+    <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/closebrackets.js' %}"></script>
+    <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/matchbrackets.js' %}"></script>
+    <script src="{% static 'vendor/codemirror/5.65.17/addon/selection/active-line.js' %}"></script>
+    <script src="{% static 'vendor/codemirror/5.65.17/addon/comment/comment.js' %}"></script>
 
     {{ payload|json_script:"pyverse-payload" }}
     {% if problem.solution_code %}{{ problem.solution_code|json_script:"pyverse-trace-reference" }}{% endif %}
+    {% if problem.solution_code and problem.trace_case_input %}{{ problem.trace_case_input|json_script:"pyverse-trace-case" }}{% endif %}
     <script src="{% static 'js/pyverse-progress.js' %}"></script>
     {# Python for the grader and the tracer, as inert text: pyverse-runtime.js hands it to a Web Worker. #}
     {% include "includes/pyscript_runtime.html" with embedded=True %}
     {% include "includes/tracer_runtime.html" with embedded=True %}
-    <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}"></script>
+    <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
 
     <script>
       (function () {

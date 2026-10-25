@@ -2,6 +2,8 @@
  *
  *   PyverseRuntime.exec(code, isSubmit, customJson) -> Promise<[metaJson, log]>
  *   PyverseRuntime.trace(code, fn, args)            -> Promise<traceJson>
+ *   PyverseRuntime.labTrace(code)                   -> Promise<traceJson>   (Labs)
+ *   PyverseRuntime.notebook(cells)                  -> Promise<resultJson>  (lessons)
  *   PyverseRuntime.ready()                          -> boolean
  *
  * Both calls always resolve (never reject): a run that exceeds its time budget
@@ -23,7 +25,7 @@
   var WORKER_URL = script ? script.getAttribute("data-worker") : "";
   // Optional: where pyodide.js lives (self-hosting). The worker defaults to the CDN.
   var PYODIDE_URL = (script && script.getAttribute("data-pyodide")) || "";
-  var BUDGET = { run: 5000, submit: 10000, trace: 8000 }; // ms per call, after ready
+  var BUDGET = { run: 5000, submit: 10000, trace: 8000, lab: 8000, notebook: 10000 }; // ms per call, after ready
 
   var worker = null;
   var readyPromise = null;
@@ -151,9 +153,46 @@
     });
   }
 
+  // Labs: trace a whole program. Same JSON as `trace`, minus the call harness.
+  function labTrace(code) {
+    return call({ type: "lab", code: code, limit: 200000 }, BUDGET.lab).then(function (r) {
+      if (r.ok) return r.value;
+      return JSON.stringify({
+        steps: [],
+        stdout: "",
+        error: r.timeout
+          ? "Time limit exceeded (" + seconds(BUDGET.lab) + " s) — the program never finished " +
+            "(an endless loop?). The Python runtime was restarted; your editor is untouched."
+          : "RuntimeError: " + r.error,
+        error_line: null,
+        truncated: false,
+        source: code || "",
+      });
+    });
+  }
+
+  // Lesson notebooks: run every code cell in order. `{cells:[{stdout,error}], ok}`;
+  // on a timeout `cells` is empty and `error` says why (the worker, and with it
+  // the cells' partial output, is gone).
+  function notebook(cells) {
+    return call({ type: "notebook", cells: cells }, BUDGET.notebook).then(function (r) {
+      if (r.ok) return r.value;
+      return JSON.stringify({
+        cells: [],
+        ok: false,
+        error: r.timeout
+          ? "Time limit exceeded (" + seconds(BUDGET.notebook) + " s) — a cell never finished " +
+            "(an endless loop?). The Python runtime was restarted; nothing was changed on the page."
+          : "RuntimeError: " + r.error,
+      });
+    });
+  }
+
   window.PyverseRuntime = {
     exec: exec,
     trace: trace,
+    labTrace: labTrace,
+    notebook: notebook,
     ready: function () {
       return isReady;
     },

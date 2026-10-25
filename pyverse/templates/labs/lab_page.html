@@ -13,7 +13,7 @@ executes learner code, and the page ships as static HTML.
 {% endcomment %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css" />
+  <link rel="stylesheet" href="{% static 'vendor/codemirror/5.65.17/lib/codemirror.css' %}" />
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
   <link rel="stylesheet" href="{% static 'css/lab-engine.css' %}" />
 {% endblock extra_head %}
@@ -51,7 +51,7 @@ executes learner code, and the page ships as static HTML.
         <span class="lab-status" id="lab-status">Loading Python runtime…</span>
       </div>
 
-      <div class="pe-engine lab-app flex-1 min-h-0" id="lab-root" data-mode="{{ lab_payload.mode }}">
+      <div class="pe-engine lab-app flex-1 min-h-0" id="lab-root" data-mode="{{ lab_payload.mode }}" data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}">
         <main class="lab-main">
           {# ── program ─────────────────────────────────────────── #}
           <section class="lab-col">
@@ -156,11 +156,13 @@ executes learner code, and the page ships as static HTML.
 {% endblock content %}
 
 {% block extra_js %}
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/closebrackets.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/matchbrackets.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/selection/active-line.js"></script>
-  {% include "includes/tracer_runtime.html" %}
+  <script src="{% static 'vendor/codemirror/5.65.17/lib/codemirror.js' %}"></script>
+  <script src="{% static 'vendor/codemirror/5.65.17/mode/python/python.js' %}"></script>
+  <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/closebrackets.js' %}"></script>
+  <script src="{% static 'vendor/codemirror/5.65.17/addon/edit/matchbrackets.js' %}"></script>
+  <script src="{% static 'vendor/codemirror/5.65.17/addon/selection/active-line.js' %}"></script>
+  {# Python as inert text; pyverse-runtime.js runs it in a killable Web Worker. #}
+  {% include "includes/tracer_runtime.html" with embedded=True %}
+  <script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
   <script src="{% static 'js/lab-engine.js' %}"></script>
 {% endblock extra_js %}

@@ -1,3 +1,4 @@
+{% load static %}
 {% comment %}
 "Watch it execute" panel for the Practice problem page.
 
@@ -27,7 +28,7 @@ exactly as it did.
     <button type="button" class="pt-retrace" id="trace-retrace">↻ Re-trace</button>
   </div>
 
-  <div class="tv mt-5" id="lab-root" data-mode="line" data-embedded tabindex="-1">
+  <div class="tv mt-5" id="lab-root" data-mode="line" data-embedded data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}" tabindex="-1">
     <div class="tv-bar">
       <span>Visualize execution — {{ problem.slug }}</span>
       <span class="lab-status tv-pill" id="lab-status">Waiting for the Python runtime…</span>

@@ -1,9 +1,10 @@
 /* Client-side notebook runner (LMS lesson bodies).
  *
  * Markdown cells arrive already rendered (`wagtailmarkdown`); this file drives
- * only the code cells, through the shared PyScript runtime
- * (`includes/pyscript_runtime.html` → `window._pyNotebook`), which executes them
- * in order in one namespace, in the learner's browser. Nothing runs on the
+ * only the code cells, through the shared Python worker
+ * (`static/js/pyverse-runtime.js` -> `PyverseRuntime.notebook`), which executes them
+ * in order in one namespace, in the learner's browser, under a time limit: a cell
+ * that never returns is killed and the status line says so. Nothing runs on the
  * server, exactly like Labs and the Practice grader.
  *
  * DOM contract
@@ -46,6 +47,10 @@
   }
 
   function paintResult(notebook, result) {
+    if (result.error) {
+      paintStatus(notebook, result.error);
+      return;
+    }
     var outputs = outputsOf(notebook);
     var failures = 0;
     outputs.forEach(function (out) {
@@ -69,20 +74,23 @@
 
   function run(notebook) {
     var button = notebook.querySelector("[data-notebook-run]");
-    if (!window._pyNotebook || !button) return;
+    if (!window.PyverseRuntime || !button) return;
     button.disabled = true;
     paintStatus(notebook, "Running…");
-    window._pendingNotebook = JSON.stringify({ cells: cellsOf(notebook) });
-
-    // Yield so "Running…" paints before the synchronous Python call.
-    setTimeout(function () {
-      try {
-        paintResult(notebook, JSON.parse(window._pyNotebook()));
-      } catch (err) {
+    window.PyverseRuntime.notebook(cellsOf(notebook)).then(
+      function (raw) {
+        try {
+          paintResult(notebook, JSON.parse(raw));
+        } catch (err) {
+          paintStatus(notebook, "Execution bridge error: " + String(err));
+        }
+        button.disabled = false;
+      },
+      function (err) {
         paintStatus(notebook, "Execution bridge error: " + String(err));
+        button.disabled = false;
       }
-      button.disabled = false;
-    }, 20);
+    );
   }
 
   notebooks.forEach(function (notebook) {

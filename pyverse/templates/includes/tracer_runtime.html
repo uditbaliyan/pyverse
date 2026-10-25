@@ -64,6 +64,7 @@ _hide.textContent = "py-config, py-script, .py-error, .py-terminal { display: no
 document.head.appendChild(_hide)
 
 _FILE = "<lab>"
+_REPR_CAP = 20_000  # longest return value repr() kept for the QA comparison
 _STEP_CAP = 400  # a runaway loop would otherwise fill the bridge with JSON
 _ITEM_CAP = 25
 _ATTR_CAP = 20
@@ -266,19 +267,32 @@ def trace(source=None, limit=None, name="__main__", functions=False):
         sys.settrace(None)
         sys.stdout = stdout
 
-    return json.dumps(
-        {
-            "steps": steps,
-            "stdout": "".join(chunks),
-            "error": error,
-            "error_line": error_line,
-            "truncated": len(steps) >= _STEP_CAP,
-            "source": source,
-            # The program's globals once it stopped: the last state, which no
-            # "about to run this line" step can show.
-            "final": _visible(namespace, functions),
-        }
-    )
+    returned_repr = None
+    if functions and "_result" in namespace:
+        # Practice only: the call's exact return value as source text, so the
+        # QA command can run the grader's comparator on it. `final` carries a
+        # clipped projection that cannot be compared. None if too long / odd.
+        try:
+            returned_repr = repr(namespace["_result"])
+        except Exception:  # a repr() that raises must not break the trace
+            returned_repr = None
+        if returned_repr is not None and len(returned_repr) > _REPR_CAP:
+            returned_repr = None
+
+    payload = {
+        "steps": steps,
+        "stdout": "".join(chunks),
+        "error": error,
+        "error_line": error_line,
+        "truncated": len(steps) >= _STEP_CAP,
+        "source": source,
+        # The program's globals once it stopped: the last state, which no
+        # "about to run this line" step can show.
+        "final": _visible(namespace, functions),
+    }
+    if functions:  # Labs output keeps its exact shape
+        payload["returned_repr"] = returned_repr
+    return json.dumps(payload)
 
 
 _HARNESS_MARK = "# ── PyVerse harness · the call being traced ──"

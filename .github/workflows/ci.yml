@@ -76,3 +76,41 @@ jobs:
 
       - name: Test with pytest
         run: uv run pytest
+
+  e2e:
+    # Headless-browser smoke test of the learner loop (pyverse/tests/e2e).
+    # Uses the committed db.sqlite3 content and the vendored Pyodide, so it needs
+    # no internet beyond installing Chromium. Playwright is added per run with
+    # `--with` so it stays out of pyproject.toml / uv.lock.
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      PYVERSE_E2E_URL: http://127.0.0.1:8000
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: "true"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Install Chromium
+        run: uv run --with playwright playwright install --with-deps chromium
+
+      - name: Migrate and start the site
+        run: |
+          uv run python manage.py migrate
+          nohup uv run python manage.py runserver 127.0.0.1:8000 --noreload > server.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf "$PYVERSE_E2E_URL/practice/problem/two-sum/" -o /dev/null && break; sleep 2; done
+
+      - name: Browser smoke test
+        run: uv run --with playwright pytest -m e2e pyverse/tests/e2e

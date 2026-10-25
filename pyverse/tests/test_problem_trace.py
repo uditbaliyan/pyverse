@@ -219,6 +219,7 @@ def test_viewer_ids_exist():
     external = {
         "pyverse-payload",
         "pyverse-trace-reference",
+        "pyverse-trace-case",
         "p-args",
     }  # owned by the page / json_script
     lost = {

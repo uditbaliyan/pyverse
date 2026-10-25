@@ -40,6 +40,16 @@
     reference = "";
   }
 
+  // The example "Trace the reference solution" shows (authored/picked by
+  // check_problem_traces); empty = leave the Arguments box as it is.
+  var referenceArgs = "";
+  try {
+    var caseEl = document.getElementById("pyverse-trace-case");
+    referenceArgs = caseEl ? JSON.parse(caseEl.textContent) || "" : "";
+  } catch (error) {
+    referenceArgs = "";
+  }
+
   var source = "mine"; // "mine" | "ref"
   var busy = false;
 
@@ -174,7 +184,7 @@
       });
       if (reference) {
         addButton("Trace the reference solution", true, function () {
-          trace("accepted", { source: "ref" });
+          trace("accepted", referenceArgs ? { source: "ref", args: referenceArgs } : { source: "ref" });
         });
       }
     } else if (result.status === "WRONG_ANSWER" || result.status === "RUNTIME_ERROR") {

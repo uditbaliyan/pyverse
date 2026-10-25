@@ -281,6 +281,16 @@ class CodingProblem(ClusterableModel):
         blank=True,
         help_text="The ordered list of test cases used to grade submissions to this problem. Add at least one non-hidden case so students can self-check.",
     )
+    trace_case = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Trace example",
+        help_text=(
+            "Which visible case (1 = first) 'Trace the reference solution' shows "
+            "after a pass. Leave empty to use the first. "
+            "`manage.py check_problem_traces --apply` picks one for you."
+        ),
+    )
 
     panels = [
         FieldPanel("topic"),
@@ -296,6 +306,7 @@ class CodingProblem(ClusterableModel):
         FieldPanel("comparator"),
         FieldPanel("custom_comparator_code"),
         FieldPanel("test_cases"),
+        FieldPanel("trace_case"),
         FieldPanel("hint_tiers"),
         FieldPanel("editorial_approaches"),
         FieldPanel("solution_code"),
@@ -348,6 +359,33 @@ class CodingProblem(ClusterableModel):
     @property
     def technique_names(self):
         return ",".join(sorted(self.techniques.names()))
+
+    @property
+    def trace_case_input(self):
+        """Argument source for the reference trace's example, or "" for none.
+
+        `trace_case` is 1-based among the visible cases; an out-of-range value
+        (cases were removed after it was set) is ignored, not an error.
+        """
+        visible = self.visible_test_cases
+        if self.trace_case and 1 <= self.trace_case <= len(visible):
+            return visible[self.trace_case - 1]["input"]
+        return ""
+
+    @property
+    def trace_status(self):
+        """Cheap authoring-time status for the admin list (no code is run).
+
+        The full check (does it verify, how many steps) is the
+        `check_problem_traces` command; running it per list row would be slow.
+        """
+        if not self.solution_code.strip():
+            return "no reference solution"
+        if not self.visible_test_cases:
+            return "no visible example"
+        if self.trace_case_input:
+            return f"ready (example {self.trace_case})"
+        return "ready (first example)"
 
     def test_case_payload(self):
         """Test cases as plain JSON-safe dicts, for the client-side grader.

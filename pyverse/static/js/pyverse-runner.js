@@ -14,6 +14,8 @@
  * Protocol (main -> worker):  {type:"init", sources:[py…], payload:"<json text>", pyodideUrl?}
  *                             {type:"exec",  id, code, isSubmit, customJson}
  *                             {type:"trace", id, code, fn, args, limit}
+ *                             {type:"lab",   id, code, limit}      Labs: trace a whole program
+ *                             {type:"notebook", id, cells}         lesson notebook: Run all
  *           (worker -> main): {type:"ready"} | {type:"fatal", error}
  *                             {type:"result", id, value} | {type:"error", id, error}
  */
@@ -26,7 +28,8 @@ var payloadText = "";
 // The shipped Python does `from js import document, window` and only these calls:
 //   document.createElement("style") / .head.appendChild / .body.dataset.<flag>
 //   document.getElementById("pyverse-payload").textContent
-//   window._pendingCode, js.window._pyExec = …, js.window._pvTraceCall = …
+//   window._pendingCode, js.window._pyExec = …, js.window._pvTraceCall = …,
+//   js.window._pvTrace / _pyNotebook, window._pendingNotebook
 self.window = self;
 self.document = {
   createElement: function () {
@@ -73,6 +76,17 @@ self.onmessage = async function (event) {
     if (msg.type === "trace") {
       var raw = self._pvTraceCall(msg.code || "", msg.fn || "", msg.args || "", msg.limit || null);
       self.postMessage({ type: "result", id: msg.id, value: String(raw) });
+      return;
+    }
+    if (msg.type === "lab") {
+      // Labs run a whole program, not one call: `trace(source, limit)`.
+      var program = self._pvTrace(msg.code || "", msg.limit || null);
+      self.postMessage({ type: "result", id: msg.id, value: String(program) });
+      return;
+    }
+    if (msg.type === "notebook") {
+      self._pendingNotebook = JSON.stringify({ cells: msg.cells || [] });
+      self.postMessage({ type: "result", id: msg.id, value: String(self._pyNotebook()) });
       return;
     }
   } catch (error) {
