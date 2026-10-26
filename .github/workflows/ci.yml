@@ -37,17 +37,9 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:18
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_PASSWORD: postgres
-
     env:
-      # postgres://user:password@host:port/database
-      DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/postgres'
+      # Fresh, empty SQLite file: CI must not depend on the committed db.sqlite3.
+      DATABASE_URL: 'sqlite:///${{ github.workspace }}/ci.sqlite3'
 
     steps:
       - name: Checkout Code Repository
@@ -66,6 +58,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
+      - name: Fetch vendored browser assets
+        run: uv run python utility/vendor_assets.py
+
       - name: Check DB Migrations
         # Scoped to project apps: unscoped, Wagtail 7.4.x reports a pending
         # wagtailcore migration that lives in site-packages (audit F-02).
@@ -76,6 +71,42 @@ jobs:
 
       - name: Test with pytest
         run: uv run pytest
+
+  export:
+    # Builds the static site from a clean checkout and fails if the export is
+    # broken: sitemap/export drift, missing vendored assets, dead local refs.
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.distill
+      DATABASE_URL: 'sqlite:///${{ github.workspace }}/export.sqlite3'
+      PYVERSE_CANONICAL_BASE_URL: https://pyverse.com
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: "true"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Fetch vendored browser assets
+        run: uv run python utility/vendor_assets.py
+
+      - name: Build static site
+        run: |
+          uv run python manage.py migrate
+          uv run python manage.py distill-local _site --collectstatic --force
+
+      - name: Check export
+        run: python3 utility/check_export.py _site
 
   e2e:
     # Headless-browser smoke test of the learner loop (pyverse/tests/e2e).
@@ -105,6 +136,9 @@ jobs:
 
       - name: Install Chromium
         run: uv run --with playwright playwright install --with-deps chromium
+
+      - name: Fetch vendored browser assets
+        run: uv run python utility/vendor_assets.py
 
       - name: Migrate and start the site
         run: |

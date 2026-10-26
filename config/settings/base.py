@@ -51,16 +51,19 @@ LOCALE_PATHS = [str(BASE_DIR / "locale")]
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
-# config/settings/base.py or local.py
+# SQLite is the single supported database: the site is exported to static HTML,
+# so there is no production DB server. Set DATABASE_URL only to point at another
+# SQLite file (e.g. sqlite:////tmp/copy.sqlite3) -- it is honoured, so scratch
+# copies can no longer silently fall through to the repo's db.sqlite3.
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-        "OPTIONS": {
-            "timeout": 20,  # seconds to wait for the lock before raising
-        },
-    },
-}  # URLS
+    "default": env.db(
+        "DATABASE_URL",
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    ),
+}
+DATABASES["default"].setdefault("OPTIONS", {})["timeout"] = 20  # lock wait, seconds
+
+# URLS
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = "config.urls"
@@ -327,6 +330,7 @@ TAILWIND_APP_NAME = "pyverse.theme"
 
 
 WAGTAIL_SITE_NAME = "PyVerse"
+WAGTAILADMIN_BASE_URL = env("WAGTAILADMIN_BASE_URL", default="http://localhost:8000")
 
 PUPUT_AS_PLUGIN = True
 

@@ -280,3 +280,12 @@ pyverse/media/
 # Local secrets and authoring database: never commit (keep *.example)
 /.envs/
 *.sqlite3
+
+# Local build artefacts
+_site/
+build.sqlite3
+ci.sqlite3
+export.sqlite3
+# Fetched by utility/vendor_assets.py (pinned versions)
+/pyverse/static/vendor/*
+!/pyverse/static/vendor/README.md

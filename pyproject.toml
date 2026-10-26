@@ -1,7 +1,7 @@
 [project]
 name = "pyverse"
 version = "0.1.0"
-description = "Behold My Awesome Project!"
+description = "A Python learning site where every line of code can be stepped through."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
