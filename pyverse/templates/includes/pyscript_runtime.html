@@ -45,6 +45,7 @@ the main thread but hands the text to a Web Worker (`static/js/pyverse-runtime.j
 ></script>
 {% endif %}
 
+{# djlint:off #}
 <script type="py">
 import io
 import json
@@ -253,3 +254,4 @@ js.window._pyExec = exec_solution
 js.window._pyNotebook = run_notebook
 document.body.dataset.pyverseReady = "1"
 </script>
+{# djlint:on #}
