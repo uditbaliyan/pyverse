@@ -1,4 +1,5 @@
 {% load static %}
+
 {% comment %}
 "Watch it execute" panel for the Practice problem page.
 
@@ -16,10 +17,12 @@ exactly as it did.
   <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
     <span class="text-red">trace/</span> watch it execute
   </p>
-
   <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
     <span class="text-muted">Tracing</span>
-    <button type="button" class="pt-src pt-src-on" id="trace-src-mine" data-src="mine">your code</button>
+    <button type="button"
+            class="pt-src pt-src-on"
+            id="trace-src-mine"
+            data-src="mine">your code</button>
     {% if problem.solution_code %}
       <button type="button" class="pt-src" id="trace-src-ref" data-src="ref">reference solution</button>
     {% endif %}
@@ -27,13 +30,16 @@ exactly as it did.
     <code class="pt-call" id="trace-call">—</code>
     <button type="button" class="pt-retrace" id="trace-retrace">↻ Re-trace</button>
   </div>
-
-  <div class="tv mt-5" id="lab-root" data-mode="line" data-embedded data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}" tabindex="-1">
+  <div class="tv mt-5"
+       id="lab-root"
+       data-mode="line"
+       data-embedded
+       data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}"
+       tabindex="-1">
     <div class="tv-bar">
       <span>Visualize execution — {{ problem.slug }}</span>
       <span class="lab-status tv-pill" id="lab-status">Waiting for the Python runtime…</span>
     </div>
-
     <div class="tv-grid">
       <div class="tv-left">
         <div class="tv-code" id="tv-code" aria-label="Program"></div>
@@ -46,7 +52,12 @@ exactly as it did.
           {# Authored "why" notes and prediction cards (C1/C2); empty unless the reference trace is on its pinned example. #}
           <div class="tv-annot tv-hide" id="tv-annot" aria-live="polite"></div>
           <div class="tv-predict tv-hide" id="tv-predict" aria-live="polite"></div>
-          <input type="range" id="tv-slider" min="0" max="0" value="0" aria-label="Step" />
+          <input type="range"
+                 id="tv-slider"
+                 min="0"
+                 max="0"
+                 value="0"
+                 aria-label="Step" />
           <div class="tv-buttons">
             <button type="button" id="tv-first" disabled>« First</button>
             <button type="button" id="tv-prev" disabled>‹ Back</button>
@@ -55,16 +66,18 @@ exactly as it did.
           </div>
         </div>
       </div>
-
       <div class="tv-right">
         <div class="tv-printbox">
           <div class="tv-title">Print output</div>
-          <div class="tv-print"><pre id="tv-out"></pre></div>
+          <div class="tv-print">
+            <pre id="tv-out"></pre>
+          </div>
           <div class="tv-err tv-hide" id="tv-error"></div>
         </div>
         <div class="tv-viz">
           <div class="tv-vizin" id="tv-vizin">
-            <svg class="tv-arrows" id="tv-arrows" aria-hidden="true"></svg>
+            <svg class="tv-arrows" id="tv-arrows" aria-hidden="true">
+            </svg>
             <div class="tv-col">
               <div class="tv-title">Frames</div>
               <div id="tv-frames"></div>
@@ -78,7 +91,6 @@ exactly as it did.
       </div>
     </div>
   </div>
-
   <p class="mt-3 font-mono text-[10.5px] text-muted">
     ← → step · Home / End jump · the dimmed last lines are the call PyVerse adds to run your function ·
     only the visible case's arguments are traced, never a hidden one.

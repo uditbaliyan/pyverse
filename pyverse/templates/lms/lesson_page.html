@@ -1,168 +1,145 @@
 {% extends "base.html" %}
+
 {% load static wagtailcore_tags %}
 
 {% block content %}
-<main class="lesson-page">
+  <main class="lesson-page">
     <div class="max-w-6xl mx-auto px-6 py-8">
-        <!-- Breadcrumb -->
-        <nav class="text-sm text-neutral-500 mb-6">
-            <a href="{{ topic.get_parent.url }}" class="hover:underline">Learning</a>
-            <span class="mx-1">/</span>
-            <a href="{{ topic.url }}" class="hover:underline">{{ topic.title }}</a>
-            <span class="mx-1">/</span>
-            <a href="{{ course.url }}" class="hover:underline">{{ course.title }}</a>
-            <span class="mx-1">/</span>
-            <span class="text-neutral-900">{{ page.title }}</span>
-        </nav>
-
-        <div class="grid lg:grid-cols-4 gap-10">
-            <!-- Sidebar: Lesson List -->
-            <aside class="lg:col-span-1 order-2 lg:order-1">
-                <div class="sticky top-20">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
-                        {{ course.title }}
-                    </h3>
-                    <nav class="space-y-0.5 border-l border-neutral-200 pl-3" data-lesson-list>
-                        {% for lesson in lesson_list %}
-                            <a href="{{ lesson.url }}"
-                               data-lesson-slug="{{ lesson.slug }}"
-                               class="block py-1.5 text-sm transition-colors
-                                      {% if lesson.id == page.id %}
-                                          text-neutral-900 font-medium border-l-2 border-neutral-900 -ml-px pl-3
-                                      {% else %}
-                                          text-neutral-500 hover:text-neutral-900 pl-3
-                                      {% endif %}">
-                                <span class="text-neutral-400 mr-1">{{ forloop.counter }}.</span>
-                                {{ lesson.title }}
-                            </a>
-                        {% endfor %}
-                    </nav>
+      <!-- Breadcrumb -->
+      <nav class="text-sm text-neutral-500 mb-6">
+        <a href="{{ topic.get_parent.url }}" class="hover:underline">Learning</a>
+        <span class="mx-1">/</span>
+        <a href="{{ topic.url }}" class="hover:underline">{{ topic.title }}</a>
+        <span class="mx-1">/</span>
+        <a href="{{ course.url }}" class="hover:underline">{{ course.title }}</a>
+        <span class="mx-1">/</span>
+        <span class="text-neutral-900">{{ page.title }}</span>
+      </nav>
+      <div class="grid lg:grid-cols-4 gap-10">
+        <!-- Sidebar: Lesson List -->
+        <aside class="lg:col-span-1 order-2 lg:order-1">
+          <div class="sticky top-20">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">{{ course.title }}</h3>
+            <nav class="space-y-0.5 border-l border-neutral-200 pl-3" data-lesson-list>
+              {% for lesson in lesson_list %}
+                <a href="{{ lesson.url }}"
+                   data-lesson-slug="{{ lesson.slug }}"
+                   class="block py-1.5 text-sm transition-colors {% if lesson.id == page.id %} text-neutral-900 font-medium border-l-2 border-neutral-900 -ml-px pl-3 {% else %} text-neutral-500 hover:text-neutral-900 pl-3 {% endif %}">
+                  <span class="text-neutral-400 mr-1">{{ forloop.counter }}.</span>
+                  {{ lesson.title }}
+                </a>
+              {% endfor %}
+            </nav>
+          </div>
+        </aside>
+        <!-- Main Content -->
+        <article class="lg:col-span-3 order-1 lg:order-2 max-w-none">
+          <!-- Lesson Header -->
+          <header class="mb-8 pb-6 border-b border-neutral-200">
+            <div class="flex items-center gap-3 text-sm text-neutral-500 mb-3">
+              <span>Lesson {{ lesson_index }} of {{ total_lessons }}</span>
+              <span>·</span>
+              <span>{{ page.estimated_minutes }} min read</span>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold">{{ page.title }}</h1>
+          </header>
+          <!-- Body Content -->
+          <div class="prose prose-neutral max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-neutral-900 prose-a:underline prose-pre:bg-neutral-950 prose-pre:text-neutral-100 prose-pre:rounded-xl prose-code:text-sm prose-code:before:content-none prose-code:after:content-none prose-img:rounded-xl">
+            {% for block in page.body %}
+              {% include_block block %}
+            {% endfor %}
+          </div>
+          <!-- Completion (kept in this browser; see js/pyverse-progress.js) -->
+          <div class="mt-10 rounded-xl border border-neutral-200 p-5 flex flex-wrap items-center justify-between gap-4"
+               data-lesson-progress>
+            <div>
+              <div class="font-medium text-sm">Finished this lesson?</div>
+              <div class="text-xs text-neutral-500 mt-0.5">Progress is stored in this browser only — no account needed.</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <button type="button"
+                      id="lesson-complete"
+                      data-lesson-slug="{{ page.slug }}"
+                      data-lesson-title="{{ page.title }}"
+                      data-course-slug="{{ course.slug }}"
+                      class="px-4 py-2 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">
+                Mark complete
+              </button>
+              <div id="lesson-complete-done"
+                   class="hidden items-center gap-3 text-sm text-green-700">
+                <span class="font-medium">✓ Completed</span>
+                <button type="button"
+                        id="lesson-undo"
+                        class="text-xs text-neutral-400 underline hover:text-neutral-700">undo</button>
+              </div>
+            </div>
+          </div>
+          <!-- Lesson Navigation -->
+          <p id="lesson-gate-note" class="hidden mt-8 text-sm text-amber-700"></p>
+          <nav class="flex justify-between items-center mt-12 pt-6 border-t border-neutral-200">
+            {% if prev_lesson %}
+              <a href="{{ prev_lesson.url }}"
+                 class="group flex items-center gap-3 text-sm">
+                <i data-lucide="arrow-left"
+                   class="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors"></i>
+                <div>
+                  <span class="text-neutral-400 block text-xs">Previous</span>
+                  <span class="font-medium group-hover:underline">{{ prev_lesson.title }}</span>
                 </div>
-            </aside>
-
-            <!-- Main Content -->
-            <article class="lg:col-span-3 order-1 lg:order-2 max-w-none">
-                <!-- Lesson Header -->
-                <header class="mb-8 pb-6 border-b border-neutral-200">
-                    <div class="flex items-center gap-3 text-sm text-neutral-500 mb-3">
-                        <span>Lesson {{ lesson_index }} of {{ total_lessons }}</span>
-                        <span>·</span>
-                        <span>{{ page.estimated_minutes }} min read</span>
-                    </div>
-                    <h1 class="text-3xl md:text-4xl font-bold">{{ page.title }}</h1>
-                </header>
-
-                <!-- Body Content -->
-                <div class="prose prose-neutral max-w-none
-                            prose-headings:font-semibold prose-headings:tracking-tight
-                            prose-p:leading-relaxed prose-a:text-neutral-900 prose-a:underline
-                            prose-pre:bg-neutral-950 prose-pre:text-neutral-100 prose-pre:rounded-xl
-                            prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-                            prose-img:rounded-xl">
-                    {% for block in page.body %}
-                        {% include_block block %}
-                    {% endfor %}
+              </a>
+            {% else %}
+              {# djlint:off H020 #}
+              <div></div>
+              {# djlint:on #}
+            {% endif %}
+            {% if next_lesson %}
+              <a href="{{ next_lesson.url }}"
+                 id="lesson-next"
+                 class="group flex items-center gap-3 text-sm text-right">
+                <div>
+                  <span class="text-neutral-400 block text-xs">Next</span>
+                  <span class="font-medium group-hover:underline">{{ next_lesson.title }}</span>
                 </div>
-
-                <!-- Completion (kept in this browser; see js/pyverse-progress.js) -->
-                <div class="mt-10 rounded-xl border border-neutral-200 p-5 flex flex-wrap items-center justify-between gap-4"
-                     data-lesson-progress>
-                    <div>
-                        <div class="font-medium text-sm">Finished this lesson?</div>
-                        <div class="text-xs text-neutral-500 mt-0.5">
-                            Progress is stored in this browser only — no account needed.
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button type="button"
-                                id="lesson-complete"
-                                data-lesson-slug="{{ page.slug }}"
-                                data-lesson-title="{{ page.title }}"
-                                data-course-slug="{{ course.slug }}"
-                                class="px-4 py-2 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">
-                            Mark complete
-                        </button>
-                        <div id="lesson-complete-done" class="hidden items-center gap-3 text-sm text-green-700">
-                            <span class="font-medium">✓ Completed</span>
-                            <button type="button" id="lesson-undo" class="text-xs text-neutral-400 underline hover:text-neutral-700">
-                                undo
-                            </button>
-                        </div>
-                    </div>
+                <i data-lucide="arrow-right"
+                   class="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors"></i>
+              </a>
+            {% else %}
+              <a href="{{ course.url }}" class="group flex items-center gap-3 text-sm">
+                <div>
+                  <span class="text-neutral-400 block text-xs">Back to</span>
+                  <span class="font-medium group-hover:underline">{{ course.title }}</span>
                 </div>
-
-                <!-- Lesson Navigation -->
-                <p id="lesson-gate-note" class="hidden mt-8 text-sm text-amber-700"></p>
-                <nav class="flex justify-between items-center mt-12 pt-6 border-t border-neutral-200">
-                    {% if prev_lesson %}
-                        <a href="{{ prev_lesson.url }}"
-                           class="group flex items-center gap-3 text-sm">
-                            <i data-lucide="arrow-left" class="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors"></i>
-                            <div>
-                                <span class="text-neutral-400 block text-xs">Previous</span>
-                                <span class="font-medium group-hover:underline">{{ prev_lesson.title }}</span>
-                            </div>
-                        </a>
-                    {% else %}
-                        {# djlint:off H020 #}
-                        <div></div>
-                        {# djlint:on #}
-                    {% endif %}
-
-                    {% if next_lesson %}
-                        <a href="{{ next_lesson.url }}"
-                           id="lesson-next"
-                           class="group flex items-center gap-3 text-sm text-right">
-                            <div>
-                                <span class="text-neutral-400 block text-xs">Next</span>
-                                <span class="font-medium group-hover:underline">{{ next_lesson.title }}</span>
-                            </div>
-                            <i data-lucide="arrow-right" class="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors"></i>
-                        </a>
-                    {% else %}
-                        <a href="{{ course.url }}"
-                           class="group flex items-center gap-3 text-sm">
-                            <div>
-                                <span class="text-neutral-400 block text-xs">Back to</span>
-                                <span class="font-medium group-hover:underline">{{ course.title }}</span>
-                            </div>
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
-                        </a>
-                    {% endif %}
-                </nav>
-            </article>
-        </div>
+                <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+              </a>
+            {% endif %}
+          </nav>
+        </article>
+      </div>
     </div>
-</main>
-
+  </main>
 {% endblock content %}
-
-  {% block inline_javascript %}
-
-<script>
-window.__LESSON_SLUGS__ = {{ lesson_slugs_json|safe }};
-window.__CURRENT_LESSON__ = "{{ page.slug }}";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-<script>
+{% block inline_javascript %}
+  <script>
+    window.__LESSON_SLUGS__ = {{ lesson_slugs_json|safe }};
+    window.__CURRENT_LESSON__ = "{{ page.slug }}";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
     mermaid.initialize({
-        startOnLoad: true,
-        theme: 'neutral',
-        securityLevel: 'loose',
-        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'loose',
+      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     });
-
-</script>
-
-<script src="{% static 'js/pyverse-progress.js' %}"></script>
-<script src="{% static 'lms/js/lesson-progress.js' %}"></script>
-
-{% if has_notebook %}
-{% include "includes/pyscript_runtime.html" with embedded=True %}
-<script src="{% static 'js/pyverse-runtime.js' %}" data-worker="{% static 'js/pyverse-runner.js' %}" data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
-<script src="{% static 'lms/js/notebook.js' %}"></script>
-{% endif %}
-
-{% include "lms/_lucide.html" %}
-
-  {% endblock inline_javascript %}
+  </script>
+  <script src="{% static 'js/pyverse-progress.js' %}"></script>
+  <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
+  {% if has_notebook %}
+    {% include "includes/pyscript_runtime.html" with embedded=True %}
+    <script src="{% static 'js/pyverse-runtime.js' %}"
+            data-worker="{% static 'js/pyverse-runner.js' %}"
+            data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
+    <script src="{% static 'lms/js/notebook.js' %}"></script>
+  {% endif %}
+  {% include "lms/_lucide.html" %}
+{% endblock inline_javascript %}

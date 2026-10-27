@@ -1,66 +1,54 @@
 {% extends "home/base_.html" %}
+
 {% load wagtailcore_tags %}
+
 {% comment %}
 `/labs/` — the lab list, in the site's own shell: same navbar, footer, cream
 brutalist theme and card language as the home and about pages, so Labs reads as
 part of PyVerse rather than a separate tool. Each card is one lab and links to
 its canonical URL.
 {% endcomment %}
-
 {% block content %}
-<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-
-  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">labs/</p>
-
-  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
-    {{ page.title }}
-  </h1>
-
-  {% if page.intro %}
-    <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
-  {% endif %}
-
-  {# ── stripe divider (same signature strip as the home page) ───── #}
-  <div class="mt-9 h-[14px] flex" aria-hidden="true">
-    <div class="flex-1 bg-s1"></div>
-    <div class="flex-1 bg-s2"></div>
-    <div class="flex-1 bg-s3"></div>
-    <div class="flex-1 bg-s4"></div>
-    <div class="flex-1 bg-s5"></div>
-    <div class="flex-1 bg-s6"></div>
-  </div>
-
-  <div class="mt-9 mb-5 flex items-baseline gap-3.5">
-    <h2 class="font-black text-[28px] tracking-tight">Pick a program</h2>
-    <span class="font-mono text-[13px] text-muted">{{ labs|length|stringformat:"02d" }} loaded</span>
-  </div>
-
-  <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
-    {% for lab in labs %}
-      <a href="{{ lab.url }}"
-         class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card
-                hover:-translate-x-0.5 hover:-translate-y-0.5
-                hover:shadow-card-h transition-all duration-100 no-underline text-ink block">
-        <div class="flex justify-between items-center mb-2.5 font-mono text-[11px]">
-          <span class="bg-ink text-bg px-[7px] py-[3px]">{{ forloop.counter|stringformat:"02d" }}</span>
-          <span class="text-red uppercase tracking-wide">{{ lab.get_difficulty_display }}</span>
-        </div>
-
-        <h3 class="font-black text-[19px] mb-2 tracking-tight">{{ lab.title }}</h3>
-        <p class="text-[13.5px] text-body-txt mb-3">{{ lab.summary }}</p>
-
-        {% with watches=lab.what_to_watch|length %}
-          <div class="font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5">
-            {{ lab.get_default_mode_display }} · {{ lab.estimated_minutes }} min{% if watches %} · {{ watches }} thing{{ watches|pluralize }} to watch{% endif %}
+  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">labs/</p>
+    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+    {% if page.intro %}
+      <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
+    {% endif %}
+    {# ── stripe divider (same signature strip as the home page) ───── #}
+    <div class="mt-9 h-[14px] flex" aria-hidden="true">
+      <div class="flex-1 bg-s1"></div>
+      <div class="flex-1 bg-s2"></div>
+      <div class="flex-1 bg-s3"></div>
+      <div class="flex-1 bg-s4"></div>
+      <div class="flex-1 bg-s5"></div>
+      <div class="flex-1 bg-s6"></div>
+    </div>
+    <div class="mt-9 mb-5 flex items-baseline gap-3.5">
+      <h2 class="font-black text-[28px] tracking-tight">Pick a program</h2>
+      <span class="font-mono text-[13px] text-muted">{{ labs|length|stringformat:"02d" }} loaded</span>
+    </div>
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
+      {% for lab in labs %}
+        <a href="{{ lab.url }}"
+           class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block">
+          <div class="flex justify-between items-center mb-2.5 font-mono text-[11px]">
+            <span class="bg-ink text-bg px-[7px] py-[3px]">{{ forloop.counter|stringformat:"02d" }}</span>
+            <span class="text-red uppercase tracking-wide">{{ lab.get_difficulty_display }}</span>
           </div>
-        {% endwith %}
-      </a>
-    {% empty %}
-      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-        <p class="font-mono text-[12px] text-muted">No labs published yet.</p>
-      </div>
-    {% endfor %}
+          <h3 class="font-black text-[19px] mb-2 tracking-tight">{{ lab.title }}</h3>
+          <p class="text-[13.5px] text-body-txt mb-3">{{ lab.summary }}</p>
+          {% with watches=lab.what_to_watch|length %}
+            <div class="font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5">
+              {{ lab.get_default_mode_display }} · {{ lab.estimated_minutes }} min{% if watches %} · {{ watches }} thing{{ watches|pluralize }} to watch{% endif %}
+            </div>
+          {% endwith %}
+        </a>
+      {% empty %}
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <p class="font-mono text-[12px] text-muted">No labs published yet.</p>
+        </div>
+      {% endfor %}
+    </div>
   </div>
-
-</div>
 {% endblock content %}

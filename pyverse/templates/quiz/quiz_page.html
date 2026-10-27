@@ -1,5 +1,7 @@
 {% extends "home/base_.html" %}
+
 {% load static %}
+
 {% comment %}
 One quiz (Quiz Suite), in the site's own shell — same navbar, footer, cream
 brutalist theme and card language as the home and about pages, so a quiz reads
@@ -15,7 +17,6 @@ inherent to a static site: grading happens in the learner's browser, and the
 attempt is written to the same IndexedDB store challenges use, so quiz progress
 shows up on the Landing, Sheets and Tracks.
 {% endcomment %}
-
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
   <style>
@@ -23,247 +24,324 @@ shows up on the Landing, Sheets and Tracks.
      * The qz-* class names are the inline state machine's contract; only their
      * paint lives here. This block loads after practice-engine.css, so the
      * console body can drop .pe-engine's full-viewport defaults. */
-    .qz-console-body { min-height: 0; overflow-y: auto; }
-    .qz-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
-    .qz-q { font-size: 15px; line-height: 1.7; color: var(--text0); white-space: pre-wrap; margin-bottom: 14px; }
-    .qz-code { font-family: var(--mono); font-size: 12.5px; color: #a8b5c8; background: var(--bg0); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; white-space: pre; overflow-x: auto; margin-bottom: 14px; }
-    .qz-choices { display: flex; flex-direction: column; gap: 8px; }
-    .qz-choice {
-      text-align: left; padding: 11px 14px; border-radius: 8px; cursor: pointer;
-      border: 1px solid var(--border); background: var(--bg1); color: var(--text1);
-      font-family: var(--sans); font-size: 13.5px; transition: all 0.12s;
+    .qz-console-body {
+      min-height: 0;
+      overflow-y: auto;
     }
-    .qz-choice:hover:not(:disabled) { border-color: var(--border-hi); color: var(--text0); }
-    .qz-choice:disabled { cursor: default; }
-    .qz-choice.correct { border-color: rgba(61, 214, 140, 0.45); background: var(--green-dim); color: var(--green); }
-    .qz-choice.wrong { border-color: rgba(242, 109, 109, 0.45); background: var(--red-dim); color: var(--red); }
-    .qz-explanation { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--bg1); border: 1px solid var(--border); color: var(--text1); font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
-    .qz-actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
-    .qz-result { text-align: center; padding: 26px 20px; }
-    .qz-score { font-family: var(--mono); font-size: 40px; font-weight: 700; }
-    .qz-verdict { font-size: 14px; margin-top: 6px; }
+
+    .qz-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 22px;
+    }
+
+    .qz-q {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text0);
+      white-space: pre-wrap;
+      margin-bottom: 14px;
+    }
+
+    .qz-code {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: #a8b5c8;
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      white-space: pre;
+      overflow-x: auto;
+      margin-bottom: 14px;
+    }
+
+    .qz-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .qz-choice {
+      text-align: left;
+      padding: 11px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg1);
+      color: var(--text1);
+      font-family: var(--sans);
+      font-size: 13.5px;
+      transition: all 0.12s;
+    }
+
+    .qz-choice:hover:not(:disabled) {
+      border-color: var(--border-hi);
+      color: var(--text0);
+    }
+
+    .qz-choice:disabled {
+      cursor: default;
+    }
+
+    .qz-choice.correct {
+      border-color: rgba(61, 214, 140, 0.45);
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .qz-choice.wrong {
+      border-color: rgba(242, 109, 109, 0.45);
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .qz-explanation {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      color: var(--text1);
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .qz-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .qz-result {
+      text-align: center;
+      padding: 26px 20px;
+    }
+
+    .qz-score {
+      font-family: var(--mono);
+      font-size: 40px;
+      font-weight: 700;
+    }
+
+    .qz-verdict {
+      font-size: 14px;
+      margin-top: 6px;
+    }
   </style>
 {% endblock extra_head %}
-
 {% block body_attrs %} data-quiz-slug="{{ quiz.slug }}" data-quiz-title="{{ quiz.title }}"{% endblock body_attrs %}
-
 {% block content %}
-<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-
-  {# ── breadcrumb + title ──────────────────────────────────────── #}
-  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-    {# djlint:off D018 #}
-    <a href="/practice/" class="text-muted no-underline hover:text-ink">practice/</a>
-    {# djlint:on #}
-    <span class="mx-1">›</span>quiz/
-    <span class="mx-1">›</span>{{ quiz.slug }}
-  </p>
-
-  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
-    {{ quiz.title }}
-  </h1>
-
-  <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
-    <span class="bg-ink text-bg px-[7px] py-[3px] uppercase">{{ quiz.get_difficulty_display }}</span>
-    <span class="text-muted">{{ quiz.question_count }} question{{ quiz.question_count|pluralize }}</span>
-    <span class="text-muted">·</span>
-    <span class="text-muted">pass {{ quiz.pass_percentage }}%</span>
-    {% if topic %}
+  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+    {# ── breadcrumb + title ──────────────────────────────────────── #}
+    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+      {# djlint:off D018 #}
+      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice/</a>
+      {# djlint:on #}
+      <span class="mx-1">›</span>quiz/
+      <span class="mx-1">›</span>{{ quiz.slug }}
+    </p>
+    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ quiz.title }}</h1>
+    <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
+      <span class="bg-ink text-bg px-[7px] py-[3px] uppercase">{{ quiz.get_difficulty_display }}</span>
+      <span class="text-muted">{{ quiz.question_count }} question{{ quiz.question_count|pluralize }}</span>
       <span class="text-muted">·</span>
-      <a href="{{ topic.url }}" class="text-red no-underline hover:text-ink">{{ topic.title }}</a>
+      <span class="text-muted">pass {{ quiz.pass_percentage }}%</span>
+      {% if topic %}
+        <span class="text-muted">·</span>
+        <a href="{{ topic.url }}" class="text-red no-underline hover:text-ink">{{ topic.title }}</a>
+      {% endif %}
+    </div>
+    {% if quiz.instructions %}
+      <p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ quiz.instructions }}</p>
     {% endif %}
-  </div>
-
-  {% if quiz.instructions %}
-    <p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ quiz.instructions }}</p>
-  {% endif %}
-
-  {# ── progress + counter ──────────────────────────────────────── #}
-  <div class="mt-7 h-[12px] border-[3px] border-ink bg-bg-2">
-    <span id="qz-progress" class="block h-full w-0 bg-red"></span>
-  </div>
-  <div class="mt-3 font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5 flex flex-wrap items-center justify-between gap-3">
-    <span id="qz-counter">Question 1</span>
-    <span id="qz-recorded"></span>
-  </div>
-
-  {# ── stripe divider (same signature strip as the home page) ───── #}
-  <div class="mt-9 h-[14px] flex" aria-hidden="true">
-    <div class="flex-1 bg-s1"></div>
-    <div class="flex-1 bg-s2"></div>
-    <div class="flex-1 bg-s3"></div>
-    <div class="flex-1 bg-s4"></div>
-    <div class="flex-1 bg-s5"></div>
-    <div class="flex-1 bg-s6"></div>
-  </div>
-
-  {# ── the quiz, framed like the home page's device ────────────── #}
-  <section class="pe-console mt-9 h-[min(80vh,700px)] min-h-[520px]" aria-label="Quiz">
-    <div class="pe-console-bar">
-      <span>Quiz · {{ quiz.slug }}</span>
-      <span>{{ quiz.question_count }} question{{ quiz.question_count|pluralize }} · pass {{ quiz.pass_percentage }}%</span>
+    {# ── progress + counter ──────────────────────────────────────── #}
+    <div class="mt-7 h-[12px] border-[3px] border-ink bg-bg-2">
+      <span id="qz-progress" class="block h-full w-0 bg-red"></span>
     </div>
-
-    <div class="pe-engine qz-console-body flex-1 min-h-0 p-6">
-      <div class="qz-card max-w-[820px] mx-auto" id="qz-stage"></div>
+    <div class="mt-3 font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5 flex flex-wrap items-center justify-between gap-3">
+      <span id="qz-counter">Question 1</span>
+      <span id="qz-recorded"></span>
     </div>
-  </section>
-
-</div>
+    {# ── stripe divider (same signature strip as the home page) ───── #}
+    <div class="mt-9 h-[14px] flex" aria-hidden="true">
+      <div class="flex-1 bg-s1"></div>
+      <div class="flex-1 bg-s2"></div>
+      <div class="flex-1 bg-s3"></div>
+      <div class="flex-1 bg-s4"></div>
+      <div class="flex-1 bg-s5"></div>
+      <div class="flex-1 bg-s6"></div>
+    </div>
+    {# ── the quiz, framed like the home page's device ────────────── #}
+    <section class="pe-console mt-9 h-[min(80vh,700px)] min-h-[520px]"
+             aria-label="Quiz">
+      <div class="pe-console-bar">
+        <span>Quiz · {{ quiz.slug }}</span>
+        <span>{{ quiz.question_count }} question{{ quiz.question_count|pluralize }} · pass {{ quiz.pass_percentage }}%</span>
+      </div>
+      <div class="pe-engine qz-console-body flex-1 min-h-0 p-6">
+        <div class="qz-card max-w-[820px] mx-auto" id="qz-stage"></div>
+      </div>
+    </section>
+  </div>
 {% endblock content %}
-
 {% block extra_js %}
-    {{ payload|json_script:"quiz-payload" }}
-    <script src="{% static 'js/pyverse-progress.js' %}"></script>
-    <script>
-      (function () {
-        const payload = JSON.parse(document.getElementById("quiz-payload").textContent);
-        if (payload.randomize_questions) {
-          payload.questions = payload.questions
-            .map((question) => ({ question, order: Math.random() }))
-            .sort((a, b) => a.order - b.order)
-            .map((entry) => entry.question);
-        }
-        const stage = document.getElementById("qz-stage");
-        const counter = document.getElementById("qz-counter");
-        const progress = document.getElementById("qz-progress");
-        const recorded = document.getElementById("qz-recorded");
+  {{ payload|json_script:"quiz-payload" }}
+  <script src="{% static 'js/pyverse-progress.js' %}"></script>
+  <script>
+    (function() {
+      const payload = JSON.parse(document.getElementById("quiz-payload").textContent);
+      if (payload.randomize_questions) {
+        payload.questions = payload.questions
+          .map((question) => ({
+            question,
+            order: Math.random()
+          }))
+          .sort((a, b) => a.order - b.order)
+          .map((entry) => entry.question);
+      }
+      const stage = document.getElementById("qz-stage");
+      const counter = document.getElementById("qz-counter");
+      const progress = document.getElementById("qz-progress");
+      const recorded = document.getElementById("qz-recorded");
 
-        let index = 0;
-        let correct = 0;
-        let answered = false;
+      let index = 0;
+      let correct = 0;
+      let answered = false;
 
-        function el(tag, className, text) {
-          const node = document.createElement(tag);
-          if (className) node.className = className;
-          if (text !== undefined) node.textContent = text;
-          return node;
-        }
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
 
-        function finish() {
-          const total = payload.questions.length;
-          const pct = total ? Math.round((correct / total) * 100) : 0;
-          const passed = pct >= payload.pass_percentage;
+      function finish() {
+        const total = payload.questions.length;
+        const pct = total ? Math.round((correct / total) * 100) : 0;
+        const passed = pct >= payload.pass_percentage;
 
-          progress.style.width = "100%";
-          counter.textContent = "Finished";
-          stage.innerHTML = "";
+        progress.style.width = "100%";
+        counter.textContent = "Finished";
+        stage.innerHTML = "";
 
-          const card = el("div", "qz-result");
-          card.appendChild(el("div", "qz-score", correct + "/" + total));
-          const verdict = el("div", "qz-verdict");
-          verdict.textContent = passed
-            ? "Passed — " + pct + "% (needs " + payload.pass_percentage + "%)"
-            : "Not passed — " + pct + "% (needs " + payload.pass_percentage + "%)";
-          verdict.style.color = passed ? "var(--green)" : "var(--red)";
-          card.appendChild(verdict);
+        const card = el("div", "qz-result");
+        card.appendChild(el("div", "qz-score", correct + "/" + total));
+        const verdict = el("div", "qz-verdict");
+        verdict.textContent = passed ?
+          "Passed — " + pct + "% (needs " + payload.pass_percentage + "%)" :
+          "Not passed — " + pct + "% (needs " + payload.pass_percentage + "%)";
+        verdict.style.color = passed ? "var(--green)" : "var(--red)";
+        card.appendChild(verdict);
 
-          const actions = el("div", "qz-actions");
-          actions.style.justifyContent = "center";
-          const retry = el("button", "pe-btn", "Retry quiz");
-          retry.type = "button";
-          retry.addEventListener("click", () => {
-            index = 0;
-            correct = 0;
-            render();
-          });
-          actions.appendChild(retry);
-          const back = el("a", "pe-btn", "Back to problems");
-          back.href = "/practice/";
-          actions.appendChild(back);
-          card.appendChild(actions);
-          stage.appendChild(card);
-
-          if (window.PyverseProgress) {
-            window.PyverseProgress.recordSubmission({
-              slug: document.body.dataset.quizSlug,
-              title: document.body.dataset.quizTitle,
-              status: passed ? "ACCEPTED" : "WRONG_ANSWER",
-              latency: 0,
-            }).then(() => {
-              recorded.textContent = "attempt recorded";
-            }).catch(() => {});
-          }
-        }
-
-        function grade(isCorrect, chosen, correctChoice) {
-          if (answered) return;
-          answered = true;
-          const question = payload.questions[index];
-
-          if (isCorrect) correct += 1;
-          chosen.classList.add(isCorrect ? "correct" : "wrong");
-          if (!isCorrect && correctChoice) correctChoice.classList.add("correct");
-
-          const explanation = el("div", "qz-explanation");
-          explanation.textContent =
-            question.explanation || (isCorrect ? "Correct." : "Not quite.");
-          stage.appendChild(explanation);
-
-          const actions = el("div", "qz-actions");
-          const last = index === payload.questions.length - 1;
-          const next = el("button", "pe-btn primary", last ? "See result" : "Next question");
-          next.type = "button";
-          next.addEventListener("click", () => {
-            if (last) finish();
-            else {
-              index += 1;
-              render();
-            }
-          });
-          actions.appendChild(next);
-          stage.appendChild(actions);
-        }
-
-        function questionButtons(question) {
-          const options =
-            question.type === "true_false"
-              ? [true, false]
-              : question.choices.map((choice) => choice.text);
-          const isCorrect = (position) =>
-            question.type === "true_false"
-              ? question.correct_bool === options[position]
-              : question.choices[position].is_correct;
-
-          const buttons = options.map((label) => {
-            const button = el("button", "qz-choice", label === true ? "True" : label === false ? "False" : label);
-            button.type = "button";
-            return button;
-          });
-          const correctIndex = options.findIndex((_, position) => isCorrect(position));
-
-          buttons.forEach((button, position) => {
-            button.addEventListener("click", () =>
-              grade(isCorrect(position), button, buttons[correctIndex] || null),
-            );
-          });
-          return buttons;
-        }
-
-        function render() {
-          answered = false;
-          stage.innerHTML = "";
-
-          const question = payload.questions[index];
-          const total = payload.questions.length;
-          counter.textContent = "Question " + (index + 1) + " of " + total;
-          progress.style.width = Math.round((index / total) * 100) + "%";
-
-          const card = el("div");
-          card.appendChild(el("div", "qz-q", question.text));
-          if (question.code_snippet) card.appendChild(el("pre", "qz-code", question.code_snippet));
-
-          const choices = el("div", "qz-choices");
-          questionButtons(question).forEach((button) => choices.appendChild(button));
-          card.appendChild(choices);
-          stage.appendChild(card);
-        }
-
-        if (!payload.questions.length) {
-          stage.appendChild(el("p", "pe-empty", "This quiz has no questions yet."));
-        } else {
+        const actions = el("div", "qz-actions");
+        actions.style.justifyContent = "center";
+        const retry = el("button", "pe-btn", "Retry quiz");
+        retry.type = "button";
+        retry.addEventListener("click", () => {
+          index = 0;
+          correct = 0;
           render();
+        });
+        actions.appendChild(retry);
+        const back = el("a", "pe-btn", "Back to problems");
+        back.href = "/practice/";
+        actions.appendChild(back);
+        card.appendChild(actions);
+        stage.appendChild(card);
+
+        if (window.PyverseProgress) {
+          window.PyverseProgress.recordSubmission({
+            slug: document.body.dataset.quizSlug,
+            title: document.body.dataset.quizTitle,
+            status: passed ? "ACCEPTED" : "WRONG_ANSWER",
+            latency: 0,
+          }).then(() => {
+            recorded.textContent = "attempt recorded";
+          }).catch(() => {});
         }
-      })();
-    </script>
+      }
+
+      function grade(isCorrect, chosen, correctChoice) {
+        if (answered) return;
+        answered = true;
+        const question = payload.questions[index];
+
+        if (isCorrect) correct += 1;
+        chosen.classList.add(isCorrect ? "correct" : "wrong");
+        if (!isCorrect && correctChoice) correctChoice.classList.add("correct");
+
+        const explanation = el("div", "qz-explanation");
+        explanation.textContent =
+          question.explanation || (isCorrect ? "Correct." : "Not quite.");
+        stage.appendChild(explanation);
+
+        const actions = el("div", "qz-actions");
+        const last = index === payload.questions.length - 1;
+        const next = el("button", "pe-btn primary", last ? "See result" : "Next question");
+        next.type = "button";
+        next.addEventListener("click", () => {
+          if (last) finish();
+          else {
+            index += 1;
+            render();
+          }
+        });
+        actions.appendChild(next);
+        stage.appendChild(actions);
+      }
+
+      function questionButtons(question) {
+        const options =
+          question.type === "true_false" ? [true, false] :
+          question.choices.map((choice) => choice.text);
+        const isCorrect = (position) =>
+          question.type === "true_false" ?
+          question.correct_bool === options[position] :
+          question.choices[position].is_correct;
+
+        const buttons = options.map((label) => {
+          const button = el("button", "qz-choice", label === true ? "True" : label === false ? "False" : label);
+          button.type = "button";
+          return button;
+        });
+        const correctIndex = options.findIndex((_, position) => isCorrect(position));
+
+        buttons.forEach((button, position) => {
+          button.addEventListener("click", () =>
+            grade(isCorrect(position), button, buttons[correctIndex] || null),
+          );
+        });
+        return buttons;
+      }
+
+      function render() {
+        answered = false;
+        stage.innerHTML = "";
+
+        const question = payload.questions[index];
+        const total = payload.questions.length;
+        counter.textContent = "Question " + (index + 1) + " of " + total;
+        progress.style.width = Math.round((index / total) * 100) + "%";
+
+        const card = el("div");
+        card.appendChild(el("div", "qz-q", question.text));
+        if (question.code_snippet) card.appendChild(el("pre", "qz-code", question.code_snippet));
+
+        const choices = el("div", "qz-choices");
+        questionButtons(question).forEach((button) => choices.appendChild(button));
+        card.appendChild(choices);
+        stage.appendChild(card);
+      }
+
+      if (!payload.questions.length) {
+        stage.appendChild(el("p", "pe-empty", "This quiz has no questions yet."));
+      } else {
+        render();
+      }
+    })();
+  </script>
 {% endblock extra_js %}

@@ -5,5 +5,8 @@ Callers pass `nav_link_class` so each shell keeps its own styling; the labels,
 their order and the active-section marking come from `site_nav`
 (pyverse/home/context_processors.py), so the chrome cannot drift again.
 {% endcomment %}
-{% for item in site_nav.items %}<a class="{{ nav_link_class }}{% if item.active %} nav-active{% endif %}" href="{{ item.url }}"{% if item.external %} target="_blank" rel="noopener noreferrer"{% endif %}{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
+{% for item in site_nav.items %}<a class="{{ nav_link_class }}{% if item.active %} nav-active{% endif %}"
+   href="{{ item.url }}"
+   {% if item.external %}target="_blank" rel="noopener noreferrer"{% endif %}
+   {% if item.active %}aria-current="page"{% endif %}>{{ item.label }}</a>
 {% endfor %}

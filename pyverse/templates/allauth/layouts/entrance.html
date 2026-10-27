@@ -1,44 +1,35 @@
 {% extends "base.html" %}
+
 {% load i18n %}
+
 {% block bodyclass %}bg-gray-50{% endblock bodyclass %}
-
 {% block css %}{{ block.super }}{% endblock css %}
-
 {% block title %}
   {% block head_title %}
     {% trans "Sign In" %}
   {% endblock head_title %}
 {% endblock title %}
-
 {% block body %}
   <div class="flex items-center justify-center min-h-screen py-12 px-4 sm:px-6 lg:px-8">
     <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-md my-8">
-
       {% if messages %}
         {% for message in messages %}
           <div x-data="{ show: true }"
                x-show="show"
-               class="flex justify-between items-center p-4 mb-6 rounded-md border text-sm font-medium
-               {% if message.tags == 'success' %} bg-green-50 text-green-800 border-green-200
-               {% elif message.tags == 'error' or message.tags == 'danger' %} bg-red-50 text-red-800 border-red-200
-               {% elif message.tags == 'warning' %} bg-yellow-50 text-yellow-800 border-yellow-200
-               {% else %} bg-blue-50 text-blue-800 border-blue-200 {% endif %}">
-
+               class="flex justify-between items-center p-4 mb-6 rounded-md border text-sm font-medium {% if message.tags == 'success' %} bg-green-50 text-green-800 border-green-200 {% elif message.tags == 'error' or message.tags == 'danger' %} bg-red-50 text-red-800 border-red-200 {% elif message.tags == 'warning' %} bg-yellow-50 text-yellow-800 border-yellow-200 {% else %} bg-blue-50 text-blue-800 border-blue-200 {% endif %}">
             <span>{{ message }}</span>
-
-            <button @click="show = false" type="button" class="text-current opacity-60 hover:opacity-100 transition-opacity focus:outline-none">
+            <button @click="show = false"
+                    type="button"
+                    class="text-current opacity-60 hover:opacity-100 transition-opacity focus:outline-none">
               <span class="text-xl font-bold">×</span>
             </button>
           </div>
         {% endfor %}
       {% endif %}
-
       {% block content %}
       {% endblock content %}
-
       {% block extra_body %}
       {% endblock extra_body %}
-
     </div>
   </div>
 {% endblock body %}

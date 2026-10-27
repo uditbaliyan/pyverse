@@ -1,30 +1,16 @@
 {% if value.code %}
-<div class="my-6 rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
-  {% if value.filename or value.language %}
-  <div
-    class="flex items-center justify-between px-4 py-2 bg-neutral-900 border-b border-neutral-800"
-  >
-    <span class="text-xs text-neutral-400 font-mono">
-      {% if value.filename %}{{ value.filename }}{% else %}{{ value.language }}{% endif %}
-    </span>
-    <button
-      onclick="
-        navigator.clipboard.writeText(
-          this.closest('.code-block').querySelector('code').textContent,
-        );
-        this.textContent = 'Copied!';
-        setTimeout(() => (this.textContent = 'Copy'), 1500);
-      "
-      class="text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer"
-    >
-      Copy
-    </button>
+  <div class="my-6 rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+    {% if value.filename or value.language %}
+      <div class="flex items-center justify-between px-4 py-2 bg-neutral-900 border-b border-neutral-800">
+        <span class="text-xs text-neutral-400 font-mono">
+          {% if value.filename %}{{ value.filename }}{% else %}{{ value.language }}{% endif %}
+        </span>
+        <button onclick=" navigator.clipboard.writeText( this.closest('.code-block').querySelector('code').textContent, ); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy'), 1500); "
+                class="text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer">Copy</button>
+      </div>
+    {% endif %}
+    <div class="code-block overflow-x-auto">
+      <pre class="!m-0 !p-4 !rounded-none !border-none"><code class="language-{{ value.language }} text-sm">{{ value.code }}</code></pre>
+    </div>
   </div>
-  {% endif %}
-  <div class="code-block overflow-x-auto">
-    <pre
-      class="!m-0 !p-4 !rounded-none !border-none"
-    ><code class="language-{{ value.language }} text-sm">{{ value.code }}</code></pre>
-  </div>
-</div>
 {% endif %}

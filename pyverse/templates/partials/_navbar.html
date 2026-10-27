@@ -7,152 +7,92 @@
     <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-y-2">
       <!-- Brand & Status (Left Side) -->
       <div class="flex items-center gap-4 flex-wrap">
-        <a class="bg-ink text-bg px-2.5 py-1 font-bold hover:bg-red transition-colors" href="/">
-          PYVERSE // core_v3
-        </a>
+        <a class="bg-ink text-bg px-2.5 py-1 font-bold hover:bg-red transition-colors"
+           href="/">PYVERSE // core_v3</a>
         <span class="text-muted hidden sm:inline">ENV: CLIENT_SIDE_WASM_SANDBOX</span>
       </div>
-
       <!-- Desktop Navigation & Auth (Right Side - Hidden on Mobile) -->
       <div class="hidden md:flex items-center space-x-12">
         {% include "partials/_site_nav_items.html" with nav_link_class="text-ink hover:underline decoration-[2px] underline-offset-4" %}
-
         {% if SHOW_ACCOUNT_LINKS %}
-        {% if request.user.is_authenticated %}
-        <span class="text-muted">|</span>
-        <a
-          class="text-ink hover:underline decoration-[2px] underline-offset-4"
-          href="{% url 'users:detail' request.user.username %}"
-        >
-          PROFILE
-        </a>
-        <a
-          class="border border-ink bg-ink text-bg px-2.5 py-1 hover:bg-red hover:border-red hover:text-bg transition"
-          href="{% url 'account_logout' %}"
-        >
-          LOGOUT
-        </a>
-        {% else %}
-        <span class="text-muted">|</span>
-        {% if ACCOUNT_ALLOW_REGISTRATION %}
-        <a
-          id="sign-up-link"
-          class="text-ink hover:underline decoration-[2px] underline-offset-4"
-          href="{% url 'account_signup' %}"
-        >
-          SIGN_UP
-        </a>
-        {% endif %}
-        <a
-          id="log-in-link"
-          class="border border-ink bg-ink text-bg px-3 py-1 font-bold hover:bg-bg hover:text-ink transition-all"
-          href="{% url 'account_login' %}"
-        >
-          LOGIN
-        </a>
-        {% endif %}
-      </div>
-
-      <!-- Mobile Menu Toggle Button (Visible on Mobile Only) -->
-      <div class="flex items-center md:hidden">
-        <button
-          @click="open = !open"
-          type="button"
-          class="inline-flex items-center justify-center p-2 border-[2px] border-ink bg-bg hover:bg-ink hover:text-bg transition-all focus:outline-none"
-          aria-controls="mobile-menu"
-          :aria-expanded="open"
-        >
-          <span class="sr-only">Open Menu</span>
-
-          <!-- Hamburger Icon (Forced Stroke Color) -->
-          <svg
-            :class="{'hidden': open, 'block': !open }"
-            class="h-5 w-5 block"
-            stroke="currentColor"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            {# djlint:off H021 #}
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
-              d="M4 6h16M4 12h16M4 18h16"
-              style="stroke: var(--color-ink, #000000)"
-            />
-            {# djlint:on #}
-          </svg>
-
-          <!-- Close Icon (Forced Stroke Color) -->
-          <svg
-            :class="{'block': open, 'hidden': !open }"
-            class="h-5 w-5 hidden"
-            stroke="currentColor"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            {# djlint:off H021 #}
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
-              d="M6 18L18 6M6 6l12 12"
-              style="stroke: var(--color-ink, #000000)"
-            />
-            {# djlint:on #}
-          </svg>
-        </button>
+          {% if request.user.is_authenticated %}
+            <span class="text-muted">|</span>
+            <a class="text-ink hover:underline decoration-[2px] underline-offset-4"
+               href="{% url 'users:detail' request.user.username %}">PROFILE</a>
+            <a class="border border-ink bg-ink text-bg px-2.5 py-1 hover:bg-red hover:border-red hover:text-bg transition"
+               href="{% url 'account_logout' %}">LOGOUT</a>
+          {% else %}
+            <span class="text-muted">|</span>
+            {% if ACCOUNT_ALLOW_REGISTRATION %}
+              <a id="sign-up-link"
+                 class="text-ink hover:underline decoration-[2px] underline-offset-4"
+                 href="{% url 'account_signup' %}">SIGN_UP</a>
+            {% endif %}
+            <a id="log-in-link"
+               class="border border-ink bg-ink text-bg px-3 py-1 font-bold hover:bg-bg hover:text-ink transition-all"
+               href="{% url 'account_login' %}">LOGIN</a>
+          {% endif %}
+        </div>
+        <!-- Mobile Menu Toggle Button (Visible on Mobile Only) -->
+        <div class="flex items-center md:hidden">
+          <button @click="open = !open"
+                  type="button"
+                  class="inline-flex items-center justify-center p-2 border-[2px] border-ink bg-bg hover:bg-ink hover:text-bg transition-all focus:outline-none"
+                  aria-controls="mobile-menu"
+                  :aria-expanded="open">
+            <span class="sr-only">Open Menu</span>
+            <!-- Hamburger Icon (Forced Stroke Color) -->
+            <svg :class="{'hidden': open, 'block': !open }"
+                 class="h-5 w-5 block"
+                 stroke="currentColor"
+                 fill="none"
+                 viewBox="0 0 24 24">
+              {# djlint:off H021 #}
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" style="stroke: var(--color-ink, #000000)" />
+              {# djlint:on #}
+            </svg>
+            <!-- Close Icon (Forced Stroke Color) -->
+            <svg :class="{'block': open, 'hidden': !open }"
+                 class="h-5 w-5 hidden"
+                 stroke="currentColor"
+                 fill="none"
+                 viewBox="0 0 24 24">
+              {# djlint:off H021 #}
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" style="stroke: var(--color-ink, #000000)" />
+              {# djlint:on #}
+            </svg>
+          </button>
         {% endif %}
       </div>
     </div>
-
     <!-- Mobile Navigation Drawer -->
     {# Hidden until Alpine initialises, so the drawer never flashes open. #}
     {# djlint:off H021 #}
-    <div
-      class="md:hidden border-t-[2px] border-ink bg-bg-2 mt-3 py-4 px-2 space-y-2"
-      id="mobile-menu"
-      x-show="open"
-      @click.away="open = false"
-      style="display: none"
-    >
-    {# djlint:on #}
+    <div class="md:hidden border-t-[2px] border-ink bg-bg-2 mt-3 py-4 px-2 space-y-2"
+         id="mobile-menu"
+         x-show="open"
+         @click.away="open = false"
+         style="display: none">
+      {# djlint:on #}
       {% include "partials/_site_nav_items.html" with nav_link_class="block text-ink hover:bg-ink hover:text-bg px-3 py-1.5 transition-colors" %}
-
       {% if SHOW_ACCOUNT_LINKS %}
-      {% if request.user.is_authenticated %}
-      <div class="border-t border-ink/20 my-2 pt-2"></div>
-      <a
-        class="block text-ink hover:bg-ink hover:text-bg px-3 py-1.5 transition-colors"
-        href="{% url 'users:detail' request.user.username %}"
-      >
-        > PROFILE
-      </a>
-      <a
-        class="block text-red hover:bg-red hover:text-bg px-3 py-1.5 font-bold transition-colors"
-        href="{% url 'account_logout' %}"
-      >
-        > LOGOUT
-      </a>
-      {% else %}
-      <div class="border-t border-ink/20 my-2 pt-2"></div>
-      {% if ACCOUNT_ALLOW_REGISTRATION %}
-      <a
-        id="sign-up-link"
-        class="block text-ink hover:bg-ink hover:text-bg px-3 py-1.5 transition-colors"
-        href="{% url 'account_signup' %}"
-      >
-        > SIGN_UP
-      </a>
-      {% endif %}
-      <a
-        id="log-in-link"
-        class="block bg-ink text-bg px-3 py-1.5 font-bold transition-all hover:bg-bg hover:text-ink border border-ink"
-        href="{% url 'account_login' %}"
-      >
-        > LOGIN
-      </a>
-      {% endif %}
+        {% if request.user.is_authenticated %}
+          <div class="border-t border-ink/20 my-2 pt-2"></div>
+          <a class="block text-ink hover:bg-ink hover:text-bg px-3 py-1.5 transition-colors"
+             href="{% url 'users:detail' request.user.username %}">> PROFILE</a>
+          <a class="block text-red hover:bg-red hover:text-bg px-3 py-1.5 font-bold transition-colors"
+             href="{% url 'account_logout' %}">> LOGOUT</a>
+        {% else %}
+          <div class="border-t border-ink/20 my-2 pt-2"></div>
+          {% if ACCOUNT_ALLOW_REGISTRATION %}
+            <a id="sign-up-link"
+               class="block text-ink hover:bg-ink hover:text-bg px-3 py-1.5 transition-colors"
+               href="{% url 'account_signup' %}">> SIGN_UP</a>
+          {% endif %}
+          <a id="log-in-link"
+             class="block bg-ink text-bg px-3 py-1.5 font-bold transition-all hover:bg-bg hover:text-ink border border-ink"
+             href="{% url 'account_login' %}">> LOGIN</a>
+        {% endif %}
       {% endif %}
     </div>
   </nav>

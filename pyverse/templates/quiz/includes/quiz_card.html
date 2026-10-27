@@ -9,14 +9,10 @@ it matches the neighbouring cards. The difficulty chip keeps its `diff-*` class
 and takes its colours from the engine tokens, which the Practice pages re-point
 at the site palette.
 {% endcomment %}
-<a
-  class="pe-card bg-bg-2 border-[3px] border-ink p-[18px] shadow-card rounded-none
-         hover:border-ink hover:-translate-x-0.5 hover:-translate-y-0.5
-         hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
-  href="{{ quiz.get_absolute_url }}"
-  data-slug="{{ quiz.slug }}"
-  data-title="{{ quiz.title }}"
->
+<a class="pe-card bg-bg-2 border-[3px] border-ink p-[18px] shadow-card rounded-none hover:border-ink hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
+   href="{{ quiz.get_absolute_url }}"
+   data-slug="{{ quiz.slug }}"
+   data-title="{{ quiz.title }}">
   <div class="flex items-baseline justify-between gap-2.5 mb-1.5">
     <span class="font-black text-[17px] tracking-tight">{{ quiz.title }}</span>
     <span class="pe-badge diff-{{ quiz.difficulty }} !border-ink rounded-none border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-wide">{{ quiz.get_difficulty_display }}</span>

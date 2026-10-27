@@ -1,24 +1,15 @@
 {% if value %}
-<div class="my-8 rounded-xl border border-neutral-200 overflow-hidden">
-  <div
-    class="flex items-center justify-between px-4 py-2 bg-neutral-50 border-b border-neutral-200"
-  >
-    <span class="text-xs text-neutral-400 font-medium uppercase tracking-wide">Diagram</span>
-    <button
-      onclick="
-        const src = this.closest('.mermaid-wrap').querySelector('.mermaid-src');
-        navigator.clipboard.writeText(src.textContent);
-        this.textContent = 'Copied!';
-        setTimeout(() => (this.textContent = 'Copy source'), 1500);
-      "
-      class="text-xs text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer"
-    >
-      Copy source
-    </button>
+  <div class="my-8 rounded-xl border border-neutral-200 overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-2 bg-neutral-50 border-b border-neutral-200">
+      <span class="text-xs text-neutral-400 font-medium uppercase tracking-wide">Diagram</span>
+      <button onclick=" const src = this.closest('.mermaid-wrap').querySelector('.mermaid-src'); navigator.clipboard.writeText(src.textContent); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy source'), 1500); "
+              class="text-xs text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer">
+        Copy source
+      </button>
+    </div>
+    <div class="mermaid-wrap p-6 bg-white">
+      <pre class="mermaid-src hidden">{{ value }}</pre>
+      <pre class="mermaid">{{ value }}</pre>
+    </div>
   </div>
-  <div class="mermaid-wrap p-6 bg-white">
-    <pre class="mermaid-src hidden">{{ value }}</pre>
-    <pre class="mermaid">{{ value }}</pre>
-  </div>
-</div>
 {% endif %}

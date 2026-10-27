@@ -1,10 +1,10 @@
 {% load i18n wagtailcore_tags wagtailimages_tags puput_tags %}
 
 {% for entry in entries %}
-    <li>
-        <a href="{% pageurl entry %}">{{ entry.title }}</a>
-        <span class="pv-sub">{% if entry.owner %}{{ entry.owner.username }} · {% endif %}{{ entry.date|date:"SHORT_DATE_FORMAT" }}{% if blog_page.disqus_api_secret %} · {{ entry.num_comments }} comments{% endif %}</span>
-    </li>
+  <li>
+    <a href="{% pageurl entry %}">{{ entry.title }}</a>
+    <span class="pv-sub">{% if entry.owner %}{{ entry.owner.username }} · {% endif %}{{ entry.date|date:"SHORT_DATE_FORMAT" }}{% if blog_page.disqus_api_secret %} · {{ entry.num_comments }} comments{% endif %}</span>
+  </li>
 {% empty %}
-    <li class="pv-sub">{% trans 'No entries yet' %}</li>
+  <li class="pv-sub">{% trans 'No entries yet' %}</li>
 {% endfor %}

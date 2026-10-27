@@ -1,5 +1,7 @@
 {% extends "home/base_.html" %}
+
 {% load static wagtailcore_tags %}
+
 {% comment %}
 Sheets index (spec §3): curated, ordered paths through the problem set, in the
 site's own shell — same navbar, footer and cream brutalist card language as the
@@ -10,70 +12,49 @@ so the card block carries the engine token set — with `pe-on-light` dropping t
 dark painting and the tokens re-pointed at the site palette, the ring renders
 cream-2/device/red instead of slate/purple.
 {% endcomment %}
-
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 {% endblock extra_head %}
-
 {% block content %}
-<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-
-  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-    {# djlint:off D018 #}
-    <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
-    {# djlint:on #}
-    <span class="mx-1">›</span>sheets
-  </p>
-
-  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
-    {{ page.title }}
-  </h1>
-
-  {% if page.intro %}
-    <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
-  {% endif %}
-
-  <div
-    class="mt-9 pe-engine pe-on-light bg-transparent text-ink min-h-0
-           [--bg0:#F5EEDA] [--bg1:#F5EEDA] [--bg2:#EDE6D2] [--bg3:#D6CEBD] [--bg4:#D6CEBD]
-           [--border:rgba(26,26,26,0.15)] [--border-hi:#1A1A1A]
-           [--text0:#1A1A1A] [--text1:#3A3529] [--text2:#6B6355]
-           [--accent:#C62828] [--accent-dim:rgba(198,40,40,0.12)]
-           [--green:#3D4F2F] [--green-dim:rgba(200,213,185,0.55)]
-           [--red:#C62828] [--red-dim:rgba(198,40,40,0.12)]
-           [--amber:#6B6355] [--amber-dim:rgba(214,206,189,0.7)]
-           [--sans:Inter,system-ui,sans-serif] [--mono:'JetBrains_Mono',monospace]"
-  >
-    <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
-      {% for sheet in sheets %}
-        <a
-          class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
-          href="{{ sheet.url }}"
-          data-progress-scope
-        >
-          {% for problem in sheet.problems %}<span class="pe-hidden" data-slug="{{ problem.slug }}"></span>{% endfor %}
-          <div class="flex items-center justify-between gap-3 mb-1.5">
-            <span class="font-black text-[17px] tracking-tight">{{ sheet.title }}</span>
-            <span class="pe-ring" data-progress-ring data-label="0%"></span>
+  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+      {# djlint:off D018 #}
+      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
+      {# djlint:on #}
+      <span class="mx-1">›</span>sheets
+    </p>
+    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+    {% if page.intro %}
+      <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
+    {% endif %}
+    <div class="mt-9 pe-engine pe-on-light bg-transparent text-ink min-h-0 [--bg0:#F5EEDA] [--bg1:#F5EEDA] [--bg2:#EDE6D2] [--bg3:#D6CEBD] [--bg4:#D6CEBD] [--border:rgba(26,26,26,0.15)] [--border-hi:#1A1A1A] [--text0:#1A1A1A] [--text1:#3A3529] [--text2:#6B6355] [--accent:#C62828] [--accent-dim:rgba(198,40,40,0.12)] [--green:#3D4F2F] [--green-dim:rgba(200,213,185,0.55)] [--red:#C62828] [--red-dim:rgba(198,40,40,0.12)] [--amber:#6B6355] [--amber-dim:rgba(214,206,189,0.7)] [--sans:Inter,system-ui,sans-serif] [--mono:'JetBrains_Mono',monospace]">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
+        {% for sheet in sheets %}
+          <a class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
+             href="{{ sheet.url }}"
+             data-progress-scope>
+            {% for problem in sheet.problems %}<span class="pe-hidden" data-slug="{{ problem.slug }}"></span>{% endfor %}
+            <div class="flex items-center justify-between gap-3 mb-1.5">
+              <span class="font-black text-[17px] tracking-tight">{{ sheet.title }}</span>
+              <span class="pe-ring" data-progress-ring data-label="0%"></span>
+            </div>
+            {% if sheet.description %}
+              <div class="text-[12.5px] leading-relaxed text-body-txt mb-3">{{ sheet.description|striptags|truncatechars:120 }}</div>
+            {% endif %}
+            <div class="flex flex-wrap gap-2.5 font-mono text-[10.5px] text-muted">
+              <span>{{ sheet.problem_count }} problem{{ sheet.problem_count|pluralize }}</span>
+              <span>{{ sheet.categories|length }} categor{{ sheet.categories|length|pluralize:"y,ies" }}</span>
+            </div>
+          </a>
+        {% empty %}
+          <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+            <p class="font-mono text-[12px] text-muted">No sheets published yet.</p>
           </div>
-          {% if sheet.description %}
-            <div class="text-[12.5px] leading-relaxed text-body-txt mb-3">{{ sheet.description|striptags|truncatechars:120 }}</div>
-          {% endif %}
-          <div class="flex flex-wrap gap-2.5 font-mono text-[10.5px] text-muted">
-            <span>{{ sheet.problem_count }} problem{{ sheet.problem_count|pluralize }}</span>
-            <span>{{ sheet.categories|length }} categor{{ sheet.categories|length|pluralize:"y,ies" }}</span>
-          </div>
-        </a>
-      {% empty %}
-        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-          <p class="font-mono text-[12px] text-muted">No sheets published yet.</p>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
   </div>
-</div>
 {% endblock content %}
-
 {% block extra_js %}
   <script src="{% static 'js/pyverse-progress.js' %}"></script>
   <script src="{% static 'js/practice-browse.js' %}"></script>

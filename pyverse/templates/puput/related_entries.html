@@ -1,17 +1,18 @@
 {% load i18n wagtailcore_tags wagtailimages_tags puput_tags %}
 
 <section class="pv-related">
-    <h2 class="pv-title"><span>{% trans 'Related entries' %}</span></h2>
-    <div class="pv-related-grid">
-        {% for related_entry in entry.related|slice:':4' %}
-            <article class="pv-card">
-                {% if related_entry.header_image %}
-                    {% image related_entry.header_image fill-800x240 as header_image %}
-                    <img alt="{{ related_entry.header_image.title }}" src="{{ header_image.url }}">
-                {% endif %}
-                <h3><a href="{% pageurl related_entry %}">{{ related_entry.title }}</a></h3>
-                <p>{{ related_entry.body|richtext|truncatewords:20 }}</p>
-            </article>
-        {% endfor %}
-    </div>
+  <h2 class="pv-title"><span>{% trans 'Related entries' %}</span></h2>
+  <div class="pv-related-grid">
+    {% for related_entry in entry.related|slice:':4' %}
+      <article class="pv-card">
+        {% if related_entry.header_image %}
+          {% image related_entry.header_image fill-800x240 as header_image %}
+          <img alt="{{ related_entry.header_image.title }}"
+               src="{{ header_image.url }}" />
+        {% endif %}
+        <h3><a href="{% pageurl related_entry %}">{{ related_entry.title }}</a></h3>
+        <p>{{ related_entry.body|richtext|truncatewords:20 }}</p>
+      </article>
+    {% endfor %}
+  </div>
 </section>

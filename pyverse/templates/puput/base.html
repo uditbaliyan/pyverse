@@ -1,5 +1,7 @@
 {% extends "home/base_.html" %}
+
 {% load static i18n wagtailcore_tags wagtailimages_tags wagtailroutablepage_tags wagtailuserbar puput_tags %}
+
 {% comment %}
 Notes / blog shell. Puput ships a standalone Bootstrap page (blue bar, white
 body, no site navigation); this puts every blog template inside the site's own
@@ -10,62 +12,89 @@ archive, pagination) as is, styled by `css/pyverse-blog.css`.
 Blocks for the blog templates: `blog_content` (the main column) and
 `extra_content` (below it). The page title block is still `title`.
 {% endcomment %}
-
 {% block title %}{{ blog_page.title }}{% endblock title %}
-
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'css/pyverse-blog.css' %}" />
 {% endblock extra_head %}
-
 {% block content %}
-<div class="pv-blog max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-
-  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-    <a href="{% pageurl blog_page.get_parent %}" class="text-muted no-underline hover:text-ink">{{ blog_page.get_parent.slug }}/</a>
-    <span class="mx-1">›</span>{{ blog_page.slug }}
-  </p>
-  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
-    <a href="{% pageurl blog_page %}" class="text-ink no-underline">{{ blog_page.title }}</a>
-  </h1>
-  {% if blog_page.description %}
-    <p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ blog_page.description }}</p>
-  {% endif %}
-
-  <div class="mt-9 h-[14px] flex" aria-hidden="true">
-    <div class="flex-1 bg-s1"></div><div class="flex-1 bg-s2"></div><div class="flex-1 bg-s3"></div>
-    <div class="flex-1 bg-s4"></div><div class="flex-1 bg-s5"></div><div class="flex-1 bg-s6"></div>
-  </div>
-
-  <div class="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_290px]">
-    <div class="min-w-0">
-      {% block blog_content %}{% endblock blog_content %}
-      {% block extra_content %}{% endblock extra_content %}
+  <div class="pv-blog max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+      <a href="{% pageurl blog_page.get_parent %}"
+         class="text-muted no-underline hover:text-ink">{{ blog_page.get_parent.slug }}/</a>
+      <span class="mx-1">›</span>{{ blog_page.slug }}
+    </p>
+    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
+      <a href="{% pageurl blog_page %}" class="text-ink no-underline">{{ blog_page.title }}</a>
+    </h1>
+    {% if blog_page.description %}
+      <p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ blog_page.description }}</p>
+    {% endif %}
+    <div class="mt-9 h-[14px] flex" aria-hidden="true">
+      <div class="flex-1 bg-s1"></div>
+      <div class="flex-1 bg-s2"></div>
+      <div class="flex-1 bg-s3"></div>
+      <div class="flex-1 bg-s4"></div>
+      <div class="flex-1 bg-s5"></div>
+      <div class="flex-1 bg-s6"></div>
     </div>
-
-    <aside class="pv-side-col flex flex-col gap-5">
-      <a class="pv-feed" href="{% feeds_url blog_page %}" target="_blank" rel="noopener">RSS feed ↗</a>
-      <form class="pv-search" name="search_form" method="get" action="{% routablepageurl blog_page 'entries_search' %}">
-        <input type="search" name="q" placeholder="{% trans 'Search notes' %}" aria-label="{% trans 'Search' %}" />
-        <button type="submit">Go</button>
-      </form>
-
-      {% if blog_page.display_last_entries %}
-        <section class="pv-side"><h4>{% trans 'Last entries' %}</h4><ul class="pv-entries">{% recent_entries blog_page.num_last_entries %}</ul></section>
-      {% endif %}
-      {% if blog_page.display_popular_entries %}
-        <section class="pv-side"><h4>{% trans 'Popular entries' %}</h4><ul class="pv-entries">{% popular_entries blog_page.num_popular_entries %}</ul></section>
-      {% endif %}
-      {% if blog_page.display_categories %}
-        <section class="pv-side"><h4>{% trans 'Categories' %}</h4>{% categories_list %}</section>
-      {% endif %}
-      {% if blog_page.display_tags %}
-        <section class="pv-side"><h4>{% trans 'Tags' %}</h4>{% tags_list %}</section>
-      {% endif %}
-      {% if blog_page.display_archive %}
-        <section class="pv-side pv-archive"><h4>{% trans 'Archive' %}</h4>{% archives_list %}</section>
-      {% endif %}
-    </aside>
+    <div class="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_290px]">
+      <div class="min-w-0">
+        {% block blog_content %}
+        {% endblock blog_content %}
+        {% block extra_content %}
+        {% endblock extra_content %}
+      </div>
+      <aside class="pv-side-col flex flex-col gap-5">
+        <a class="pv-feed"
+           href="{% feeds_url blog_page %}"
+           target="_blank"
+           rel="noopener">RSS feed ↗</a>
+        <form class="pv-search"
+              name="search_form"
+              method="get"
+              action="{% routablepageurl blog_page 'entries_search' %}">
+          <input type="search"
+                 name="q"
+                 placeholder="{% trans 'Search notes' %}"
+                 aria-label="{% trans 'Search' %}" />
+          <button type="submit">Go</button>
+        </form>
+        {% if blog_page.display_last_entries %}
+          <section class="pv-side">
+            <h4>{% trans 'Last entries' %}</h4>
+            <ul class="pv-entries">
+              {% recent_entries blog_page.num_last_entries %}
+            </ul>
+          </section>
+        {% endif %}
+        {% if blog_page.display_popular_entries %}
+          <section class="pv-side">
+            <h4>{% trans 'Popular entries' %}</h4>
+            <ul class="pv-entries">
+              {% popular_entries blog_page.num_popular_entries %}
+            </ul>
+          </section>
+        {% endif %}
+        {% if blog_page.display_categories %}
+          <section class="pv-side">
+            <h4>{% trans 'Categories' %}</h4>
+            {% categories_list %}
+          </section>
+        {% endif %}
+        {% if blog_page.display_tags %}
+          <section class="pv-side">
+            <h4>{% trans 'Tags' %}</h4>
+            {% tags_list %}
+          </section>
+        {% endif %}
+        {% if blog_page.display_archive %}
+          <section class="pv-side pv-archive">
+            <h4>{% trans 'Archive' %}</h4>
+            {% archives_list %}
+          </section>
+        {% endif %}
+      </aside>
+    </div>
   </div>
-</div>
-{% wagtailuserbar %}
+  {% wagtailuserbar %}
 {% endblock content %}

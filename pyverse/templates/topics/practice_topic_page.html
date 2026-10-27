@@ -1,5 +1,7 @@
 {% extends "home/base_.html" %}
+
 {% load static wagtailcore_tags %}
+
 {% comment %}
 Track (spec §4): a Topic hub page, re-skinned as a single-axis drilling
 surface — every problem tagged to this topic or a descendant, difficulty
@@ -10,191 +12,158 @@ The body keeps `data-tree-key` (collapse state is remembered per track) and the
 page keeps the engine token set for the progress widgets and chips, re-pointed
 at the site palette so they read cream/ink/red on the light shell.
 {% endcomment %}
-
 {% block body_attrs %} data-tree-key="track-{{ page.slug }}"{% endblock body_attrs %}
-
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 {% endblock extra_head %}
-
 {% block content %}
-<div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-
-  <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-    {# djlint:off D018 #}
-    <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
-    {# djlint:on #}
-    {% for crumb in practice_breadcrumb %}
+  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+      {# djlint:off D018 #}
+      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
+      {# djlint:on #}
+      {% for crumb in practice_breadcrumb %}
+        <span class="mx-1">›</span>
+        <a href="{{ crumb.url }}" class="text-muted no-underline hover:text-ink">{{ crumb.slug }}</a>
+      {% endfor %}
       <span class="mx-1">›</span>
-      <a href="{{ crumb.url }}" class="text-muted no-underline hover:text-ink">{{ crumb.slug }}</a>
-    {% endfor %}
-    <span class="mx-1">›</span>
-    <span>{{ page.slug }}</span>
-  </p>
-
-  <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
-    {{ page.title }}
-  </h1>
-
-  {% if page.theory_content %}
-    <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.theory_content|richtext }}</div>
-  {% endif %}
-
-  <div
-    class="mt-9 pe-engine pe-on-light bg-transparent text-ink min-h-0
-           [--bg0:#F5EEDA] [--bg1:#F5EEDA] [--bg2:#EDE6D2] [--bg3:#D6CEBD] [--bg4:#D6CEBD]
-           [--border:rgba(26,26,26,0.15)] [--border-hi:#1A1A1A]
-           [--text0:#1A1A1A] [--text1:#3A3529] [--text2:#6B6355]
-           [--accent:#C62828] [--accent-dim:rgba(198,40,40,0.12)]
-           [--green:#3D4F2F] [--green-dim:rgba(200,213,185,0.55)]
-           [--red:#C62828] [--red-dim:rgba(198,40,40,0.12)]
-           [--amber:#6B6355] [--amber-dim:rgba(214,206,189,0.7)]
-           [--sans:Inter,system-ui,sans-serif] [--mono:'JetBrains_Mono',monospace]"
-    data-progress-scope
-  >
-
-    <div class="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5 mb-[18px]">
-      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Solved in this track</div>
-        <div class="font-mono text-[22px] font-bold text-screen-dk" id="stat-solved">0</div>
-        <div class="font-mono text-[10.5px] text-muted mt-1">
-          <span id="stat-easy">0</span> easy ·
-          <span id="stat-medium">0</span> medium ·
-          <span id="stat-hard">0</span> hard
+      <span>{{ page.slug }}</span>
+    </p>
+    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+    {% if page.theory_content %}
+      <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.theory_content|richtext }}</div>
+    {% endif %}
+    <div class="mt-9 pe-engine pe-on-light bg-transparent text-ink min-h-0 [--bg0:#F5EEDA] [--bg1:#F5EEDA] [--bg2:#EDE6D2] [--bg3:#D6CEBD] [--bg4:#D6CEBD] [--border:rgba(26,26,26,0.15)] [--border-hi:#1A1A1A] [--text0:#1A1A1A] [--text1:#3A3529] [--text2:#6B6355] [--accent:#C62828] [--accent-dim:rgba(198,40,40,0.12)] [--green:#3D4F2F] [--green-dim:rgba(200,213,185,0.55)] [--red:#C62828] [--red-dim:rgba(198,40,40,0.12)] [--amber:#6B6355] [--amber-dim:rgba(214,206,189,0.7)] [--sans:Inter,system-ui,sans-serif] [--mono:'JetBrains_Mono',monospace]"
+         data-progress-scope>
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5 mb-[18px]">
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Solved in this track</div>
+          <div class="font-mono text-[22px] font-bold text-screen-dk"
+               id="stat-solved">0</div>
+          <div class="font-mono text-[10.5px] text-muted mt-1">
+            <span id="stat-easy">0</span> easy ·
+            <span id="stat-medium">0</span> medium ·
+            <span id="stat-hard">0</span> hard
+          </div>
+        </div>
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Attempted</div>
+          <div class="font-mono text-[22px] font-bold text-ink" id="stat-attempted">0</div>
+        </div>
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Problems</div>
+          <div class="font-mono text-[22px] font-bold text-ink" id="stat-total">{{ problems|length }}</div>
+          {# Width is set from JS (progress store). #}
+          {# djlint:off H021 #}
+          <div class="pe-bar">
+            <span data-progress-bar style="width: 0%"></span>
+          </div>
+          {# djlint:on #}
+        </div>
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Streak</div>
+          <div class="font-mono text-[22px] font-bold text-red" id="stat-streak">0</div>
         </div>
       </div>
-
-      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Attempted</div>
-        <div class="font-mono text-[22px] font-bold text-ink" id="stat-attempted">0</div>
-      </div>
-
-      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Problems</div>
-        <div class="font-mono text-[22px] font-bold text-ink" id="stat-total">{{ problems|length }}</div>
-        {# Width is set from JS (progress store). #}
-        {# djlint:off H021 #}
-        <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
-        {# djlint:on #}
-      </div>
-
-      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-        <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Streak</div>
-        <div class="font-mono text-[22px] font-bold text-red" id="stat-streak">0</div>
-      </div>
-    </div>
-
-    {% if subtopics %}
-      <div class="mt-7 mb-5 flex items-baseline gap-3.5">
-        <h2 class="font-black text-[28px] tracking-tight">Subtopics</h2>
-        <span class="font-mono text-[13px] text-muted">{{ subtopics|length|stringformat:"02d" }} loaded</span>
-      </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]">
-        {% for subtopic in subtopics %}
-          <a
-            class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
-            href="{{ subtopic.url }}"
-          >
-            <div class="font-black text-[17px] tracking-tight mb-1.5">{{ subtopic.title }}</div>
-            <div class="flex flex-wrap gap-2.5 font-mono text-[10.5px] text-muted">
-              <span>{{ subtopic.coding_problems.count }} problem{{ subtopic.coding_problems.count|pluralize }}</span>
-            </div>
-          </a>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <div class="mt-9 mb-5 flex items-baseline gap-3.5">
-      <h2 class="font-black text-[28px] tracking-tight">Problems</h2>
-      <span class="font-mono text-[13px] text-muted">{{ problems|length|stringformat:"02d" }} loaded</span>
-    </div>
-
-    {% if problems %}
-      <p class="mb-5 max-w-[65ch] text-[13.5px] leading-relaxed text-body-txt">
-        Difficulty ascending by default — click a column to re-sort.
-      </p>
-
-      <div class="border-[3px] border-ink bg-bg-2 shadow-card overflow-hidden">
-        <table class="w-full border-collapse text-[13px] text-ink" data-practice-table data-default-sort="difficulty">
-          <thead>
-            <tr class="border-b-[3px] border-ink bg-device/40">
-              <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">Status</span></th>
-              <th scope="col" class="px-3 py-2 text-left" data-sort="title">
-                <button
-                  class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
-                  type="button"
-                >Title</button>
-              </th>
-              <th scope="col" class="px-3 py-2 text-left" data-sort="difficulty">
-                <button
-                  class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
-                  type="button"
-                >Difficulty</button>
-              </th>
-              <th scope="col" class="px-3 py-2 text-left" data-sort="status">
-                <button
-                  class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
-                  type="button"
-                >Status</button>
-              </th>
-              <th scope="col" class="px-3 py-2 text-left">Topic</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for problem in problems %}
-              <tr
-                class="border-b border-ink/20 last:border-b-0 hover:bg-bg transition-colors"
-                data-slug="{{ problem.slug }}"
-                data-title="{{ problem.title }}"
-                data-difficulty="{{ problem.difficulty }}"
-                data-topic="{{ problem.topic.slug }}"
-              >
-                <td class="pe-status text-center" data-status-icon data-status="todo">○</td>
-                <td class="px-3 py-2.5">
-                  <a class="font-bold text-ink no-underline hover:text-red" href="{{ problem.get_absolute_url }}">{{ problem.title }}</a>
-                </td>
-                <td class="px-3 py-2.5">
-                  <span class="pe-badge diff-{{ problem.difficulty }} !border-ink rounded-none border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-wide">{{ problem.get_difficulty_display }}</span>
-                </td>
-                <td class="px-3 py-2.5 font-mono text-[11.5px] text-muted" data-status-label data-status="todo">unsolved</td>
-                <td class="px-3 py-2.5">
-                  <div class="flex flex-wrap gap-1.5">
-                    {% if problem.topic %}
-                      <a
-                        class="border border-ink/30 px-1.5 py-[3px] font-mono text-[10.5px] no-underline hover:border-ink hover:text-red"
-                        href="{{ problem.topic.url }}"
-                      >{{ problem.topic.title }}</a>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="mt-2.5 px-0.5 font-mono text-[11px] text-muted" id="table-count">{{ problems|length }} problems</div>
-    {% else %}
-      <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
-        <p class="font-mono text-[12px] text-muted">No problems in this track yet.</p>
-      </div>
-    {% endif %}
-
-    {% if quizzes %}
+      {% if subtopics %}
+        <div class="mt-7 mb-5 flex items-baseline gap-3.5">
+          <h2 class="font-black text-[28px] tracking-tight">Subtopics</h2>
+          <span class="font-mono text-[13px] text-muted">{{ subtopics|length|stringformat:"02d" }} loaded</span>
+        </div>
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]">
+          {% for subtopic in subtopics %}
+            <a class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
+               href="{{ subtopic.url }}">
+              <div class="font-black text-[17px] tracking-tight mb-1.5">{{ subtopic.title }}</div>
+              <div class="flex flex-wrap gap-2.5 font-mono text-[10.5px] text-muted">
+                <span>{{ subtopic.coding_problems.count }} problem{{ subtopic.coding_problems.count|pluralize }}</span>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
       <div class="mt-9 mb-5 flex items-baseline gap-3.5">
-        <h2 class="font-black text-[28px] tracking-tight">Quizzes</h2>
-        <span class="font-mono text-[13px] text-muted">{{ quizzes|length|stringformat:"02d" }} loaded</span>
+        <h2 class="font-black text-[28px] tracking-tight">Problems</h2>
+        <span class="font-mono text-[13px] text-muted">{{ problems|length|stringformat:"02d" }} loaded</span>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]">
-        {% for quiz in quizzes %}
-          {% include "quiz/includes/quiz_card.html" with quiz=quiz %}
-        {% endfor %}
-      </div>
-    {% endif %}
-
+      {% if problems %}
+        <p class="mb-5 max-w-[65ch] text-[13.5px] leading-relaxed text-body-txt">
+          Difficulty ascending by default — click a column to re-sort.
+        </p>
+        <div class="border-[3px] border-ink bg-bg-2 shadow-card overflow-hidden">
+          <table class="w-full border-collapse text-[13px] text-ink"
+                 data-practice-table
+                 data-default-sort="difficulty">
+            <thead>
+              <tr class="border-b-[3px] border-ink bg-device/40">
+                <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">Status</span></th>
+                <th scope="col" class="px-3 py-2 text-left" data-sort="title">
+                  <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                          type="button">Title</button>
+                </th>
+                <th scope="col" class="px-3 py-2 text-left" data-sort="difficulty">
+                  <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                          type="button">Difficulty</button>
+                </th>
+                <th scope="col" class="px-3 py-2 text-left" data-sort="status">
+                  <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                          type="button">Status</button>
+                </th>
+                <th scope="col" class="px-3 py-2 text-left">Topic</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for problem in problems %}
+                <tr class="border-b border-ink/20 last:border-b-0 hover:bg-bg transition-colors"
+                    data-slug="{{ problem.slug }}"
+                    data-title="{{ problem.title }}"
+                    data-difficulty="{{ problem.difficulty }}"
+                    data-topic="{{ problem.topic.slug }}">
+                  <td class="pe-status text-center" data-status-icon data-status="todo">○</td>
+                  <td class="px-3 py-2.5">
+                    <a class="font-bold text-ink no-underline hover:text-red"
+                       href="{{ problem.get_absolute_url }}">{{ problem.title }}</a>
+                  </td>
+                  <td class="px-3 py-2.5">
+                    <span class="pe-badge diff-{{ problem.difficulty }} !border-ink rounded-none border px-2 py-[3px] font-mono text-[10.5px] uppercase tracking-wide">{{ problem.get_difficulty_display }}</span>
+                  </td>
+                  <td class="px-3 py-2.5 font-mono text-[11.5px] text-muted"
+                      data-status-label
+                      data-status="todo">unsolved</td>
+                  <td class="px-3 py-2.5">
+                    <div class="flex flex-wrap gap-1.5">
+                      {% if problem.topic %}
+                        <a class="border border-ink/30 px-1.5 py-[3px] font-mono text-[10.5px] no-underline hover:border-ink hover:text-red"
+                           href="{{ problem.topic.url }}">{{ problem.topic.title }}</a>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-2.5 px-0.5 font-mono text-[11px] text-muted"
+             id="table-count">{{ problems|length }} problems</div>
+      {% else %}
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <p class="font-mono text-[12px] text-muted">No problems in this track yet.</p>
+        </div>
+      {% endif %}
+      {% if quizzes %}
+        <div class="mt-9 mb-5 flex items-baseline gap-3.5">
+          <h2 class="font-black text-[28px] tracking-tight">Quizzes</h2>
+          <span class="font-mono text-[13px] text-muted">{{ quizzes|length|stringformat:"02d" }} loaded</span>
+        </div>
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]">
+          {% for quiz in quizzes %}
+            {% include "quiz/includes/quiz_card.html" with quiz=quiz %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
   </div>
-</div>
 {% endblock content %}
-
 {% block extra_js %}
   <script src="{% static 'js/pyverse-progress.js' %}"></script>
   <script src="{% static 'js/practice-browse.js' %}"></script>
@@ -204,12 +173,15 @@ at the site palette so they read cream/ink/red on the light shell.
       if (!label) return;
       new MutationObserver(() => {
         label.textContent =
-          row.dataset.status === "solved"
-            ? "solved"
-            : row.dataset.status === "attempted"
-              ? "attempted"
-              : "unsolved";
-      }).observe(row, { attributes: true, attributeFilter: ["data-status"] });
+          row.dataset.status === "solved" ?
+          "solved" :
+          row.dataset.status === "attempted" ?
+          "attempted" :
+          "unsolved";
+      }).observe(row, {
+        attributes: true,
+        attributeFilter: ["data-status"]
+      });
     });
   </script>
 {% endblock extra_js %}

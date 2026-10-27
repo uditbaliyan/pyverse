@@ -1,12 +1,10 @@
 {% load wagtailcore_tags %}
 
-<div
-  class="my-6 rounded-lg border-l-4 p-4 {% if value.style == 'info' %}bg-blue-50 border-blue-500 text-blue-900{% endif %} {% if value.style == 'tip' %}bg-green-50 border-green-500 text-green-900{% endif %} {% if value.style == 'warning' %}bg-yellow-50 border-yellow-500 text-yellow-900{% endif %} {% if value.style == 'danger' %}bg-red-50 border-red-500 text-red-900{% endif %} {% if value.style == 'note' %}bg-neutral-50 border-neutral-500 text-neutral-900{% endif %}"
->
+<div class="my-6 rounded-lg border-l-4 p-4 {% if value.style == 'info' %}bg-blue-50 border-blue-500 text-blue-900{% endif %} {% if value.style == 'tip' %}bg-green-50 border-green-500 text-green-900{% endif %} {% if value.style == 'warning' %}bg-yellow-50 border-yellow-500 text-yellow-900{% endif %} {% if value.style == 'danger' %}bg-red-50 border-red-500 text-red-900{% endif %} {% if value.style == 'note' %}bg-neutral-50 border-neutral-500 text-neutral-900{% endif %}">
   {% if value.title %}
-  <div class="font-semibold mb-1 flex items-center gap-2">
-    {% if value.style == 'info' %}<i data-lucide="info" class="w-4 h-4"></i>{% elif value.style == 'tip' %}<i data-lucide="lightbulb" class="w-4 h-4"></i>{% elif value.style == 'warning' %}<i data-lucide="alert-triangle" class="w-4 h-4"></i>{% elif value.style == 'danger' %}<i data-lucide="x-circle" class="w-4 h-4"></i>{% elif value.style == 'note' %}<i data-lucide="pencil" class="w-4 h-4"></i>{% endif %}{{ value.title }}
-  </div>
+    <div class="font-semibold mb-1 flex items-center gap-2">
+      {% if value.style == 'info' %}<i data-lucide="info" class="w-4 h-4"></i>{% elif value.style == 'tip' %}<i data-lucide="lightbulb" class="w-4 h-4"></i>{% elif value.style == 'warning' %}<i data-lucide="alert-triangle" class="w-4 h-4"></i>{% elif value.style == 'danger' %}<i data-lucide="x-circle" class="w-4 h-4"></i>{% elif value.style == 'note' %}<i data-lucide="pencil" class="w-4 h-4"></i>{% endif %}{{ value.title }}
+    </div>
   {% endif %}
   <div class="text-sm leading-relaxed">{{ value.body|richtext }}</div>
 </div>

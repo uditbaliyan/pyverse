@@ -1,19 +1,19 @@
 {% load wagtailroutablepage_tags puput_tags %}
 
 <ul class="pv-meta">
-    {% if entry.owner %}
+  {% if entry.owner %}
     <li>
-        <a href="{% routablepageurl blog_page 'entries_by_author' entry.owner.username %}">{{ entry.owner.username }}</a>
+      <a href="{% routablepageurl blog_page 'entries_by_author' entry.owner.username %}">{{ entry.owner.username }}</a>
     </li>
-    {% endif %}
-    <li>{{ entry.date|date:"DATE_FORMAT" }}</li>
-    {% if entry.categories.count > 0 %}
-        <li>in {% categories_list entry.categories %}</li>
-    {% endif %}
-    {% if entry.tags.count > 0 %}
-        <li>{% tags_list blog_page.num_tags_entry_header entry.tags %}</li>
-    {% endif %}
-    {% if blog_page.display_comments %}
-        <li>{{ entry.num_comments }} comments</li>
-    {% endif %}
+  {% endif %}
+  <li>{{ entry.date|date:"DATE_FORMAT" }}</li>
+  {% if entry.categories.count > 0 %}
+    <li>in {% categories_list entry.categories %}</li>
+  {% endif %}
+  {% if entry.tags.count > 0 %}
+    <li>{% tags_list blog_page.num_tags_entry_header entry.tags %}</li>
+  {% endif %}
+  {% if blog_page.display_comments %}
+    <li>{{ entry.num_comments }} comments</li>
+  {% endif %}
 </ul>
