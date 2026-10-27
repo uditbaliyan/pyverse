@@ -1,3 +1,4 @@
+{# djlint:off #}
 {% comment %}
 Client-side Python tracer for Labs (spec §12/§18 tracer lab).
 
@@ -37,6 +38,7 @@ Second entry point, used by the Practice problem page ("watch it execute"):
     with `error` set. Labs do not pass a limit, so they behave as before.
   * Poll `document.body.dataset.labReady` exactly as above.
 {% endcomment %}
+{# djlint:on #}
 {% if not embedded %}
 <link
   rel="stylesheet"
@@ -49,6 +51,7 @@ Second entry point, used by the Practice problem page ("watch it execute"):
 ></script>
 {% endif %}
 
+{# djlint:off #}
 {# djlint:off #}
 <script type="py">
 import inspect
@@ -336,4 +339,5 @@ js.window._pvTrace = trace
 js.window._pvTraceCall = trace_call
 document.body.dataset.labReady = "1"
 </script>
+{# djlint:on #}
 {# djlint:on #}

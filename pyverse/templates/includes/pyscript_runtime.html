@@ -1,3 +1,4 @@
+{# djlint:off #}
 {% comment %}
 Canonical client-side Python runtime + grading harness (spec §12, §18,
 Practice spec §5.3).
@@ -33,6 +34,7 @@ block as inert text: the Practice problem page does not run it with PyScript on
 the main thread but hands the text to a Web Worker (`static/js/pyverse-runtime.js`
 + `pyverse-runner.js`) that can be killed when a learner's code never returns.
 {% endcomment %}
+{# djlint:on #}
 {% if not embedded %}
 <link
   rel="stylesheet"
@@ -45,6 +47,7 @@ the main thread but hands the text to a Web Worker (`static/js/pyverse-runtime.j
 ></script>
 {% endif %}
 
+{# djlint:off #}
 {# djlint:off #}
 <script type="py">
 import io
@@ -254,4 +257,5 @@ js.window._pyExec = exec_solution
 js.window._pyNotebook = run_notebook
 document.body.dataset.pyverseReady = "1"
 </script>
+{# djlint:on #}
 {# djlint:on #}

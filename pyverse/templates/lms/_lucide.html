@@ -1,8 +1,10 @@
+{# djlint:off #}
 {% comment %}
 Lucide icons. Templates mark icons as `<i data-lucide="name">`; this swaps them
 for inline SVG. Deferred scripts run before DOMContentLoaded, so the init below
 always sees the parsed DOM (and stays silent if the CDN fails).
 {% endcomment %}
+{# djlint:on #}
 <script defer src="https://cdn.jsdelivr.net/npm/lucide@0/dist/umd/lucide.min.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", () => window.lucide?.createIcons());

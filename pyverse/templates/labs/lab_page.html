@@ -1,5 +1,6 @@
 {% extends "home/base_.html" %}
 {% load static wagtailcore_tags %}
+{# djlint:off #}
 {% comment %}
 One lab (spec §12/§18 tracer lab), in the site's own shell — same navbar,
 footer, theme and typography as the home and about pages. The tracer itself is
@@ -11,6 +12,7 @@ The program is baked into the page (a plain <textarea>, escaped by Django) and
 traced in the browser by `includes/tracer_runtime.html` — nothing of ours
 executes learner code, and the page ships as static HTML.
 {% endcomment %}
+{# djlint:on #}
 
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'vendor/codemirror/5.65.17/lib/codemirror.css' %}" />
