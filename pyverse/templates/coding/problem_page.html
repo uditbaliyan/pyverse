@@ -248,7 +248,9 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
 
   {# ── breadcrumb + title ──────────────────────────────────────── #}
   <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+    {# djlint:off D018 #}
     <a href="/practice/" class="text-muted no-underline hover:text-ink">practice/</a>
+    {# djlint:on #}
     <span class="mx-1">›</span>problem/
   </p>
 
@@ -313,7 +315,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
 
           {# ── Description ─────────────────────────────────────────── #}
           <div class="tcontent" id="tab-desc">
-            <div style="margin-bottom: 12px">
+            <div class="mb-3">
               <span class="ptitle">{{ problem.title }}</span>
               <span class="diff-badge diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span>
               <span class="sig">{{ problem.function_name }}{{ problem.function_signature }}</span>

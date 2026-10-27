@@ -284,7 +284,10 @@ chrome is plain Tailwind on top.
             <span>{{ track.problems|length }} problem{{ track.problems|length|pluralize }}</span>
             <span data-progress-label>0/0</span>
           </div>
+          {# Width is set from JS (progress store). #}
+          {# djlint:off H021 #}
           <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
+          {# djlint:on #}
         </a>
       {% empty %}
         <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">

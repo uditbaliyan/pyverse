@@ -52,7 +52,9 @@ shows up on the Landing, Sheets and Tracks.
 
   {# ── breadcrumb + title ──────────────────────────────────────── #}
   <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+    {# djlint:off D018 #}
     <a href="/practice/" class="text-muted no-underline hover:text-ink">practice/</a>
+    {# djlint:on #}
     <span class="mx-1">›</span>quiz/
     <span class="mx-1">›</span>{{ quiz.slug }}
   </p>
@@ -78,7 +80,7 @@ shows up on the Landing, Sheets and Tracks.
 
   {# ── progress + counter ──────────────────────────────────────── #}
   <div class="mt-7 h-[12px] border-[3px] border-ink bg-bg-2">
-    <span id="qz-progress" class="block h-full bg-red" style="width: 0%"></span>
+    <span id="qz-progress" class="block h-full w-0 bg-red"></span>
   </div>
   <div class="mt-3 font-mono text-[10.5px] text-screen-dk bg-screen/20 border border-screen-dk px-2 py-1.5 flex flex-wrap items-center justify-between gap-3">
     <span id="qz-counter">Question 1</span>

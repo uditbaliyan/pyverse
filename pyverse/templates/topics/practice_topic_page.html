@@ -21,7 +21,9 @@ at the site palette so they read cream/ink/red on the light shell.
 <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
 
   <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
+    {# djlint:off D018 #}
     <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
+    {# djlint:on #}
     {% for crumb in practice_breadcrumb %}
       <span class="mx-1">›</span>
       <a href="{{ crumb.url }}" class="text-muted no-underline hover:text-ink">{{ crumb.slug }}</a>
@@ -70,7 +72,10 @@ at the site palette so they read cream/ink/red on the light shell.
       <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
         <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Problems</div>
         <div class="font-mono text-[22px] font-bold text-ink" id="stat-total">{{ problems|length }}</div>
+        {# Width is set from JS (progress store). #}
+        {# djlint:off H021 #}
         <div class="pe-bar"><span data-progress-bar style="width: 0%"></span></div>
+        {# djlint:on #}
       </div>
 
       <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
