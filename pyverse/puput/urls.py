@@ -1,3 +1,5 @@
+"""URL configuration for the puput blog app."""
+
 from django.conf import settings
 from django.urls import reverse, path, include
 
@@ -27,23 +29,6 @@ urlpatterns = [
     ),
     path(route="feed/", view=BlogPageFeed(), name="blog_page_feed"),
 ]
-"""
-if not getattr(settings, "PUPUT_AS_PLUGIN", False):
-    from wagtail import urls as wagtail_urls
-    from wagtail.admin import urls as wagtailadmin_urls
-    from wagtail.documents import urls as wagtaildocs_urls
-    from wagtail.contrib.sitemaps.views import sitemap
-
-    urlpatterns.extend(
-        [
-            path(route="blog_admin/", view=include(wagtailadmin_urls)),
-            path(route="", view=include(wagtail_urls)),
-            path(route="documents/", view=include(wagtaildocs_urls)),
-            path(route="sitemap.xml", view=sitemap),
-        ]
-    )
-"""
-
 
 def get_entry_url(entry, blog_page, root_page):
     """
