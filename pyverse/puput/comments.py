@@ -1,3 +1,6 @@
+from django.core.exceptions import ImproperlyConfigured
+
+
 class CommentsProvider:
     def __init__(self, blog_page, entry_page):
         self.blog_page = blog_page
@@ -44,10 +47,12 @@ class DisqusCommentsProvider(CommentsProvider):
                 return thread.response.posts().data()
             except ClientError:
                 return 0
-        except ImportError:
-            raise Exception(
-                "You need to install tapioca-disqus before using Disqus as comment system.",
+        except ImportError as err:
+            msg = (
+                "You need to install tapioca-disqus before using Disqus "
+                "as comment system."
             )
+            raise ImproperlyConfigured(msg) from err
 
 
 class DjangoCommentsProvider(CommentsProvider):
@@ -71,7 +76,8 @@ class DjangoCommentsProvider(CommentsProvider):
                 content_type=entry_page_type,
                 object_pk=self.entry_page.pk,
             ).count()
-        except ImportError:
-            raise Exception(
-                "You need to install django-comments before using it as comment system.",
+        except ImportError as err:
+            msg = (
+                "You need to install django-comments before using it as comment system."
             )
+            raise ImproperlyConfigured(msg) from err

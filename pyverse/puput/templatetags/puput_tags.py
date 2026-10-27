@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.template import Library
 from django.template.loader import render_to_string
 from django.urls import resolve
@@ -5,10 +6,10 @@ from el_pagination.templatetags.el_pagination_tags import paginate
 from el_pagination.templatetags.el_pagination_tags import show_pages
 from wagtail.models import Site
 
-from ..conf import settings
-from ..models import Category
-from ..models import Tag
-from ..utils import import_model
+from pyverse.puput.conf import settings
+from pyverse.puput.models import Category
+from pyverse.puput.models import Tag
+from pyverse.puput.utils import import_model
 
 register = Library()
 
@@ -63,7 +64,7 @@ def archives_list(context):
 
 @register.simple_tag(takes_context=True)
 def entry_url(context, entry, blog_page):
-    from ..urls import get_entry_url
+    from pyverse.puput.urls import get_entry_url
 
     return get_entry_url(
         entry,
@@ -88,7 +89,7 @@ def image_url(context, url):
 
 @register.simple_tag(takes_context=True)
 def feeds_url(context, blog_page):
-    from ..urls import get_feeds_url
+    from pyverse.puput.urls import get_feeds_url
 
     return get_feeds_url(
         blog_page.page_ptr,
@@ -109,11 +110,12 @@ def show_comments(context):
             comment_context = comment_class.get_context()
             comment_context.update(context.flatten())
             return render_to_string(comment_class.template, context=comment_context)
-        except AttributeError:
-            raise Exception(
+        except AttributeError as err:
+            msg = (
                 "To use comments you need to specify "
-                "PUPUT_COMMENTS_PROVIDER in settings.",
+                "PUPUT_COMMENTS_PROVIDER in settings."
             )
+            raise ImproperlyConfigured(msg) from err
     return ""
 
 

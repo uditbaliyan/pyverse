@@ -33,12 +33,10 @@ class EntryPageServe(View):
             # Splitting the request path and obtaining the path_components
             # this way allows you to place the blog at the level you want on
             # your sitemap.
-            # Example:
-            # splited_path =  ['es', 'blog', '2016', '06', '23', 'blog-entry']
-            # slicing this way you obtain:
-            # path_components =  ['es', 'blog', 'blog-entry']
-            # with the oldest solution you'll get ['es', 'blog-entry']
-            # and a 404 will be raised
+            # Example: the path es/blog/2016/06/23/blog-entry splits into
+            # six parts; dropping the four date/slug parts before the last
+            # one leaves es/blog/blog-entry. The older approach of dropping
+            # only the date parts would leave es/blog-entry and 404.
             splited_path = strip_prefix_and_ending_slash(request.path).split("/")
             path_components = splited_path[:-4] + splited_path[-1:]
         else:
@@ -68,4 +66,4 @@ class EntryPageUpdateCommentsView(View):
             entry_page.save(update_fields=("num_comments",))
             return HttpResponse()
         except EntryPage.DoesNotExist:
-            raise Http404
+            raise Http404 from None

@@ -187,7 +187,8 @@ class EntryAbstract(models.Model):
 
     def clean(self):
         if not (self.markdown_body or self.body):
-            raise ValidationError("You must specify either body or markdown body")
+            msg = "You must specify either body or markdown body"
+            raise ValidationError(msg)
 
     def save(self, *args, **kwargs):
         if self.markdown_body:
