@@ -30,4 +30,4 @@ class BlogManager(PageManager):
         for blog in blogs:
             if strip_prefix_and_ending_slash(blog.specific.last_url_part) == blog_path:
                 return blog.specific
-        return
+        return None

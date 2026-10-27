@@ -1,6 +1,6 @@
 """The sitemap template is not well-formed XML until rendered, so validate the output."""
 
-from xml.etree import ElementTree as ET  # noqa: S405
+from xml.etree import ElementTree as ET
 
 import pytest
 

@@ -1,22 +1,19 @@
 import datetime
 
+import markdown
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
-from wagtail.admin.panels import (
-    FieldPanel,
-    InlinePanel,
-    MultiFieldPanel,
-)
+from modelcluster.contrib.taggit import ClusterTaggableManager
+from wagtail.admin.panels import FieldPanel
+from wagtail.admin.panels import InlinePanel
+from wagtail.admin.panels import MultiFieldPanel
 from wagtail.fields import RichTextField
 from wagtail_ai.panels import AITitleFieldPanel
-from modelcluster.contrib.taggit import ClusterTaggableManager
 from wagtailmarkdown.fields import MarkdownField
 
 from .fields import ColorField
 from .utils import get_image_model_path
-import markdown
 
 
 class BlogAbstract(models.Model):
@@ -38,40 +35,50 @@ class BlogAbstract(models.Model):
     main_color = ColorField(_("Blog Main Color"), default="#4D6AE0")
 
     display_comments = models.BooleanField(
-        default=False, verbose_name=_("Display comments")
+        default=False,
+        verbose_name=_("Display comments"),
     )
     display_categories = models.BooleanField(
-        default=True, verbose_name=_("Display categories")
+        default=True,
+        verbose_name=_("Display categories"),
     )
     display_tags = models.BooleanField(default=True, verbose_name=_("Display tags"))
     display_popular_entries = models.BooleanField(
-        default=True, verbose_name=_("Display popular entries")
+        default=True,
+        verbose_name=_("Display popular entries"),
     )
     display_last_entries = models.BooleanField(
-        default=True, verbose_name=_("Display last entries")
+        default=True,
+        verbose_name=_("Display last entries"),
     )
     display_archive = models.BooleanField(
-        default=True, verbose_name=_("Display archive")
+        default=True,
+        verbose_name=_("Display archive"),
     )
 
     disqus_api_secret = models.TextField(blank=True)
     disqus_shortname = models.CharField(max_length=128, blank=True)
 
     num_entries_page = models.IntegerField(
-        default=5, verbose_name=_("Entries per page")
+        default=5,
+        verbose_name=_("Entries per page"),
     )
     num_last_entries = models.IntegerField(
-        default=3, verbose_name=_("Last entries limit")
+        default=3,
+        verbose_name=_("Last entries limit"),
     )
     num_popular_entries = models.IntegerField(
-        default=3, verbose_name=_("Popular entries limit")
+        default=3,
+        verbose_name=_("Popular entries limit"),
     )
     num_tags_entry_header = models.IntegerField(
-        default=5, verbose_name=_("Tags limit entry header")
+        default=5,
+        verbose_name=_("Tags limit entry header"),
     )
 
     short_feed_description = models.BooleanField(
-        default=True, verbose_name=_("Use short description in feeds")
+        default=True,
+        verbose_name=_("Use short description in feeds"),
     )
 
     content_panels = [
@@ -124,7 +131,8 @@ class EntryAbstract(models.Model):
     markdown_body = MarkdownField(blank=True, null=True, verbose_name="body (Markdown)")
     tags = ClusterTaggableManager(through="puput.TagEntryPage", blank=True)
     date = models.DateTimeField(
-        verbose_name=_("Post date"), default=datetime.datetime.today
+        verbose_name=_("Post date"),
+        default=datetime.datetime.today,
     )
     header_image = models.ForeignKey(
         get_image_model_path(),
@@ -135,14 +143,16 @@ class EntryAbstract(models.Model):
         related_name="+",
     )
     categories = models.ManyToManyField(
-        "puput.Category", through="puput.CategoryEntryPage", blank=True
+        "puput.Category",
+        through="puput.CategoryEntryPage",
+        blank=True,
     )
     excerpt = RichTextField(
         verbose_name=_("excerpt"),
         blank=True,
         help_text=_(
             "Entry excerpt to be displayed on entries list. "
-            "If this field is not filled, a truncate version of body text will be used."
+            "If this field is not filled, a truncate version of body text will be used.",
         ),
     )
     num_comments = models.IntegerField(default=0, editable=False)
@@ -182,6 +192,7 @@ class EntryAbstract(models.Model):
     def save(self, *args, **kwargs):
         if self.markdown_body:
             self.body = markdown.markdown(
-                self.markdown_body, extensions=["extra", "codehilite"]
+                self.markdown_body,
+                extensions=["extra", "codehilite"],
             )
         super().save(*args, **kwargs)

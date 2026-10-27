@@ -1,13 +1,14 @@
 from django.template import Library
-from django.urls import resolve
 from django.template.loader import render_to_string
-from el_pagination.templatetags.el_pagination_tags import show_pages, paginate
+from django.urls import resolve
+from el_pagination.templatetags.el_pagination_tags import paginate
+from el_pagination.templatetags.el_pagination_tags import show_pages
+from wagtail.models import Site
 
 from ..conf import settings
+from ..models import Category
+from ..models import Tag
 from ..utils import import_model
-from ..models import Category, Tag
-
-from wagtail.models import Site, Page
 
 register = Library()
 
@@ -68,7 +69,9 @@ def entry_url(context, entry, blog_page):
     from ..urls import get_entry_url
 
     return get_entry_url(
-        entry, blog_page.page_ptr, Site.find_for_request(context["request"]).root_page
+        entry,
+        blog_page.page_ptr,
+        Site.find_for_request(context["request"]).root_page,
     )
 
 
@@ -76,7 +79,7 @@ def entry_url(context, entry, blog_page):
 def canonical_url(context, entry=None):
     if entry and resolve(context.request.path_info).url_name == "wagtail_serve":
         return context.request.build_absolute_uri(
-            entry_url(context, entry, entry.blog_page)
+            entry_url(context, entry, entry.blog_page),
         )
     return context.request.build_absolute_uri()
 
@@ -91,7 +94,8 @@ def feeds_url(context, blog_page):
     from ..urls import get_feeds_url
 
     return get_feeds_url(
-        blog_page.page_ptr, Site.find_for_request(context["request"]).root_page
+        blog_page.page_ptr,
+        Site.find_for_request(context["request"]).root_page,
     )
 
 
@@ -102,7 +106,8 @@ def show_comments(context):
     if blog_page.display_comments:
         try:
             comment_class = import_model(settings.PUPUT_COMMENTS_PROVIDER)(
-                blog_page, entry
+                blog_page,
+                entry,
             )
             comment_context = comment_class.get_context()
             comment_context.update(context.flatten())
@@ -110,7 +115,7 @@ def show_comments(context):
         except AttributeError:
             raise Exception(
                 "To use comments you need to specify "
-                "PUPUT_COMMENTS_PROVIDER in settings."
+                "PUPUT_COMMENTS_PROVIDER in settings.",
             )
     return ""
 

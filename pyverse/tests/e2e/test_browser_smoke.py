@@ -158,7 +158,9 @@ def test_step_notes_and_predictions_render_as_text_and_reveal(page):
 def _open_lab(page):
     page.goto(f"{BASE}/labs/{LAB}/")
     page.wait_for_selector(
-        "body[data-lab-ready='1']", timeout=BOOT_MS, state="attached"
+        "body[data-lab-ready='1']",
+        timeout=BOOT_MS,
+        state="attached",
     )
     page.wait_for_function("!document.getElementById('lab-run').disabled")
 
@@ -194,7 +196,9 @@ def test_lab_trace_button_produces_steps(page):
     ],
 )
 def test_lab_runaway_program_is_stopped_and_the_page_stays_alive(
-    page, program, message
+    page,
+    program,
+    message,
 ):
     _open_lab(page)
     page.evaluate(HEARTBEAT)
@@ -231,7 +235,8 @@ def test_lesson_notebook_cell_that_never_ends_is_stopped(page):
     _open_problem(page)
     page.evaluate(HEARTBEAT)
     page.evaluate(
-        "(h) => document.body.insertAdjacentHTML('beforeend', h)", NOTEBOOK_DOM
+        "(h) => document.body.insertAdjacentHTML('beforeend', h)",
+        NOTEBOOK_DOM,
     )
     page.add_script_tag(url=f"{BASE}/static/lms/js/notebook.js")
     page.wait_for_function(

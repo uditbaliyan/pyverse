@@ -1,9 +1,9 @@
 import wagtail.admin.rich_text.editors.draftail.features as draftail_features
+from wagtail import hooks
+from wagtail.admin.rich_text.converters.html_to_contentstate import BlockElementHandler
 from wagtail.admin.rich_text.converters.html_to_contentstate import (
     InlineStyleElementHandler,
-    BlockElementHandler,
 )
-from wagtail import hooks
 
 
 @hooks.register("register_rich_text_features")
@@ -24,7 +24,9 @@ def register_blockquote_feature(features):
     }
 
     features.register_editor_plugin(
-        "draftail", feature_name, draftail_features.BlockFeature(control)
+        "draftail",
+        feature_name,
+        draftail_features.BlockFeature(control),
     )
 
     features.register_converter_rule(
@@ -51,7 +53,9 @@ def register_codeline_feature(features):
     }
 
     features.register_editor_plugin(
-        "draftail", feature_name, draftail_features.InlineStyleFeature(control)
+        "draftail",
+        feature_name,
+        draftail_features.InlineStyleFeature(control),
     )
 
     db_conversion = {

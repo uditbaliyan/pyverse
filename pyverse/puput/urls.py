@@ -1,12 +1,12 @@
 """URL configuration for the puput blog app."""
 
-from django.conf import settings
-from django.urls import reverse, path, include
+from django.urls import path
+from django.urls import reverse
 
 from .feeds import BlogPageFeed
-from .views import EntryPageServe, EntryPageUpdateCommentsView
 from .utils import strip_prefix_and_ending_slash
-
+from .views import EntryPageServe
+from .views import EntryPageUpdateCommentsView
 
 urlpatterns = [
     path(
@@ -25,7 +25,9 @@ urlpatterns = [
         name="entry_page_serve",
     ),
     path(
-        route="<path:blog_path>/feed/", view=BlogPageFeed(), name="blog_page_feed_slug"
+        route="<path:blog_path>/feed/",
+        view=BlogPageFeed(),
+        name="blog_page_feed_slug",
     ),
     path(route="feed/", view=BlogPageFeed(), name="blog_page_feed"),
 ]
@@ -46,23 +48,22 @@ def get_entry_url(entry, blog_page, root_page):
                 "slug": entry.slug,
             },
         )
-    else:
-        # The method get_url_parts provides a tuple with a custom URL routing
-        # scheme. In the last position it finds the subdomain of the blog, which
-        # it is used to construct the entry url.
-        # Using the stripped subdomain it allows Puput to generate the urls for
-        # every sitemap level
-        blog_path = strip_prefix_and_ending_slash(blog_page.specific.last_url_part)
-        return reverse(
-            "entry_page_serve_slug",
-            kwargs={
-                "blog_path": blog_path,
-                "year": entry.date.strftime("%Y"),
-                "month": entry.date.strftime("%m"),
-                "day": entry.date.strftime("%d"),
-                "slug": entry.slug,
-            },
-        )
+    # The method get_url_parts provides a tuple with a custom URL routing
+    # scheme. In the last position it finds the subdomain of the blog, which
+    # it is used to construct the entry url.
+    # Using the stripped subdomain it allows Puput to generate the urls for
+    # every sitemap level
+    blog_path = strip_prefix_and_ending_slash(blog_page.specific.last_url_part)
+    return reverse(
+        "entry_page_serve_slug",
+        kwargs={
+            "blog_path": blog_path,
+            "year": entry.date.strftime("%Y"),
+            "month": entry.date.strftime("%m"),
+            "day": entry.date.strftime("%d"),
+            "slug": entry.slug,
+        },
+    )
 
 
 def get_feeds_url(blog_page, root_page):
@@ -72,6 +73,5 @@ def get_feeds_url(blog_page, root_page):
     """
     if root_page == blog_page:
         return reverse("blog_page_feed")
-    else:
-        blog_path = strip_prefix_and_ending_slash(blog_page.specific.last_url_part)
-        return reverse("blog_page_feed_slug", kwargs={"blog_path": blog_path})
+    blog_path = strip_prefix_and_ending_slash(blog_page.specific.last_url_part)
+    return reverse("blog_page_feed_slug", kwargs={"blog_path": blog_path})

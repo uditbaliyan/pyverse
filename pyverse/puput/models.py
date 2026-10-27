@@ -4,18 +4,21 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.template.defaultfilters import slugify
 from django.utils.translation import gettext_lazy as _
-
-from wagtail.models import Page
-from wagtail.admin.panels import FieldPanel
-from wagtail.snippets.models import register_snippet
-from wagtail.search import index
-from taggit.models import TaggedItemBase, Tag as TaggitTag
 from modelcluster.fields import ParentalKey
+from taggit.models import Tag as TaggitTag
+from taggit.models import TaggedItemBase
+from wagtail.admin.panels import FieldPanel
+from wagtail.models import Page
+from wagtail.search import index
+from wagtail.snippets.models import register_snippet
 
-from .abstracts import EntryAbstract, BlogAbstract
-from .utils import import_model
+from .abstracts import BlogAbstract
+from .abstracts import EntryAbstract
+from .managers import BlogManager
+from .managers import CategoryManager
+from .managers import TagManager
 from .routes import BlogRoutes
-from .managers import TagManager, CategoryManager, BlogManager
+from .utils import import_model
 
 Entry = import_model(getattr(settings, "PUPUT_ENTRY_MODEL", EntryAbstract))
 Blog = import_model(getattr(settings, "PUPUT_BLOG_MODEL", BlogAbstract))
@@ -55,7 +58,7 @@ class BlogPage(BlogRoutes, Page, Blog):
         )
 
     def get_context(self, request, *args, **kwargs):
-        context = super(BlogPage, self).get_context(request, *args, **kwargs)
+        context = super().get_context(request, *args, **kwargs)
         context["entries"] = self.entries
         context["blog_page"] = self
         context["search_type"] = getattr(self, "search_type", "")
@@ -86,7 +89,9 @@ class Category(models.Model):
         on_delete=models.SET_NULL,
     )
     description = models.CharField(
-        max_length=500, blank=True, verbose_name=_("Description")
+        max_length=500,
+        blank=True,
+        verbose_name=_("Description"),
     )
 
     objects = CategoryManager()
@@ -105,7 +110,7 @@ class Category(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
-        return super(Category, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["name"]
@@ -115,7 +120,10 @@ class Category(models.Model):
 
 class CategoryEntryPage(models.Model):
     category = models.ForeignKey(
-        Category, related_name="+", verbose_name=_("Category"), on_delete=models.CASCADE
+        Category,
+        related_name="+",
+        verbose_name=_("Category"),
+        on_delete=models.CASCADE,
     )
     page = ParentalKey("EntryPage", related_name="entry_categories")
     panels = [FieldPanel("category")]
@@ -138,10 +146,14 @@ class Tag(TaggitTag):
 
 class EntryPageRelated(models.Model):
     entrypage_from = ParentalKey(
-        "EntryPage", verbose_name=_("Entry"), related_name="related_entrypage_from"
+        "EntryPage",
+        verbose_name=_("Entry"),
+        related_name="related_entrypage_from",
     )
     entrypage_to = ParentalKey(
-        "EntryPage", verbose_name=_("Entry"), related_name="related_entrypage_to"
+        "EntryPage",
+        verbose_name=_("Entry"),
+        related_name="related_entrypage_to",
     )
 
     def __str__(self):
@@ -185,7 +197,7 @@ class EntryPage(Entry, Page):
                 # fall back on latest_revision_created_at if last_published_at is null
                 # (for backwards compatibility from before last_published_at was added)
                 "lastmod": (self.last_published_at or self.latest_revision_created_at),
-            }
+            },
         ]
 
     @property
@@ -204,7 +216,7 @@ class EntryPage(Entry, Page):
         return self.full_url
 
     def get_context(self, request, *args, **kwargs):
-        context = super(EntryPage, self).get_context(request, *args, **kwargs)
+        context = super().get_context(request, *args, **kwargs)
         context["blog_page"] = self.blog_page
         return context
 
@@ -213,7 +225,8 @@ class EntryPage(Entry, Page):
 
         if self.markdown_body:
             preview_context["page"].body = markdown.markdown(
-                self.markdown_body, extensions=["extra", "codehilite"]
+                self.markdown_body,
+                extensions=["extra", "codehilite"],
             )
 
         return preview_context

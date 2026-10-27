@@ -14,7 +14,8 @@ from urllib.parse import unquote
 from urllib.parse import urlparse
 
 REF = re.compile(
-    r"""<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["']""", re.I
+    r"""<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["']""",
+    re.I,
 )
 LOC = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>")
 

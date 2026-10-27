@@ -239,7 +239,7 @@ def test_worker_shim_covers_every_browser_call_the_shipped_python_makes():
     for name in ("pyscript_runtime.html", "tracer_runtime.html"):
         text = (ROOT / "templates/includes" / name).read_text(encoding="utf-8")
         block = re.search(r'<script type="py">\n(.*?)</script>', text, re.DOTALL).group(
-            1
+            1,
         )
         used |= set(re.findall(r"\bdocument\.(\w+)", block))
         used |= set(re.findall(r"\bjs\.document\.(\w+)", block))
@@ -267,7 +267,10 @@ def test_every_step_carries_the_call_stack_with_each_frames_line(tracer):
 
 def test_stack_is_capped_but_keeps_the_global_frame(tracer):
     result = _call(
-        tracer, "def f(n):\n    return 0 if n == 0 else f(n - 1)\n", "f", "30"
+        tracer,
+        "def f(n):\n    return 0 if n == 0 else f(n - 1)\n",
+        "f",
+        "30",
     )
     assert max(len(step["stack"]) for step in result["steps"]) == 8
     assert all(step["stack"][0]["fn"] == "<module>" for step in result["steps"])
@@ -363,5 +366,5 @@ def test_notes_use_the_site_shell_not_the_bootstrap_theme():
         assert "block blog_content" in text
         assert "fa fa-" not in text
     assert "fa fa-" not in (ROOT / "templates/puput/entry_links.html").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     )

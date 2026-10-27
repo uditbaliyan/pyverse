@@ -1,14 +1,14 @@
 from datetime import date
 
+import wagtail
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.dateformat import DateFormat
 from django.utils.formats import date_format
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings
-
-from wagtail.contrib.routable_page.models import RoutablePageMixin, route
+from wagtail.contrib.routable_page.models import RoutablePageMixin
+from wagtail.contrib.routable_page.models import route
 from wagtail.models import Page
-import wagtail
 
 if wagtail.VERSION[:2] < (6, 0):
     from wagtail.search.models import Query
@@ -57,7 +57,7 @@ class BlogRoutes(RoutablePageMixin):
         object_or_slug = get_object_or_None(Category, slug=category) or category
         self.search_term = str(object_or_slug)
         self.entries = self.get_entries().filter(
-            entry_categories__category__slug=category
+            entry_categories__category__slug=category,
         )
         return Page.serve(self, request, *args, **kwargs)
 
@@ -69,7 +69,7 @@ class BlogRoutes(RoutablePageMixin):
         )
         self.search_term = str(object_or_slug)
         self.entries = self.get_entries().filter(
-            **{"owner__%s" % USERNAME_FIELD: author}
+            **{"owner__%s" % USERNAME_FIELD: author},
         )
         return Page.serve(self, request, *args, **kwargs)
 

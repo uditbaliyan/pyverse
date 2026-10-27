@@ -5,13 +5,13 @@ class CommentsProvider:
 
     @property
     def template(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_context(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_num_comments(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class DisqusCommentsProvider(CommentsProvider):
@@ -38,7 +38,7 @@ class DisqusCommentsProvider(CommentsProvider):
             try:
                 params = {
                     "forum": self.blog_page.disqus_shortname,
-                    "thread": "ident:{}".format(self.entry_page.id),
+                    "thread": f"ident:{self.entry_page.id}",
                 }
                 thread = disqus_client.threads_details().get(params=params)
                 return thread.response.posts().data()
@@ -46,7 +46,7 @@ class DisqusCommentsProvider(CommentsProvider):
                 return 0
         except ImportError:
             raise Exception(
-                "You need to install tapioca-disqus before using Disqus as comment system."
+                "You need to install tapioca-disqus before using Disqus as comment system.",
             )
 
 
@@ -60,16 +60,18 @@ class DjangoCommentsProvider(CommentsProvider):
 
     def get_num_comments(self):
         try:
-            from django_comments.models import Comment
             from django.contrib.contenttypes.models import ContentType
+            from django_comments.models import Comment
 
             entry_page_type = ContentType.objects.get(
-                app_label="puput", model="entrypage"
+                app_label="puput",
+                model="entrypage",
             )
             return Comment.objects.filter(
-                content_type=entry_page_type, object_pk=self.entry_page.pk
+                content_type=entry_page_type,
+                object_pk=self.entry_page.pk,
             ).count()
         except ImportError:
             raise Exception(
-                "You need to install django-comments before using it as comment system."
+                "You need to install django-comments before using it as comment system.",
             )

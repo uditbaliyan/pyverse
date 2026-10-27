@@ -1,17 +1,16 @@
 from django.db import models
-from wagtail.models import Page
-from wagtail.fields import RichTextField
-from wagtail.admin.panels import (
-    FieldPanel,
-    MultiFieldPanel,
-    InlinePanel,
-    PageChooserPanel,
-)
-from wagtail.search import index
-from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
+from wagtail.admin.panels import FieldPanel
+from wagtail.admin.panels import InlinePanel
+from wagtail.admin.panels import MultiFieldPanel
+from wagtail.admin.panels import PageChooserPanel
+from wagtail.contrib.settings.models import BaseSiteSetting
+from wagtail.contrib.settings.models import register_setting
+from wagtail.fields import RichTextField
 from wagtail.models import Orderable
+from wagtail.models import Page
+from wagtail.search import index
 
 # ════════════════════════════════════════════════════════════
 #  ABSTRACT MIXINS
@@ -224,14 +223,18 @@ class ModuleCard(LinkFields, Orderable):
     """One card in the module grid on the homepage."""
 
     page = ParentalKey(
-        "home.HomePage", on_delete=models.CASCADE, related_name="modules"
+        "home.HomePage",
+        on_delete=models.CASCADE,
+        related_name="modules",
     )
 
     num = models.CharField(max_length=10, help_text="e.g. 01, 02, MX")
     title = models.CharField(max_length=100)
     desc = models.CharField(max_length=200)
     diff = models.CharField(
-        max_length=30, blank=True, help_text="e.g. EASY · MEDIUM · HARD"
+        max_length=30,
+        blank=True,
+        help_text="e.g. EASY · MEDIUM · HARD",
     )
     src = models.CharField(max_length=200, help_text="Source path, e.g. builtins.list")
 
@@ -295,7 +298,9 @@ class HomePage(SEOFields, Page):
         help_text="Paragraph below the headline",
     )
     hero_primary_cta_text = models.CharField(
-        max_length=100, blank=True, default="START SESSION"
+        max_length=100,
+        blank=True,
+        default="START SESSION",
     )
     hero_primary_cta_link = models.ForeignKey(
         "wagtailcore.Page",
@@ -306,7 +311,9 @@ class HomePage(SEOFields, Page):
     )
     hero_primary_cta_external = models.URLField(blank=True)
     hero_secondary_cta_text = models.CharField(
-        max_length=100, blank=True, default="VIEW MODULES"
+        max_length=100,
+        blank=True,
+        default="VIEW MODULES",
     )
     hero_secondary_cta_link = models.ForeignKey(
         "wagtailcore.Page",
@@ -323,7 +330,9 @@ class HomePage(SEOFields, Page):
         help_text="Plain-text code shown in the device screen. Separate lines with Enter.",
     )
     device_model_label = models.CharField(
-        max_length=60, blank=True, default="MODEL // PV-01"
+        max_length=60,
+        blank=True,
+        default="MODEL // PV-01",
     )
 
     # ── social proof ──────────────────────────────────────

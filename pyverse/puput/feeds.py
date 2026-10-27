@@ -3,8 +3,8 @@ from urllib.parse import urljoin
 
 from django import http
 from django.contrib.syndication.views import Feed
-from django.utils.feedgenerator import Rss201rev2Feed
 from django.template.defaultfilters import truncatewords_html
+from django.utils.feedgenerator import Rss201rev2Feed
 from wagtail.models import Site
 
 from .models import BlogPage
@@ -12,7 +12,7 @@ from .models import BlogPage
 
 class BlogPageFeedGenerator(Rss201rev2Feed):
     def add_root_elements(self, handler):
-        super(BlogPageFeedGenerator, self).add_root_elements(handler)
+        super().add_root_elements(handler)
         if self.feed["image_link"]:
             handler.addQuickElement(
                 "image",
@@ -36,7 +36,7 @@ class BlogPageFeed(Feed):
         else:
             self.blog_page = BlogPage.objects.first()
         self.request = request
-        return super(BlogPageFeed, self).__call__(request, *args, **kwargs)
+        return super().__call__(request, *args, **kwargs)
 
     def title(self):
         return self.blog_page.title
@@ -56,8 +56,7 @@ class BlogPageFeed(Feed):
     def _item_short_description(self, item):
         if item.excerpt and item.excerpt.strip() != "":
             return item.excerpt
-        else:
-            return truncatewords_html(item.body, 70)
+        return truncatewords_html(item.body, 70)
 
     def item_description(self, item):
         if self.blog_page.short_feed_description:
@@ -71,7 +70,9 @@ class BlogPageFeed(Feed):
         from .urls import get_entry_url
 
         entry_url = get_entry_url(
-            item, self.blog_page.page_ptr, Site.find_for_request(self.request).root_page
+            item,
+            self.blog_page.page_ptr,
+            Site.find_for_request(self.request).root_page,
         )
         return self.request.build_absolute_uri(entry_url)
 
