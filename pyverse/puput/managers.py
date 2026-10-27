@@ -24,7 +24,7 @@ class CategoryManager(models.Manager):
 class BlogManager(PageManager):
     def get_by_path(self, blog_path):
         # Look for the blog checking all the path
-        from .models import BlogPage
+        from .models import BlogPage  # noqa: PLC0415
 
         blogs = BlogPage.objects.filter(slug=blog_path.split("/")[-1])
         for blog in blogs:

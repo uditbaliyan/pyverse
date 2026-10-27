@@ -81,7 +81,7 @@ def render_404(request):
 
 
 def _live_redirects():
-    from wagtail.contrib.redirects.models import Redirect
+    from wagtail.contrib.redirects.models import Redirect  # noqa: PLC0415
 
     return [row for row in Redirect.objects.all().order_by("old_path") if row.link]
 
@@ -104,7 +104,7 @@ def legacy_redirect_paths():
 
 def render_redirect_stub(request, path=""):
     """A redirect page for hosts that can't issue a 301 of their own."""
-    from wagtail.contrib.redirects.models import Redirect
+    from wagtail.contrib.redirects.models import Redirect  # noqa: PLC0415
 
     # Stored paths keep their leading slash and drop the trailing one
     # (`Redirect.normalise_path`), while the route kwarg has neither.

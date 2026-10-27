@@ -1,5 +1,6 @@
 from importlib import import_module
 
+from django.conf import settings
 from django.shortcuts import _get_queryset
 from django.urls import reverse
 
@@ -13,8 +14,6 @@ def import_model(path_or_callable):
 
 
 def get_image_model_path():
-    from django.conf import settings
-
     return getattr(settings, "WAGTAILIMAGES_IMAGE_MODEL", "wagtailimages.Image")
 
 
@@ -33,7 +32,7 @@ def strip_prefix_and_ending_slash(path):
     return path.replace(reverse("wagtail_serve", args=[""]), "", 1).rstrip("/")
 
 
-def get_object_or_None(klass, *args, **kwargs):
+def get_object_or_none(klass, *args, **kwargs):
     """
     Uses get() to return an object or None if the object does not exist.
     klass may be a Model, Manager, or QuerySet object. All other passed

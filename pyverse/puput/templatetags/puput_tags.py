@@ -64,7 +64,7 @@ def archives_list(context):
 
 @register.simple_tag(takes_context=True)
 def entry_url(context, entry, blog_page):
-    from pyverse.puput.urls import get_entry_url
+    from pyverse.puput.urls import get_entry_url  # noqa: PLC0415
 
     return get_entry_url(
         entry,
@@ -89,7 +89,7 @@ def image_url(context, url):
 
 @register.simple_tag(takes_context=True)
 def feeds_url(context, blog_page):
-    from pyverse.puput.urls import get_feeds_url
+    from pyverse.puput.urls import get_feeds_url  # noqa: PLC0415
 
     return get_feeds_url(
         blog_page.page_ptr,

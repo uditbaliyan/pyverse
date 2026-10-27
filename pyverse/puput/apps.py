@@ -7,4 +7,4 @@ class PuputAppConfig(AppConfig):
     default_auto_field = "django.db.models.AutoField"
 
     def ready(self):
-        import pyverse.puput.signals  # noqa: F401
+        import pyverse.puput.signals  # noqa: F401, PLC0415

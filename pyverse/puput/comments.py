@@ -34,8 +34,8 @@ class DisqusCommentsProvider(CommentsProvider):
         if not self.blog_page.disqus_api_secret:
             return 0
         try:
-            from tapioca.exceptions import ClientError
-            from tapioca_disqus import Disqus
+            from tapioca.exceptions import ClientError  # noqa: PLC0415
+            from tapioca_disqus import Disqus  # noqa: PLC0415
 
             disqus_client = Disqus(api_secret=self.blog_page.disqus_api_secret)
             try:
@@ -65,8 +65,8 @@ class DjangoCommentsProvider(CommentsProvider):
 
     def get_num_comments(self):
         try:
-            from django.contrib.contenttypes.models import ContentType
-            from django_comments.models import Comment
+            from django.contrib.contenttypes.models import ContentType  # noqa: PLC0415
+            from django_comments.models import Comment  # noqa: PLC0415
 
             entry_page_type = ContentType.objects.get(
                 app_label="puput",

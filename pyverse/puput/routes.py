@@ -16,7 +16,7 @@ else:
     # https://docs.wagtail.org/en/stable/releases/6.0.html#query-model-moved-to-wagtail-contrib-search-promotions
     from wagtail.contrib.search_promotions.models import Query
 
-from .utils import get_object_or_None
+from .utils import get_object_or_none
 
 USERNAME_REGEX = getattr(settings, "PUPUT_USERNAME_REGEX", "\\w+")
 USERNAME_FIELD = getattr(settings, "PUPUT_USERNAME_FIELD", "username")
@@ -41,20 +41,20 @@ class BlogRoutes(RoutablePageMixin):
 
     @route(r"^tag/(?P<tag>[-\w]+)/$")
     def entries_by_tag(self, request, tag, *args, **kwargs):
-        from pyverse.puput.models import Tag
+        from pyverse.puput.models import Tag  # noqa: PLC0415
 
         self.search_type = _("tag")
-        object_or_slug = get_object_or_None(Tag, slug=tag) or tag
+        object_or_slug = get_object_or_none(Tag, slug=tag) or tag
         self.search_term = str(object_or_slug)
         self.entries = self.get_entries().filter(tags__slug=tag)
         return Page.serve(self, request, *args, **kwargs)
 
     @route(r"^category/(?P<category>[-\w]+)/$")
     def entries_by_category(self, request, category, *args, **kwargs):
-        from pyverse.puput.models import Category
+        from pyverse.puput.models import Category  # noqa: PLC0415
 
         self.search_type = _("category")
-        object_or_slug = get_object_or_None(Category, slug=category) or category
+        object_or_slug = get_object_or_none(Category, slug=category) or category
         self.search_term = str(object_or_slug)
         self.entries = self.get_entries().filter(
             entry_categories__category__slug=category,
@@ -65,7 +65,7 @@ class BlogRoutes(RoutablePageMixin):
     def entries_by_author(self, request, author, *args, **kwargs):
         self.search_type = _("author")
         object_or_slug = (
-            get_object_or_None(get_user_model(), **{USERNAME_FIELD: author}) or author
+            get_object_or_none(get_user_model(), **{USERNAME_FIELD: author}) or author
         )
         self.search_term = str(object_or_slug)
         self.entries = self.get_entries().filter(

@@ -61,7 +61,7 @@ def base_url(request=None):
 
 
 def _default_site():
-    from django.contrib.sites.models import Site
+    from django.contrib.sites.models import Site  # noqa: PLC0415
 
     return Site.objects.filter(pk=settings.SITE_ID).first()
 
@@ -160,7 +160,7 @@ def _description(page=None, problem=None, request=None, quiz=None):
 
 
 def _site_settings(request):
-    from pyverse.home.models import SiteSettings
+    from pyverse.home.models import SiteSettings  # noqa: PLC0415
 
     if request is not None:
         return SiteSettings.for_request(request)
@@ -168,7 +168,7 @@ def _site_settings(request):
 
 
 def _default_wagtail_site():
-    from wagtail.models import Site as WagtailSite
+    from wagtail.models import Site as WagtailSite  # noqa: PLC0415
 
     return (
         WagtailSite.objects.filter(is_default_site=True).first()
@@ -221,9 +221,9 @@ def _title(page, problem, site_name, override=None, quiz=None):
 # ── Structured data ─────────────────────────────────────────────────────
 def _json_ld(page, problem, canonical, request=None, quiz=None):
     """Course / BlogPosting / LearningResource, per spec §15.3."""
-    from pyverse.labs.models import LabPage
-    from pyverse.lms.models import CoursePage
-    from pyverse.puput.models import EntryPage
+    from pyverse.labs.models import LabPage  # noqa: PLC0415
+    from pyverse.lms.models import CoursePage  # noqa: PLC0415
+    from pyverse.puput.models import EntryPage  # noqa: PLC0415
 
     origin = base_url(request)
     site_name = getattr(settings, "WAGTAIL_SITE_NAME", "PyVerse")
@@ -368,7 +368,7 @@ def meta_for(request, page=None, problem=None, quiz=None, overrides=None):
 
 
 def _is_blog_entry(page):
-    from pyverse.puput.models import EntryPage
+    from pyverse.puput.models import EntryPage  # noqa: PLC0415
 
     return isinstance(page, EntryPage)
 
@@ -413,7 +413,7 @@ def live_pages():
 
 def live_problems():
     """Coding problems reachable at a canonical challenge URL."""
-    from pyverse.coding.models import CodingProblem
+    from pyverse.coding.models import CodingProblem  # noqa: PLC0415
 
     return (
         CodingProblem.objects.filter(topic__isnull=False, topic__live=True)
@@ -424,7 +424,7 @@ def live_problems():
 
 def live_quizzes():
     """Quizzes reachable at a canonical quiz URL."""
-    from pyverse.quiz.models import Quiz
+    from pyverse.quiz.models import Quiz  # noqa: PLC0415
 
     return (
         Quiz.objects.filter(topic__isnull=False, topic__live=True)

@@ -142,6 +142,8 @@ lint.ignore = [
   # https://github.com/astral-sh/ruff/issues/7871
 ]
 lint.isort.force-single-line = true
+# PyScript entry scripts run in the browser, not as an importable package.
+lint.per-file-ignores."neetcode/pyscript/*.py" = [ "INP001" ]
 
 # ==== pyproject-fmt ====
 [tool.pyproject-fmt]

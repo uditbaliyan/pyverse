@@ -67,7 +67,7 @@ class BlogPageFeed(Feed):
         return item.date
 
     def item_link(self, item):
-        from .urls import get_entry_url
+        from .urls import get_entry_url  # noqa: PLC0415
 
         entry_url = get_entry_url(
             item,

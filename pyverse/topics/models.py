@@ -49,7 +49,7 @@ class PracticeHubPage(RoutablePageMixin, Page):
         The nested `/practice/<topic>/<slug>/` paths that used to be canonical
         are kept alive as permanent redirects.
         """
-        from pyverse.coding.models import CodingProblem
+        from pyverse.coding.models import CodingProblem  # noqa: PLC0415
 
         problem = get_object_or_404(CodingProblem, slug=slug)
         return TemplateResponse(
@@ -66,7 +66,7 @@ class PracticeHubPage(RoutablePageMixin, Page):
     @route(r"quiz/(?P<slug>[\w-]+)/$")
     def quiz(self, request, slug):
         """Serve one quiz at its flat URL — same scheme as challenge pages."""
-        from pyverse.quiz.models import Quiz
+        from pyverse.quiz.models import Quiz  # noqa: PLC0415
 
         quiz = get_object_or_404(Quiz, slug=slug)
         return TemplateResponse(
@@ -83,8 +83,8 @@ class PracticeHubPage(RoutablePageMixin, Page):
     def get_context(self, request):
         context = super().get_context(request)
 
-        from pyverse.coding.models import CodingProblem
-        from pyverse.taxonomy import DIFFICULTY_RANK
+        from pyverse.coding.models import CodingProblem  # noqa: PLC0415
+        from pyverse.taxonomy import DIFFICULTY_RANK  # noqa: PLC0415
 
         # The Landing table: every live problem, difficulty ascending by
         # default (spec §2). Filtering and sorting happen client-side so the
@@ -125,7 +125,7 @@ class PracticeHubPage(RoutablePageMixin, Page):
         # Quizzes are a first-class Practice surface too (Quiz Suite): listed
         # here and on Tracks, graded client-side, and recorded in the same
         # progress store as challenges.
-        from pyverse.quiz.models import Quiz
+        from pyverse.quiz.models import Quiz  # noqa: PLC0415
 
         context["quizzes"] = (
             Quiz.objects.filter(topic__isnull=False, topic__live=True)
@@ -280,7 +280,7 @@ class PracticeTopicPage(RoutablePageMixin, Page):
         if cls._PRACTICE_TYPES is None:
             # Lazy import so the module never forces coding/quiz/ to load
             # before the app registry is ready.
-            from pyverse.topics.models import PracticeHubPage as Hub
+            from pyverse.topics.models import PracticeHubPage as Hub  # noqa: PLC0415
 
             PracticeTopicPage._PRACTICE_TYPES = (Hub, cls)
         return cls._PRACTICE_TYPES
@@ -307,9 +307,9 @@ class PracticeTopicPage(RoutablePageMixin, Page):
     def get_context(self, request):
         context = super().get_context(request)
 
-        from pyverse.coding.models import CodingProblem
-        from pyverse.quiz.models import Quiz
-        from pyverse.taxonomy import DIFFICULTY_RANK
+        from pyverse.coding.models import CodingProblem  # noqa: PLC0415
+        from pyverse.quiz.models import Quiz  # noqa: PLC0415
+        from pyverse.taxonomy import DIFFICULTY_RANK  # noqa: PLC0415
 
         # A Track is this page: every problem tagged to it or a descendant,
         # difficulty ascending by default (spec §4). No pagination — the table

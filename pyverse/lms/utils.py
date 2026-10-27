@@ -14,7 +14,7 @@ def lesson_counts_for(container, courses):
     """
     # Imported here, not at module scope: `lms.models` imports this module, so a
     # top-level import would close the cycle with a half-built models module.
-    from .models import LessonPage
+    from .models import LessonPage  # noqa: PLC0415
 
     courses = list(courses)
     by_path = {course.path: course.pk for course in courses}
