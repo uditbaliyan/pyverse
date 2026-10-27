@@ -90,7 +90,9 @@ class TestCaseBlock(blocks.StructBlock):
 class ExampleBlock(blocks.StructBlock):
     input = blocks.TextBlock(
         required=False,
-        help_text='Arguments as they should be read, e.g. "nums = [2,7,11,15], target = 9".',
+        help_text=(
+            'Arguments as they should be read, e.g. "nums = [2,7,11,15], target = 9".'
+        ),
     )
     output = blocks.TextBlock(
         required=False,
@@ -189,7 +191,10 @@ class CodingProblem(ClusterableModel):
     )
     title = models.CharField(
         max_length=255,
-        help_text='The problem\'s display title, shown in listings and admin choosers (e.g. "Two Sum").',
+        help_text=(
+            "The problem's display title, shown in listings and admin choosers (e.g. "
+            '"Two Sum").'
+        ),
     )
     slug = models.SlugField(
         max_length=200,
@@ -257,7 +262,9 @@ class CodingProblem(ClusterableModel):
         [("item", blocks.CharBlock(label="Constraint"))],
         use_json_field=True,
         blank=True,
-        help_text="Constraints listed under the examples, e.g. '1 <= nums.length <= 10^4'.",
+        help_text=(
+            "Constraints listed under the examples, e.g. '1 <= nums.length <= 10^4'."
+        ),
     )
     hint_tiers = StreamField(
         [("hint", HintBlock())],
@@ -302,7 +309,10 @@ class CodingProblem(ClusterableModel):
     )
     starter_code = models.TextField(
         blank=True,
-        help_text="Boilerplate/stub code pre-filled into the student's editor when they open this problem.",
+        help_text=(
+            "Boilerplate/stub code pre-filled into the student's editor when they open "
+            "this problem."
+        ),
     )
     # Tag axes (spec §5). Company and Pattern are interview-prep browsing;
     # Technique is idiomatic-Python browsing. They are taggit tags rather than
@@ -341,7 +351,10 @@ class CodingProblem(ClusterableModel):
         [("test_case", TestCaseBlock())],
         use_json_field=True,
         blank=True,
-        help_text="The ordered list of test cases used to grade submissions to this problem. Add at least one non-hidden case so students can self-check.",
+        help_text=(
+            "The ordered list of test cases used to grade submissions to this problem. "
+            "Add at least one non-hidden case so students can self-check."
+        ),
     )
     trace_case = models.PositiveSmallIntegerField(
         null=True,

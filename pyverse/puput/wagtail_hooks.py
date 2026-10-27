@@ -9,8 +9,8 @@ from wagtail.admin.rich_text.converters.html_to_contentstate import (
 @hooks.register("register_rich_text_features")
 def register_blockquote_feature(features):
     """
-    Registering the `blockquote` feature, which uses the `blockquote` Draft.js block type,
-    and is stored as HTML with a `<blockquote>` tag.
+    Registering the `blockquote` feature, which uses the `blockquote` Draft.js
+    block type, and is stored as HTML with a `<blockquote>` tag.
     """
     feature_name = "blockquote"
     type_ = "blockquote"

@@ -152,7 +152,8 @@ class EntryAbstract(models.Model):
         blank=True,
         help_text=_(
             "Entry excerpt to be displayed on entries list. "
-            "If this field is not filled, a truncate version of body text will be used.",
+            "If this field is not filled, a truncate version of body text "
+            "will be used.",
         ),
     )
     num_comments = models.IntegerField(default=0, editable=False)
@@ -185,11 +186,6 @@ class EntryAbstract(models.Model):
     class Meta:
         abstract = True
 
-    def clean(self):
-        if not (self.markdown_body or self.body):
-            msg = "You must specify either body or markdown body"
-            raise ValidationError(msg)
-
     def save(self, *args, **kwargs):
         if self.markdown_body:
             self.body = markdown.markdown(
@@ -197,3 +193,8 @@ class EntryAbstract(models.Model):
                 extensions=["extra", "codehilite"],
             )
         super().save(*args, **kwargs)
+
+    def clean(self):
+        if not (self.markdown_body or self.body):
+            msg = "You must specify either body or markdown body"
+            raise ValidationError(msg)

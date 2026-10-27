@@ -56,6 +56,9 @@ class LinkFields(models.Model):
         FieldPanel("open_in_new_tab"),
     ]
 
+    class Meta:
+        abstract = True
+
     @property
     def url(self):
         if self.link_external:
@@ -63,9 +66,6 @@ class LinkFields(models.Model):
         if self.link_page:
             return self.link_page.url
         return "#"
-
-    class Meta:
-        abstract = True
 
 
 # ════════════════════════════════════════════════════════════
@@ -88,6 +88,9 @@ class NavItem(LinkFields, Orderable):
     class Meta:
         ordering = ["sort_order"]
 
+    def __str__(self):
+        return self.label
+
 
 class FooterLink(LinkFields, Orderable):
     """One link in the site footer."""
@@ -101,13 +104,18 @@ class FooterLink(LinkFields, Orderable):
     column = models.CharField(
         max_length=80,
         blank=True,
-        help_text="Group heading. Links with the same column name are grouped together.",
+        help_text=(
+            "Group heading. Links with the same column name are grouped together."
+        ),
     )
 
     panels = [FieldPanel("label"), FieldPanel("column"), *LinkFields.link_panels]
 
     class Meta:
         ordering = ["sort_order"]
+
+    def __str__(self):
+        return self.label
 
 
 @register_setting
@@ -250,6 +258,9 @@ class ModuleCard(LinkFields, Orderable):
     class Meta:
         ordering = ["sort_order"]
 
+    def __str__(self):
+        return self.title
+
 
 class StatItem(Orderable):
     """One number + label pair for the social-proof strip."""
@@ -327,7 +338,9 @@ class HomePage(SEOFields, Page):
     # ── device mockup ─────────────────────────────────────
     device_code = models.TextField(
         blank=True,
-        help_text="Plain-text code shown in the device screen. Separate lines with Enter.",
+        help_text=(
+            "Plain-text code shown in the device screen. Separate lines with Enter."
+        ),
     )
     device_model_label = models.CharField(
         max_length=60,
@@ -393,6 +406,12 @@ class HomePage(SEOFields, Page):
         ),
     ]
 
+    class Meta:
+        verbose_name = "Home Page"
+
+    def __str__(self):
+        return self.title
+
     # ── helpers ───────────────────────────────────────────
     @property
     def primary_cta_url(self):
@@ -409,9 +428,6 @@ class HomePage(SEOFields, Page):
         if self.hero_secondary_cta_link:
             return self.hero_secondary_cta_link.url
         return "#modules"
-
-    class Meta:
-        verbose_name = "Home Page"
 
 
 # ════════════════════════════════════════════════════════════
@@ -448,3 +464,6 @@ class StandardPage(SEOFields, Page):
     class Meta:
         verbose_name = "Standard Page"
         verbose_name_plural = "Standard Pages"
+
+    def __str__(self):
+        return self.title

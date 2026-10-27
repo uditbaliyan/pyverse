@@ -18,8 +18,8 @@ class EntryPageServe(View):
     http://wwww.example.com/2015/10/01/my-first-post
 
     If you set your blog as Wagtail Root page, the url is like the above example.
-    Otherwise if you have a multiple blog instances, you need to pass the slug of the blog
-    page instance that you want to use:
+    Otherwise if you have a multiple blog instances, you need to pass the slug of
+    the blog page instance that you want to use:
     http://wwww.example.com/weblog/2015/10/01/my-first-post
     http://wwww.example.com/videblog/2015/10/01/my-first-video
     """

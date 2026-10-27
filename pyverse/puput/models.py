@@ -96,8 +96,18 @@ class Category(models.Model):
 
     objects = CategoryManager()
 
+    class Meta:
+        ordering = ["name"]
+        verbose_name = _("Category")
+        verbose_name_plural = _("Categories")
+
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        return super().save(*args, **kwargs)
 
     def clean(self):
         if self.parent:
@@ -106,16 +116,6 @@ class Category(models.Model):
                 raise ValidationError(_("Parent category cannot be self."))
             if parent.parent and parent.parent == self:
                 raise ValidationError(_("Cannot have circular Parents."))
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        return super().save(*args, **kwargs)
-
-    class Meta:
-        ordering = ["name"]
-        verbose_name = _("Category")
-        verbose_name_plural = _("Categories")
 
 
 class CategoryEntryPage(models.Model):
@@ -186,7 +186,7 @@ class EntryPage(Entry, Page):
     subpage_types = []
 
     def get_sitemap_urls(self, request=None):
-        from .urls import get_entry_url
+        from .urls import get_entry_url  # noqa: PLC0415
 
         root_url = self.get_url_parts()[1]
         entry_url = get_entry_url(self, self.blog_page.page_ptr, root_url)
