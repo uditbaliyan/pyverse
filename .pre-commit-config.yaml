@@ -50,8 +50,14 @@ repos:
   - repo: https://github.com/djlint/djLint
     rev: v1.40.6
     hooks:
+      # Django-profile rules only make sense for real Django templates. The
+      # standalone HTML apps/prototypes under neetcode/ and temp/ are not
+      # Django templates (no {% extends %}, own JS runtimes), so they are
+      # deliberately out of scope here rather than excluded rule-by-rule.
       - id: djlint-reformat-django
+        files: ^pyverse/(templates|theme/templates)/
       - id: djlint-django
+        files: ^pyverse/(templates|theme/templates)/
 
 # sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date
 ci:
