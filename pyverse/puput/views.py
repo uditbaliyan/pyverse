@@ -41,7 +41,9 @@ class EntryPageServe(View):
             splited_path = strip_prefix_and_ending_slash(request.path).split("/")
             path_components = splited_path[:-4] + splited_path[-1:]
         else:
-            path_components = [strip_prefix_and_ending_slash(request.path).split("/")[-1]]
+            path_components = [
+                strip_prefix_and_ending_slash(request.path).split("/")[-1]
+            ]
         page, args, kwargs = site.root_page.specific.route(request, path_components)
 
         for fn in hooks.get_hooks("before_serve_page"):
@@ -56,7 +58,9 @@ class EntryPageUpdateCommentsView(View):
         try:
             entry_page = EntryPage.objects.get(pk=entry_page_id)
             blog_page = entry_page.blog_page
-            comment_class = import_model(settings.PUPUT_COMMENTS_PROVIDER)(blog_page, entry_page)
+            comment_class = import_model(settings.PUPUT_COMMENTS_PROVIDER)(
+                blog_page, entry_page
+            )
             num_comments = comment_class.get_num_comments()
             entry_page.num_comments = num_comments
             entry_page.save(update_fields=("num_comments",))

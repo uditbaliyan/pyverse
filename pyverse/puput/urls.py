@@ -30,6 +30,7 @@ urlpatterns = [
     path(route="feed/", view=BlogPageFeed(), name="blog_page_feed"),
 ]
 
+
 def get_entry_url(entry, blog_page, root_page):
     """
     Get the entry url given and entry page a blog page instances.

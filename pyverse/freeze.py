@@ -129,11 +129,10 @@ def render_redirect_stub(request, path=""):
 
 def render_redirects_file(request):
     """Netlify / Cloudflare Pages redirect rules, one `301` per row."""
-    lines = [
-        f"/{row.old_path.lstrip('/')} {row.link} 301" for row in _live_redirects()
-    ]
+    lines = [f"/{row.old_path.lstrip('/')} {row.link} 301" for row in _live_redirects()]
     return HttpResponse(
-        "\n".join(lines) + "\n", content_type="text/plain; charset=utf-8",
+        "\n".join(lines) + "\n",
+        content_type="text/plain; charset=utf-8",
     )
 
 

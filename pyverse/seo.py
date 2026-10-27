@@ -181,7 +181,7 @@ def _image_url(image, base):
         return ""
     try:
         url = image.get_rendition("1200x630").url
-    except (AttributeError, OSError, ValueError):
+    except AttributeError, OSError, ValueError:
         # Missing file, unusable image, or a filter the storage can't honour:
         # a broken social card is not worth a 500 on the page itself.
         url = getattr(image, "url", "")

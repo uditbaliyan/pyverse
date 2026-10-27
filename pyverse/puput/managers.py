@@ -8,7 +8,11 @@ from .utils import strip_prefix_and_ending_slash
 class TagManager(models.Manager):
     def most_common(self, blog_page):
         entries = blog_page.get_entries()
-        return self.filter(entrypage__in=entries).annotate(num_times=Count("entrypage")).order_by("-num_times")
+        return (
+            self.filter(entrypage__in=entries)
+            .annotate(num_times=Count("entrypage"))
+            .order_by("-num_times")
+        )
 
 
 class CategoryManager(models.Manager):

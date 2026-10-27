@@ -136,8 +136,7 @@ LESSON = {
 BLOG = {
     "title": "Why your function returns None",
     "markdown_body": (
-        "## What the grader sees\n\n"
-        "```python\ndef double(n):\n    return n * 2\n```\n"
+        "## What the grader sees\n\n```python\ndef double(n):\n    return n * 2\n```\n"
     ),
     "excerpt": "<p>Why a function that prints its answer still fails.</p>",
     "tags": ["Return values", "return values", "Graders"],

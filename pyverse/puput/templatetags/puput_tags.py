@@ -67,13 +67,17 @@ def archives_list(context):
 def entry_url(context, entry, blog_page):
     from ..urls import get_entry_url
 
-    return get_entry_url(entry, blog_page.page_ptr, Site.find_for_request(context["request"]).root_page)
+    return get_entry_url(
+        entry, blog_page.page_ptr, Site.find_for_request(context["request"]).root_page
+    )
 
 
 @register.simple_tag(takes_context=True)
 def canonical_url(context, entry=None):
     if entry and resolve(context.request.path_info).url_name == "wagtail_serve":
-        return context.request.build_absolute_uri(entry_url(context, entry, entry.blog_page))
+        return context.request.build_absolute_uri(
+            entry_url(context, entry, entry.blog_page)
+        )
     return context.request.build_absolute_uri()
 
 
@@ -86,7 +90,9 @@ def image_url(context, url):
 def feeds_url(context, blog_page):
     from ..urls import get_feeds_url
 
-    return get_feeds_url(blog_page.page_ptr, Site.find_for_request(context["request"]).root_page)
+    return get_feeds_url(
+        blog_page.page_ptr, Site.find_for_request(context["request"]).root_page
+    )
 
 
 @register.simple_tag(takes_context=True)
@@ -95,23 +101,28 @@ def show_comments(context):
     entry = context["self"]
     if blog_page.display_comments:
         try:
-            comment_class = import_model(settings.PUPUT_COMMENTS_PROVIDER)(blog_page, entry)
+            comment_class = import_model(settings.PUPUT_COMMENTS_PROVIDER)(
+                blog_page, entry
+            )
             comment_context = comment_class.get_context()
             comment_context.update(context.flatten())
             return render_to_string(comment_class.template, context=comment_context)
         except AttributeError:
-            raise Exception("To use comments you need to specify " "PUPUT_COMMENTS_PROVIDER in settings.")
+            raise Exception(
+                "To use comments you need to specify "
+                "PUPUT_COMMENTS_PROVIDER in settings."
+            )
     return ""
 
 
-@register.inclusion_tag('puput/tags/breadcrumbs.html', takes_context=True)
+@register.inclusion_tag("puput/tags/breadcrumbs.html", takes_context=True)
 def puput_breadcrumbs(context, current_page=None):
-    blog_page = context['blog_page']
+    blog_page = context["blog_page"]
     if current_page:
         ancestors = current_page.get_ancestors(inclusive=True).public().live()
     else:
         ancestors = blog_page.get_ancestors(inclusive=True).public().live()
-    context['breadcrumbs'] = ancestors
+    context["breadcrumbs"] = ancestors
     return context
 
 

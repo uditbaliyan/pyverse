@@ -37,9 +37,7 @@ _DEBUG_ONLY_MIDDLEWARE = (
 )
 
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app not in _DEBUG_ONLY_APPS]
-MIDDLEWARE = [
-    mw for mw in MIDDLEWARE if not mw.startswith(_DEBUG_ONLY_MIDDLEWARE)
-]
+MIDDLEWARE = [mw for mw in MIDDLEWARE if not mw.startswith(_DEBUG_ONLY_MIDDLEWARE)]
 
 # django-distill
 # ------------------------------------------------------------------------------
