@@ -14,6 +14,10 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-xml
+        # Django template, not standalone XML: the `{% comment %}` block after
+        # the XML declaration is not well-formed. The rendered output is
+        # validated by pyverse/tests/test_sitemap.py instead.
+        exclude: ^pyverse/templates/sitemap\.xml$
       - id: check-yaml
       - id: debug-statements
       - id: check-builtin-literals
