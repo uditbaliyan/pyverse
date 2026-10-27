@@ -61,7 +61,7 @@ class BlogRoutes(RoutablePageMixin):
         )
         return Page.serve(self, request, *args, **kwargs)
 
-    @route(r"^author/(?P<author>%s)/$" % USERNAME_REGEX)
+    @route(rf"^author/(?P<author>{USERNAME_REGEX})/$")
     def entries_by_author(self, request, author, *args, **kwargs):
         self.search_type = _("author")
         object_or_slug = (
@@ -69,7 +69,7 @@ class BlogRoutes(RoutablePageMixin):
         )
         self.search_term = str(object_or_slug)
         self.entries = self.get_entries().filter(
-            **{"owner__%s" % USERNAME_FIELD: author},
+            **{f"owner__{USERNAME_FIELD}": author},
         )
         return Page.serve(self, request, *args, **kwargs)
 

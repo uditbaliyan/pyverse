@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Get blogpage content type
-        blogpage_content_type, created = ContentType.objects.get_or_create(
+        blogpage_content_type, _created = ContentType.objects.get_or_create(
             model="blogpage",
             app_label="puput",
             defaults={"name": "page"} if DJANGO_VERSION < (1, 8) else {},

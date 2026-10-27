@@ -42,9 +42,11 @@ def main(site: str) -> int:
     if not sitemap.is_file():
         errors.append("sitemap.xml missing")
     else:
-        for loc in LOC.findall(sitemap.read_text(encoding="utf-8")):
-            if not resolve(root, urlparse(loc).path):
-                errors.append(f"sitemap entry not exported: {loc}")
+        errors.extend(
+            f"sitemap entry not exported: {loc}"
+            for loc in LOC.findall(sitemap.read_text(encoding="utf-8"))
+            if not resolve(root, urlparse(loc).path)
+        )
     for err in sorted(set(errors)):
         print(err)  # noqa: T201
     print(f"{len(set(errors))} problem(s)")  # noqa: T201

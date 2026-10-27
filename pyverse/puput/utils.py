@@ -5,7 +5,7 @@ from django.urls import reverse
 
 
 def import_model(path_or_callable):
-    if hasattr(path_or_callable, "__call__"):
+    if callable(path_or_callable):
         return path_or_callable
     assert isinstance(path_or_callable, str)
     package, attr = path_or_callable.rsplit(".", 1)

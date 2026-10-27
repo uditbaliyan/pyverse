@@ -84,7 +84,7 @@ class BlogPageFeed(Feed):
 
     def item_enclosure_mime_type(self, item):
         if item.header_image:
-            mime, enc = guess_type(self.item_enclosure_url(item))
+            mime, _enc = guess_type(self.item_enclosure_url(item))
             return mime
         return None
 
@@ -97,6 +97,7 @@ class BlogPageFeed(Feed):
         if self.blog_page.header_image:
             site = Site.find_for_request(self.request)
             return urljoin(site.root_url, self.blog_page.header_image.file.url)
+        return None
 
     def feed_extra_kwargs(self, obj):
         return {"image_link": self._channel_image_link()}

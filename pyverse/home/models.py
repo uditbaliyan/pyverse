@@ -83,7 +83,7 @@ class NavItem(LinkFields, Orderable):
     )
     label = models.CharField(max_length=80)
 
-    panels = [FieldPanel("label")] + LinkFields.link_panels
+    panels = [FieldPanel("label"), *LinkFields.link_panels]
 
     class Meta:
         ordering = ["sort_order"]
@@ -104,7 +104,7 @@ class FooterLink(LinkFields, Orderable):
         help_text="Group heading. Links with the same column name are grouped together.",
     )
 
-    panels = [FieldPanel("label"), FieldPanel("column")] + LinkFields.link_panels
+    panels = [FieldPanel("label"), FieldPanel("column"), *LinkFields.link_panels]
 
     class Meta:
         ordering = ["sort_order"]
@@ -343,7 +343,8 @@ class HomePage(SEOFields, Page):
     )
 
     # ── search ────────────────────────────────────────────
-    search_fields = Page.search_fields + [
+    search_fields = [
+        *Page.search_fields,
         index.SearchField("hero_subtitle"),
     ]
 
@@ -434,9 +435,10 @@ class StandardPage(SEOFields, Page):
     )
     body = RichTextField(blank=True)
 
-    search_fields = Page.search_fields + [index.SearchField("body")]
+    search_fields = [*Page.search_fields, index.SearchField("body")]
 
-    content_panels = Page.content_panels + [
+    content_panels = [
+        *Page.content_panels,
         FieldPanel("subtitle"),
         FieldPanel("header_image"),
         FieldPanel("body"),

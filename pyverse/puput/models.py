@@ -162,7 +162,8 @@ class EntryPageRelated(models.Model):
 
 class EntryPage(Entry, Page):
     # Search
-    search_fields = Page.search_fields + [
+    search_fields = [
+        *Page.search_fields,
         index.SearchField("body"),
         index.SearchField("excerpt"),
         index.FilterField("page_ptr_id"),
@@ -171,16 +172,14 @@ class EntryPage(Entry, Page):
     # Panels
     content_panels = getattr(Entry, "content_panels", [])
 
-    promote_panels = Page.promote_panels + getattr(Entry, "promote_panels", [])
+    promote_panels = [*Page.promote_panels, *getattr(Entry, "promote_panels", [])]
 
-    settings_panels = (
-        Page.settings_panels
-        + [
-            FieldPanel("date"),
-            FieldPanel("owner"),
-        ]
-        + getattr(Entry, "settings_panels", [])
-    )
+    settings_panels = [
+        *Page.settings_panels,
+        FieldPanel("date"),
+        FieldPanel("owner"),
+        *getattr(Entry, "settings_panels", []),
+    ]
 
     # Parent and child settings
     parent_page_types = ["puput.BlogPage"]

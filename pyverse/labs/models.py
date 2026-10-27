@@ -30,7 +30,7 @@ class LabsIndexPage(SEOFields, Page):
         help_text="Short lead-in shown above the lab list.",
     )
 
-    content_panels = Page.content_panels + [FieldPanel("intro")]
+    content_panels = [*Page.content_panels, FieldPanel("intro")]
 
     parent_page_types = ["home.HomePage"]
     subpage_types = ["labs.LabPage"]
@@ -81,7 +81,8 @@ class LabPage(SEOFields, Page):
         help_text="Roughly how long the lab takes to work through.",
     )
 
-    content_panels = Page.content_panels + [
+    content_panels = [
+        *Page.content_panels,
         FieldPanel("summary"),
         FieldPanel("code"),
         FieldPanel("what_to_watch"),

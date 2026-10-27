@@ -36,10 +36,7 @@ def popular_entries(context, limit=None):
 @register.inclusion_tag("puput/tags/tags_list.html", takes_context=True)
 def tags_list(context, limit=None, tags_qs=None):
     blog_page = context["blog_page"]
-    if tags_qs:
-        tags = tags_qs.all()
-    else:
-        tags = Tag.objects.most_common(blog_page)
+    tags = tags_qs.all() if tags_qs else Tag.objects.most_common(blog_page)
     if limit:
         tags = tags[:limit]
     context["tags"] = tags

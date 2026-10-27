@@ -1,5 +1,6 @@
-"""The sitemap template is not well-formed XML until rendered, so validate the output."""
+"""Sitemap template isn't standalone XML; validate its rendered output."""
 
+from http import HTTPStatus
 from xml.etree import ElementTree as ET
 
 import pytest
@@ -11,7 +12,7 @@ SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 def test_rendered_sitemap_is_well_formed_xml(client):
     response = client.get("/sitemap.xml")
 
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert "xml" in response["Content-Type"]
     root = ET.fromstring(response.content)  # noqa: S314
     assert root.tag == f"{SITEMAP_NS}urlset"
