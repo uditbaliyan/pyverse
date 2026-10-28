@@ -48,7 +48,7 @@
         }
 
         .quiz-nav h2 { margin: 0; font-size: 1.5rem; }
-        
+
         .badge {
             background: var(--code-bg);
             color: var(--primary);
@@ -258,7 +258,7 @@
         document.getElementById('quiz-idx').innerText = `${idx + 1} / ${quizDataset.length}`;
         document.getElementById('quiz-desc').innerText = q.description;
         document.getElementById('quiz-expected').innerText = q.expected_output.replace(/\n/g, " ↵ ");
-        
+
         const pool = document.getElementById('poolZone');
         const canvas = document.getElementById('canvasZone');
         pool.innerHTML = '';
@@ -267,7 +267,7 @@
 
         // Deep copy/shuffle tracking items block array
         let shuffledBlocks = [...q.blocks].sort(() => Math.random() - 0.5);
-        
+
         shuffledBlocks.forEach(b => {
             const blockEl = document.createElement('div');
             blockEl.className = 'code-block indent-0';
@@ -299,7 +299,7 @@
         const canvasItems = document.querySelectorAll('#canvasZone .code-block');
         const fb = document.getElementById('feedbackBox');
         fb.style.display = "block";
-        
+
         if(canvasItems.length === 0) {
             fb.className = "feedback-area feedback-warning";
             fb.innerText = "⚠️ Your solution canvas is empty! Drag elements over from the pool panel first.";
@@ -316,7 +316,7 @@
         canvasItems.forEach((item, index) => {
             const targetBlock = q.blocks.find(b => b.id === item.id);
             const userIndent = parseInt(item.dataset.indent);
-            
+
             // Build hypothetical final code context array string (matching how you'll pipe items into PyScript)
             rawCodeLines.push("    ".repeat(userIndent) + targetBlock.text);
 

@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Black-Box Quiz Laboratory</title>
-  
+
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  
+
   <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
   <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
@@ -28,54 +28,54 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background-color: #f1f3f5; color: var(--color-text-primary); font-family: var(--font-sans); }
-    
+
     .app { font-family: var(--font-sans); padding: 1.25rem 1rem; max-width: 700px; margin: 2rem auto; background: #fff; border-radius: var(--border-radius-lg); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-    
+
     .btn { font-size: 13px; padding: 7px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; font-family: var(--font-sans); transition: background 0.12s, transform 0.1s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { background: var(--color-background-secondary); }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
     .btn-primary:hover { opacity: 0.83; background: var(--color-text-primary); }
     .btn-sm { padding: 5px 10px; font-size: 12px; }
-    
+
     .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
     .pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
     .pill-easy { background: #EAF3DE; color: #27500A; }
     .pill-medium { background: #FAEEDA; color: #633806; }
     .pill-hard { background: #FCEBEB; color: #791F1F; }
     .pill-pts { background: #EEEDFE; color: #3C3489; }
-    
+
     .sec-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
     .code-area { width: 100%; min-height: 140px; padding: 12px; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); color: var(--color-text-primary); resize: vertical; outline: none; }
     .code-area:focus { border-color: var(--color-border-primary); background: var(--color-background-primary); }
-    
+
     .ledger-tbl { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
     .ledger-tbl th { font-size: 11px; color: var(--color-text-tertiary); text-align: left; padding: 6px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); font-weight: 500; }
     .ledger-tbl td { padding: 7px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); font-family: var(--font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ledger-tbl tr:last-child td { border-bottom: none; }
-    
+
     .hint-strip { border-radius: var(--border-radius-md); padding: 9px 12px; font-size: 13px; margin-top: 8px; display: flex; gap: 8px; align-items: flex-start; }
     .hint-1 { background: #E6F1FB; color: #0C447C; border: 0.5px solid #B5D4F4; }
     .hint-2 { background: #FAEEDA; color: #633806; border: 0.5px solid #FAC775; }
     .hint-3 { background: #EAF3DE; color: #27500A; border: 0.5px solid #C0DD97; }
-    
+
     .quick-chip { font-size: 12px; padding: 5px 11px; border-radius: 99px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-secondary); cursor: pointer; font-family: var(--font-mono); transition: background 0.1s, color 0.1s; }
     .quick-chip:hover { background: #E6F1FB; color: #0C447C; border-color: #B5D4F4; }
-    
+
     .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 1rem; }
     .stat-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: .75rem 1rem; border: 0.5px solid var(--color-border-tertiary); }
     .stat-card .lbl { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; font-weight: 500; }
     .stat-card .val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
-    
+
     .prog-wrap { height: 6px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; margin: 10px 0 4px; border: 0.5px solid var(--color-border-tertiary); }
     .prog-bar { height: 100%; border-radius: 99px; transition: width .3s; width: 0%; }
-    
+
     .result-box { border-radius: var(--border-radius-md); padding: 12px 14px; font-size: 13px; margin-top: 12px; }
     .res-pass { background: #EAF3DE; border: 0.5px solid #C0DD97; color: #27500A; }
     .res-fail { background: #FCEBEB; border: 0.5px solid #F7C1C1; color: #791F1F; }
     .res-warn { background: #FAEEDA; border: 0.5px solid #FAC775; color: #633806; }
-    
+
     .case-row { font-family: var(--font-mono); font-size: 12px; padding: 4px 0; display: flex; gap: 6px; border-bottom: 1px dashed rgba(0,0,0,0.05); }
     .case-row:last-child { border-bottom: none; }
     .dot-row { display: flex; gap: 5px; align-items: center; }
@@ -83,13 +83,13 @@
     .qdot.cur { background: var(--color-text-primary); transform: scale(1.2); }
     .qdot.done { background: #639922; }
     .qdot.fail { background: #E24B4A; }
-    
+
     .phase-tab { font-size: 13px; padding: 7px 16px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: var(--color-background-secondary); color: var(--color-text-secondary); transition: all .12s; font-family: var(--font-sans); }
     .phase-tab.active { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
-    
+
     .fade-in { animation: fi .25s ease; }
     @keyframes fi { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    
+
     /* System State Banner */
     #py-loader { background: #fff3cd; color: #856404; padding: 8px; text-align: center; font-size: 12px; font-weight: 500; border-radius: var(--border-radius-md); margin-bottom: 1rem; border: 1px solid #ffeeba; display: flex; align-items: center; justify-content: center; gap: 8px; }
   </style>
@@ -98,7 +98,7 @@
 
 <div class="app">
   <h1 class="sr-only">Black-box quiz: probe the secret function and replicate it in Python</h1>
-  
+
   <div id="py-loader">
     <i class="ti ti-loader-quarter-2" style="animation: spin 1s linear infinite;"></i>
     Initializing Embedded Python Sandbox Env...
@@ -135,10 +135,10 @@
     <div class="card">
       <div class="sec-label"><i class="ti ti-terminal" aria-hidden="true" style="font-size:14px"></i> Input format</div>
       <div id="input-guide" style="font-size:13px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:12px"></div>
-      
+
       <div class="sec-label" style="margin-bottom:6px"><i class="ti ti-stars" aria-hidden="true" style="font-size:14px"></i> Try these inputs</div>
       <div id="quick-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
-      
+
       <div style="display:flex;gap:8px">
         <input id="probe-in" type="text" placeholder="Type a custom input..." style="flex:1;padding:8px 12px;font-size:14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);outline:none"/>
         <button class="btn btn-primary" onclick="probe()"><i class="ti ti-player-play" aria-hidden="true"></i> Probe</button>
@@ -173,10 +173,10 @@
     <div class="card">
       <div class="sec-label" style="margin-bottom:6px"><i class="ti ti-info-circle" aria-hidden="true" style="font-size:14px"></i> What to implement</div>
       <div id="task-desc" style="font-size:13px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:12px"></div>
-      
+
       <div style="font-size:12px;font-family:var(--font-mono);color:var(--color-text-tertiary);margin-bottom:4px">def secret_function(input_value):</div>
       <textarea class="code-area" id="code-in" placeholder="    # Your execution logic here&#10;    # Remember to return the correct variable type&#10;    pass" spellcheck="false"></textarea>
-      
+
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="triggerPythonVerification()"><i class="ti ti-check" aria-hidden="true"></i> Verify Submissions</button>
         <button class="btn" onclick="document.getElementById('code-in').value='';document.getElementById('res-box').style.display='none'"><i class="ti ti-refresh" aria-hidden="true"></i> Reset</button>
@@ -201,29 +201,29 @@ def run_verification_engine(event=None):
         js_interface = window
         current_challenge_index = int(js_interface.cur)
         raw_metadata = js_interface.getChallengeTestsConfig(current_challenge_index)
-        
+
         parsed_config = json.loads(raw_metadata)
         user_source_code = document.getElementById("code-in").value
-        
+
         # Prepare execution sandbox environment scope
         execution_scope = {}
         wrapper_function_blueprint = f"def secret_function(input_value):\n"
-        
+
         for line in user_source_code.split('\n'):
             wrapper_function_blueprint += f"    {line}\n"
-            
+
         # Execute context runtime structure safely inside Python worker instance
         exec(wrapper_function_blueprint, execution_scope)
         user_target_function = execution_scope.get("secret_function")
-        
+
         test_cases = parsed_config.get("tests", [])
         passed_count = 0
         response_payload = []
-        
+
         for case in test_cases:
             raw_input = case.get("input")
             expected_output = case.get("expected")
-            
+
             # Auto-cast criteria matching structural formats for challenges
             casted_input = raw_input
             if parsed_config.get("inputType") == "int":
@@ -231,7 +231,7 @@ def run_verification_engine(event=None):
                     casted_input = int(raw_input)
                 except:
                     pass
-            
+
             try:
                 runtime_result = user_target_function(casted_input)
                 # Match strict string verification logic to retain compatibility across runtimes
@@ -239,20 +239,20 @@ def run_verification_engine(event=None):
             except Exception as runtime_err:
                 runtime_result = f"Error: {str(runtime_err)}"
                 is_correct = False
-                
+
             if is_correct:
                 passed_count += 1
-                
+
             response_payload.append({
                 "ok": is_correct,
                 "input": str(raw_input),
                 "expected": str(expected_output),
                 "got": str(runtime_result)
             })
-            
-        # Callback into JavaScript rendering layer 
+
+        # Callback into JavaScript rendering layer
         js_interface.processVerificationResults(passed_count, json.dumps(response_payload))
-        
+
     except Exception as general_err:
         js_interface.processVerificationResults(-1, str(general_err))
 
@@ -437,7 +437,7 @@ function triggerPythonVerification() {
     rb.innerHTML='<div style="font-weight:500;margin-bottom:4px"><i class="ti ti-alert-triangle" aria-hidden="true" style="margin-right:6px"></i>Nothing to verify</div>Write your code lines inside the function scope block.';
     return;
   }
-  
+
   if (window.pyVerifyEngine) {
     window.pyVerifyEngine();
   } else {
@@ -448,7 +448,7 @@ function triggerPythonVerification() {
 window.processVerificationResults = function(passedCount, rawRowsJSON) {
   const rb = document.getElementById('res-box');
   const c = CH[cur];
-  
+
   if (passedCount === -1) {
     rb.className='result-box res-fail';rb.style.display='block';
     rb.innerHTML=`<div style="font-weight:500;"><i class="ti ti-circle-x" aria-hidden="true"></i> Script Compilation Error</div><p style="font-family:var(--font-mono); font-size:11px; margin-top:4px;">${esc(rawRowsJSON)}</p>`;
@@ -470,11 +470,11 @@ window.processVerificationResults = function(passedCount, rawRowsJSON) {
 
   rb.style.display='block';
   rb.className='result-box '+(allPassed?'res-pass':passedCount>0?'res-warn':'res-fail');
-  
+
   let html=`<div style="font-weight:600;font-size:14px;margin-bottom:8px"><i class="ti ti-${allPassed?'circle-check':'circle-x'}" aria-hidden="true" style="margin-right:6px"></i>${allPassed?'All '+totalTests+' tests passed!':passedCount+' / '+totalTests+' tests passed'}</div>`;
   html+=`<div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:${allPassed?'#639922':pct>50?'#BA7517':'#E24B4A'}"></div></div>`;
   html+=`<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px">${pct}% accuracy</div>`;
-  
+
   html+='<div style="max-height: 200px; overflow-y: auto;">';
   rows.forEach(r=>{
     html+=`<div class="case-row"><span style="color:${r.ok?'#3B6D11':'#A32D2D'};flex-shrink:0"><i class="ti ti-${r.ok?'check':'x'}" aria-hidden="true"></i></span><span style="color:var(--color-text-tertiary)">in:</span> <span>${esc(r.input===''?'""':r.input)}</span> <span style="color:var(--color-text-tertiary)">→ exp:</span> <span>${esc(r.expected)}</span> <span style="color:var(--color-text-tertiary)">got:</span> <span style="color:${r.ok?'#185FA5':'#A32D2D'}">${esc(r.got)}</span></div>`;
@@ -485,7 +485,7 @@ window.processVerificationResults = function(passedCount, rawRowsJSON) {
     const bonus = Math.max(0, c.points - (probeCount * 5) - (hintsUsed * 10));
     html+=`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary);font-size:13px; font-weight:500;"><i class="ti ti-trophy" aria-hidden="true" style="color:#d4af37;margin-right:4px"></i>Challenge complete! Earned: <strong>${c.points+bonus}</strong> (Base ${c.points} + Bonus ${bonus})</div>`;
   }
-  
+
   rb.innerHTML=html;
   updateStats();
 };

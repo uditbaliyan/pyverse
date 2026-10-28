@@ -68,7 +68,7 @@
             max-width: 90vw;
             font-size: 22px;
             line-height: 2.5;
-            white-space: pre-wrap; 
+            white-space: pre-wrap;
             word-break: break-all;
             user-select: none;
         }
@@ -76,7 +76,7 @@
         .char { color: var(--sub-text); position: relative; }
         .char.correct { color: var(--correct-color); }
         .char.incorrect { color: var(--incorrect-color); background-color: var(--incorrect-bg); border-radius: 2px; }
-        
+
         .char.cursor::before {
             content: '';
             position: absolute;
@@ -187,7 +187,7 @@
                 if current_index > 0:
                     current_index -= 1
                     span = document.getElementById("text-container").children[current_index]
-                    
+
                     if span.classList.contains("correct"):
                         correct_chars -= 1
                     elif span.classList.contains("incorrect"):
@@ -195,7 +195,7 @@
 
                     span.classList.remove("correct", "incorrect")
                     span.classList.add("cursor")
-                    
+
                     if current_index + 1 < len(current_text):
                         document.getElementById("text-container").children[current_index + 1].classList.remove("cursor")
                 update_stats()
@@ -249,7 +249,7 @@
 
         # MICROPYTHON FIX: Directly assign the Python function to the window's onkeydown event
         window.onkeydown = handle_keydown
-        
+
         load_snippet()
     </script>
 </body>

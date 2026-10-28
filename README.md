@@ -286,7 +286,7 @@ Design records worth reading first: `static-export.rst`, `grading-engine.rst`, `
 Issues and small pull requests are welcome. Before opening one:
 
 ```bash
-uv run pytest && uv run ruff check . 
+uv run pytest && uv run ruff check .
 ```
 
 Keep changes focused; if you touch the export, include a test that builds into a temp directory and checks every sitemap URL has a file.

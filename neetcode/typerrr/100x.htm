@@ -169,13 +169,13 @@
             cursor = document.getElementById("cursor")
             container = document.getElementById("text-container")
             spans = container.children
-            
+
             # THE FIX: Use JavaScript .length property instead of Python len()
             if state["index"] < spans.length:
                 target_span = spans[state["index"]]
                 cursor.style.left = f"{target_span.offsetLeft}px"
                 cursor.style.top = f"{target_span.offsetTop}px"
-                
+
                 area = document.getElementById("typing-area")
                 span_top = target_span.offsetTop
                 scroll_target = span_top - (area.clientHeight / 2) + 30
@@ -202,7 +202,7 @@
 
             document.getElementById("chart-line").setAttribute("points", "")
             document.getElementById("chart-container").classList.remove("active")
-            
+
             update_cursor_position()
             update_stats()
 
@@ -211,11 +211,11 @@
                 event.preventDefault()
                 cont = document.getElementById("text-container")
                 cont.classList.add("fade-out")
-                
+
                 def do_reset():
                     load_snippet()
                     cont.classList.remove("fade-out")
-                
+
                 window.setTimeout(do_reset, 150)
                 return
 
@@ -236,10 +236,10 @@
                 if state["index"] > 0:
                     state["index"] -= 1
                     span = document.getElementById("text-container").children[state["index"]]
-                    
-                    if span.classList.contains("correct"): 
+
+                    if span.classList.contains("correct"):
                         state["correct"] -= 1
-                    elif span.classList.contains("incorrect"): 
+                    elif span.classList.contains("incorrect"):
                         state["incorrect"] -= 1
 
                     span.classList.remove("correct", "incorrect")
@@ -252,7 +252,7 @@
                 document.getElementById("chart-container").classList.add("active")
 
             typed_char = event.key
-            if typed_char == "Enter": 
+            if typed_char == "Enter":
                 typed_char = "\n"
 
             expected_char = state["text"][state["index"]]
@@ -283,17 +283,17 @@
         def update_chart():
             history = state["wpm_history"]
             if not history: return
-            
+
             max_wpm = max(history)
             if max_wpm <= 0: max_wpm = 1
-            
+
             points = []
             step = 100 / max(len(history) - 1, 1)
             for i, wpm in enumerate(history):
                 x = i * step
                 y = 30 - (wpm / max_wpm) * 28
                 points.append(f"{x},{y}")
-            
+
             document.getElementById("chart-line").setAttribute("points", " ".join(points))
 
         def update_stats():
@@ -312,7 +312,7 @@
 
             wpm_el = document.getElementById("wpm")
             acc_el = document.getElementById("accuracy")
-            
+
             wpm_el.innerText = str(wpm)
             acc_el.innerText = f"{accuracy}%"
             document.getElementById("time").innerText = f"{elapsed_sec:.1f}s"
@@ -328,7 +328,7 @@
 
         document.getElementById("overlay").addEventListener("click", focus_app)
         window.onkeydown = handle_keydown
-        
+
         load_snippet()
     </script>
 </body>

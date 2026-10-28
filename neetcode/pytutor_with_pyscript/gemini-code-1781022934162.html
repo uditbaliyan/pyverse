@@ -50,13 +50,13 @@ x = 20
 
             # 3. Generate the execution trace logs
             raw_trace = generate_trace.run_logger(user_code, "", {})
-            
+
             # Parse the JSON string result
             trace_dict = json.loads(raw_trace)
 
             # 4. Display the data structure for the 3rd step of execution (where the list is created)
-            step_snapshot = trace_dict["trace"][2] 
-            
+            step_snapshot = trace_dict["trace"][2]
+
             document.getElementById("output-trace").innerText = json.dumps(step_snapshot, indent=4)
             document.getElementById("status").innerText = "Trace successfully generated entirely in your browser!"
 

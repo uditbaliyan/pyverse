@@ -4,7 +4,7 @@ I am building a standalone browser-based LeetCode-style coding platform using:
 * HTML
 * TailwindCSS
 * CodeMirror
-* PyScript 
+* PyScript
 * Pyodide / WebAssembly
 * Vanilla JavaScript [minimal]
 

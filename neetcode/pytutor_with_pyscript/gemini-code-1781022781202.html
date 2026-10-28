@@ -6,7 +6,7 @@
     <title>PyScript Tutor Workspace</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-    
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -16,7 +16,7 @@
             color: #e0e0e0;
         }
         h2 { color: #00adb5; margin-bottom: 20px; text-align: center; }
-        
+
         .workspace {
             display: grid;
             grid-template-columns: 1fr 1.5fr;
@@ -148,7 +148,7 @@
 <body>
 
     <h2>PyScript Interactive Architecture Visualizer</h2>
-    
+
     <div class="workspace">
         <div class="panel">
             <h3>1. Target Engine Script</h3>
@@ -157,7 +157,7 @@ y = 20
 data_list = [x, y]
 x = 99
 matrix = [x, 50]</textarea>
-            
+
             <div class="controls">
                 <button py-click="compile_and_trace">Build State Pipeline</button>
             </div>
@@ -177,7 +177,7 @@ matrix = [x, 50]</textarea>
 
         <div class="panel">
             <h3>2. Dynamic Execution Space</h3>
-            
+
             <div class="visualizer-container" id="vis-container">
                 <svg id="svg-canvas">
                     <defs>
@@ -210,7 +210,7 @@ matrix = [x, 50]</textarea>
             const startEl = document.getElementById(startId);
             const endEl = document.getElementById(endId);
             const container = document.getElementById('vis-container');
-            
+
             if (!startEl || !endEl) return;
 
             const cRect = container.getBoundingClientRect();
@@ -233,7 +233,7 @@ matrix = [x, 50]</textarea>
             line.setAttribute('stroke-width', '2');
             line.setAttribute('marker-end', 'url(#arrow)');
             line.classList.add('pointer-line');
-            
+
             svg.appendChild(line);
         }
 
@@ -259,15 +259,15 @@ matrix = [x, 50]</textarea>
                 # Isolate target composite data structural types for the heap segment
                 if isinstance(item, (list, tuple, dict, set)):
                     memory_id = f"mem_ref_{id(item)}"
-                    
+
                     if isinstance(item, list):
                         self.heap_tracker[memory_id] = {
-                            "type": "LIST", 
+                            "type": "LIST",
                             "val": [self.evaluate_and_map(x)[1] for x in item]
                         }
                     elif isinstance(item, tuple):
                         self.heap_tracker[memory_id] = {
-                            "type": "TUPLE", 
+                            "type": "TUPLE",
                             "val": [self.evaluate_and_map(x)[1] for x in item]
                         }
                     return True, memory_id
@@ -283,7 +283,7 @@ matrix = [x, 50]</textarea>
                                 "is_pointer": is_ref,
                                 "data": processed_val
                             }
-                    
+
                     self.snapshots.append({
                         "line": frame.f_lineno,
                         "globals": dict(filtered_locals),
@@ -295,10 +295,10 @@ matrix = [x, 50]</textarea>
             global trace_history, current_index
             trace_history.clear()
             current_index = 0
-            
+
             user_script = document.getElementById("user-code").value
             engine = ExecutionStateCollector()
-            
+
             sys.settrace(engine.trace_step_hook)
             try:
                 exec(user_script, {}, {})
@@ -307,7 +307,7 @@ matrix = [x, 50]</textarea>
                 return
             finally:
                 sys.settrace(None)
-                
+
             trace_history = engine.snapshots
             if trace_history:
                 document.getElementById("step-total").innerText = str(len(trace_history) - 1)
@@ -317,7 +317,7 @@ matrix = [x, 50]</textarea>
             global current_index
             if not trace_history or index < 0 or index >= len(trace_history):
                 return
-                
+
             current_index = index
             snapshot = trace_history[index]
             window.clearPointerArrows()
@@ -328,18 +328,18 @@ matrix = [x, 50]</textarea>
             # 1. Render out the Stack
             stack_target = document.getElementById("stack-frame-target")
             stack_target.innerHTML = ""
-            
+
             if not snapshot["globals"]:
                 stack_target.innerHTML = "<em style='color:#666;'>No variables initialized yet</em>"
             else:
                 for var_name, info in snapshot["globals"].items():
                     row = document.createElement("div")
                     row.className = "var-row"
-                    
+
                     lbl = document.createElement("span")
                     lbl.innerHTML = f"<b>{var_name}</b>"
                     row.appendChild(lbl)
-                    
+
                     val_box = document.createElement("span")
                     if info["is_pointer"]:
                         val_box.className = "pointer-node"
@@ -347,14 +347,14 @@ matrix = [x, 50]</textarea>
                         val_box.innerText = "● Pointer"
                     else:
                         val_box.innerText = repr(info["data"])
-                        
+
                     row.appendChild(val_box)
                     stack_target.appendChild(row)
 
             # 2. Render out Heap allocations
             heap_target = document.getElementById("heap-target")
             heap_target.innerHTML = ""
-            
+
             if not snapshot["heap"]:
                 heap_target.innerHTML = "<em style='color:#666;'>Heap space empty</em>"
             else:
@@ -362,20 +362,20 @@ matrix = [x, 50]</textarea>
                     h_box = document.createElement("div")
                     h_box.className = "heap-box"
                     h_box.id = mem_id
-                    
+
                     header = document.createElement("div")
                     header.innerHTML = f"<span style='font-size:11px; color:#aaa;'>{metadata['type']} object</span>"
                     h_box.appendChild(header)
-                    
+
                     cell_container = document.createElement("div")
                     cell_container.className = "list-element-container"
-                    
+
                     for index_val, item_val in enumerate(metadata["val"]):
                         cell = document.createElement("div")
                         cell.className = "list-cell"
                         cell.innerText = str(item_val)
                         cell_container.appendChild(cell)
-                        
+
                     h_box.appendChild(cell_container)
                     heap_target.appendChild(h_box)
 
