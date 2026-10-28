@@ -9,8 +9,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # Vendored third-party assets are kept byte-for-byte as upstream shipped.
       - id: trailing-whitespace
+        exclude: ^pyverse/static/(puput|colorful|vendor)/
       - id: end-of-file-fixer
+        exclude: ^pyverse/static/(puput|colorful|vendor)/
       - id: check-json
       - id: check-toml
       - id: check-xml
