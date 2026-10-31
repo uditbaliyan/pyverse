@@ -19,7 +19,7 @@ dependencies = [
   "django-allauth[mfa]==65.18.0",
   "django-anymail==15.0",
   "django-crispy-forms==2.6",
-  "django-distill>=3.2.7",
+  "django-distill>=4.0.6",
   "django-el-pagination>=4.1.2",
   "django-environ==0.14.0",
   "django-model-utils==5.0.0",

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.14.*"
 
 [[package]]
@@ -638,13 +638,16 @@ wheels = [
 
 [[package]]
 name = "django-distill"
-version = "3.2.7"
+version = "4.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
-    { name = "requests" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/c8/ece20c91129314a1ec407ecc7df87102524a32615ea0c43be5b3ae54cc4b/django_distill-3.2.7.tar.gz", hash = "sha256:b0aaf6f9bb7a36cda5ce169fd51e862718a924c5a85e382a7c208c12ff8e3ee2", size = 38170, upload-time = "2024-08-30T14:07:07.259Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/9d/608490c9f12edcbc6aba811d38f78254692812aa3fa94495c3eeb4ea678b/django_distill-4.0.6.tar.gz", hash = "sha256:70cb999cde7f97a95d2c43b8bed631a4541ce0f7b40b981be387ecd9f6cf871b", size = 49092, upload-time = "2026-09-30T06:38:27.132Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/34/d1a2883240453087b8bd1b9afc186340e2171232b454d31341e4fcfa96d3/django_distill-4.0.6-py3-none-any.whl", hash = "sha256:bf58d53bcc42dd245bcb65ddf8bb20a1da66c97c6272dd90735c31c15ed4420e", size = 50054, upload-time = "2026-09-30T06:38:25.366Z" },
+]
 
 [[package]]
 name = "django-el-pagination"
@@ -2018,7 +2021,7 @@ requires-dist = [
     { name = "django-allauth", extras = ["mfa"], specifier = "==65.18.0" },
     { name = "django-anymail", specifier = "==15.0" },
     { name = "django-crispy-forms", specifier = "==2.6" },
-    { name = "django-distill", specifier = ">=3.2.7" },
+    { name = "django-distill", specifier = ">=4.0.6" },
     { name = "django-el-pagination", specifier = ">=4.1.2" },
     { name = "django-environ", specifier = "==0.14.0" },
     { name = "django-model-utils", specifier = "==5.0.0" },
