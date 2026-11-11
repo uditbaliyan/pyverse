@@ -1,0 +1,18 @@
+{% comment %}
+Account links, one definition for desktop and the mobile drawer.
+  link_class  class for plain links
+  cta_class   class for the emphasised link (Log out / Log in)
+Hidden entirely when SHOW_ACCOUNT_LINKS is false (the static export).
+{% endcomment %}
+{% if SHOW_ACCOUNT_LINKS %}
+  {% if request.user.is_authenticated %}
+    <a class="{{ link_class }}"
+       href="{% url 'users:detail' request.user.username %}">Profile</a>
+    <a class="{{ cta_class }}" href="{% url 'account_logout' %}">Log out</a>
+  {% else %}
+    {% if ACCOUNT_ALLOW_REGISTRATION %}
+      <a class="{{ link_class }}" href="{% url 'account_signup' %}">Sign up</a>
+    {% endif %}
+    <a class="{{ cta_class }}" href="{% url 'account_login' %}">Log in</a>
+  {% endif %}
+{% endif %}

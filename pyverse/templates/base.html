@@ -1,63 +1,92 @@
-{% load static tailwind_tags i18n seo_tags %}
+{% load static tailwind_tags i18n seo_tags wagtailsettings_tags %}
 
+{% comment %}
+THE page shell. Every page, in every section, extends this (directly, or via
+the `home/base_.html` alias) so the header, skip link, <main> landmark, message
+area and footer exist exactly once.
+
+  header -> messages -> main (-> page -> content) -> footer
+
+Blocks children may override:
+  head_meta (title + SEO: needs the DB), title, extra_head, css, javascript     <head>
+  bodyclass / body_class, body_attrs     <body>
+  body                                   everything inside <body> (rare)
+  header, footer                         the site chrome (500.html replaces the footer: it renders
+                                         with no request, so Site Settings are unavailable)
+  main                                   the contents of <main>
+  page                                   the content column wrapper. The default is
+                                         the standard container (page-container,
+                                         1180px, py-8). Pages that own their layout
+                                         (full-bleed sections, the code workspace,
+                                         quiz focus mode) override `page` and are
+                                         responsible for their own container.
+  content                                the page body
+  modal, extra_js, inline_javascript     end of <body>
+{% endcomment %}
+{% get_settings %}
 <!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
-    {% seo_meta as seo %}
     <meta charset="utf-8" />
-    <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>{% block title %}{{ seo.title }}{% endblock title %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="author" content="Udit Baliyan" />
     <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
-    {% include "partials/_seo_meta.html" %}
+    {% block head_meta %}
+      {% seo_meta as seo %}
+      <title>{% block title %}{{ seo.title }}{% endblock title %}</title>
+      {% include "partials/_seo_meta.html" %}
+    {% endblock head_meta %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;500;700;900&display=swap"
+          rel="stylesheet" />
     {% block css %}
       {% tailwind_css %}
       <link href="{% static 'css/project.css' %}" rel="stylesheet" />
-      <style>
-        /* Current section, marked by the shared nav partial. */
-        nav .nav-active {
-          text-decoration: underline;
-          text-decoration-thickness: 2px;
-          text-underline-offset: 4px;
-        }
-      </style>
     {% endblock css %}
+    {% block extra_head %}
+    {% endblock extra_head %}
     {% block javascript %}
       <script defer
               src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
       <script defer src="{% static 'js/project.js' %}"></script>
     {% endblock javascript %}
   </head>
-  <body class="bg-bg text-gray-900 {% block bodyclass %}{% endblock bodyclass %}">
+  <body class="flex min-h-screen flex-col bg-bg font-sans text-base leading-relaxed text-ink {% block bodyclass %}{% block body_class %}{% endblock body_class %}{% endblock bodyclass %}"
+        {% block body_attrs %}
+        {% endblock body_attrs %}>
     {% block body %}
-      <!-- This pulls in your navbar partial -->
-      {% include 'partials/_navbar.html' %}
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <a href="#main"
+         class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-(--z-toast) focus:border-[3px] focus:border-ink focus:bg-bg focus:px-4 focus:py-3 focus:font-mono focus:text-sm focus:font-bold focus:text-ink">Skip to main content</a>
+      {% block header %}
+        {% include "partials/_navbar.html" %}
+      {% endblock header %}
+      <main id="main" tabindex="-1" class="focus:outline-none">
         {% if messages %}
-          {% for message in messages %}
-            <div x-data="{ show: true }"
-                 x-show="show"
-                 class="flex justify-between items-center p-4 mb-4 rounded-md shadow-sm border {% if message.tags == 'success' %} bg-green-50 text-green-800 border-green-200 {% elif message.tags == 'error' or message.tags == 'danger' %} bg-red-50 text-red-800 border-red-200 {% elif message.tags == 'warning' %} bg-yellow-50 text-yellow-800 border-yellow-200 {% else %} bg-blue-50 text-blue-800 border-blue-200 {% endif %}">
-              <div class="text-sm font-medium">{{ message }}</div>
-              <button @click="show = false"
-                      type="button"
-                      class="text-current opacity-60 hover:opacity-100 transition-opacity ml-4 focus:outline-none">
-                <span class="text-xl font-bold">×</span>
-              </button>
-            </div>
-          {% endfor %}
+          <div class="page-container space-y-3 pt-6">
+            {% for message in messages %}
+              {% include "components/alert.html" with level=message.level_tag text=message dismissible=True %}
+            {% endfor %}
+          </div>
         {% endif %}
         {% block main %}
-          {% block content %}
-            <p class="text-gray-600 text-lg">Use this document as a way to quick start any new project.</p>
-          {% endblock content %}
+          {% block page %}
+            <div class="page-container py-8">
+              {% block content %}
+              {% endblock content %}
+            </div>
+          {% endblock page %}
         {% endblock main %}
-      </div>
+      </main>
+      {% block footer %}
+        {% include "partials/_footer.html" %}
+      {% endblock footer %}
     {% endblock body %}
     {% block modal %}
     {% endblock modal %}
+    {% block extra_js %}
+    {% endblock extra_js %}
     {% block inline_javascript %}
     {% endblock inline_javascript %}
   </body>

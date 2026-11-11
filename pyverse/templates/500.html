@@ -1,10 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Server Error{% endblock title %}
+{% comment %}
+Rendered by Django's server_error view with NO request or context processors,
+so this page may not touch Site Settings, SEO (a DB lookup), the user, or
+`{% url %}` names that need a request. head_meta and footer are replaced with
+static versions for that reason: a database outage must not take the error page down too.
+{% endcomment %}
+{% block head_meta %}
+  <title>Server error</title>
+{% endblock head_meta %}
 {% block content %}
-  <h1>Ooops!!! 500</h1>
-  <h3>Looks like something went wrong!</h3>
-  <p>
-    We track these errors automatically, but if the problem persists feel free to contact us. In the meantime, try refreshing.
-  </p>
+  {% include "components/empty_state.html" with as_h1=True code="500" title="Something went wrong on our side" text="The error was logged. Reload the page in a moment. If it keeps happening, go back to the home page and try again." action_label="Go to the home page" action_url="/" %}
 {% endblock content %}
+{% block footer %}
+  <footer class="mt-auto border-t-[3px] border-ink bg-bg">
+    <div class="page-container py-6 font-mono text-xs text-muted">
+      <a href="/" class="font-black text-lg text-ink no-underline">PYVERSE.</a>
+    </div>
+  </footer>
+{% endblock footer %}
