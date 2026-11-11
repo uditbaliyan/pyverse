@@ -1,13 +1,13 @@
 {% if value %}
-  <div class="my-8 rounded-xl border border-neutral-200 overflow-hidden">
-    <div class="flex items-center justify-between px-4 py-2 bg-neutral-50 border-b border-neutral-200">
-      <span class="text-xs text-neutral-400 font-medium uppercase tracking-wide">Diagram</span>
+  <div class="mermaid-wrap my-8 overflow-hidden border-[3px] border-ink shadow-card">
+    <div class="flex items-center justify-between px-4 py-2 border-b-[3px] border-ink bg-bg-2">
+      <span class="font-mono text-xs font-bold text-muted uppercase">Diagram</span>
       <button onclick=" const src = this.closest('.mermaid-wrap').querySelector('.mermaid-src'); navigator.clipboard.writeText(src.textContent); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy source'), 1500); "
-              class="text-xs text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer">
+              class="inline-flex min-h-11 cursor-pointer items-center px-3 font-mono text-xs font-bold hover:bg-ink hover:text-bg">
         Copy source
       </button>
     </div>
-    <div class="mermaid-wrap p-6 bg-white">
+    <div class="overflow-x-auto bg-bg p-4 sm:p-6">
       <pre class="mermaid-src hidden">{{ value }}</pre>
       <pre class="mermaid">{{ value }}</pre>
     </div>

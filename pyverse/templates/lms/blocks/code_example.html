@@ -1,16 +1,23 @@
+{% comment %}
+Code block: the one implementation for lesson code. Light text on ink (the old
+markup inherited dark ink on near-black, so code was unreadable); long lines
+scroll inside the block; the scroller is focusable so keyboard users can reach
+it; the whole figure carries `.code-block` so Copy can find the <code>.
+{% endcomment %}
 {% if value.code %}
-  <div class="my-6 rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+  <figure class="code-block my-6 border-[3px] border-ink bg-ink text-bg shadow-card">
     {% if value.filename or value.language %}
-      <div class="flex items-center justify-between px-4 py-2 bg-neutral-900 border-b border-neutral-800">
-        <span class="text-xs text-neutral-400 font-mono">
+      <figcaption class="flex items-center justify-between gap-3 border-b-2 border-bg/25 pl-4">
+        <span class="font-mono text-xs">
           {% if value.filename %}{{ value.filename }}{% else %}{{ value.language }}{% endif %}
         </span>
-        <button onclick=" navigator.clipboard.writeText( this.closest('.code-block').querySelector('code').textContent, ); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy'), 1500); "
-                class="text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer">Copy</button>
-      </div>
+        <button type="button"
+                aria-label="Copy code"
+                onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').textContent); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy'), 1500);"
+                class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center px-3 font-mono text-xs font-bold text-bg hover:bg-bg hover:text-ink">Copy</button>
+      </figcaption>
     {% endif %}
-    <div class="code-block overflow-x-auto">
-      <pre class="!m-0 !p-4 !rounded-none !border-none"><code class="language-{{ value.language }} text-sm">{{ value.code }}</code></pre>
-    </div>
-  </div>
+    <pre class="m-0 overflow-x-auto p-4 font-mono text-sm leading-relaxed"
+         tabindex="0"><code class="language-{{ value.language }}">{{ value.code }}</code></pre>
+  </figure>
 {% endif %}

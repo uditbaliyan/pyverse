@@ -1,158 +1,116 @@
 {% extends "base.html" %}
 
-{% load static wagtailcore_tags wagtailimages_tags %}
+{% load static wagtailimages_tags %}
 
 {% block content %}
-  <main class="course-page">
-    <style>
-      .lesson-check {
-        color: #16a34a;
-        font-weight: 700;
-        margin-left: 8px;
-      }
-
-      .lesson-done .lesson-title {
-        color: #a3a3a3;
-      }
-
-      .lesson-done .lesson-index {
-        background: #dcfce7;
-        color: #15803d;
-      }
-    </style>
-    <!-- Course Header -->
-    <section class="py-12 px-6 border-b border-neutral-200">
-      <div class="max-w-6xl mx-auto">
-        <!-- Breadcrumb -->
-        <nav class="text-sm text-neutral-500 mb-6">
-          <a href="{{ page.get_parent.get_parent.url }}" class="hover:underline">Learning</a>
-          <span class="mx-1">/</span>
-          <a href="{{ page.get_parent.url }}" class="hover:underline">{{ page.topic.title }}</a>
-          <span class="mx-1">/</span>
-          <span class="text-neutral-900">{{ page.title }}</span>
-        </nav>
-        <div class="grid lg:grid-cols-3 gap-10">
-          <!-- Left: Info -->
-          <div class="lg:col-span-2">
-            <div class="flex flex-wrap gap-2 mb-4">
-              <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-neutral-100 text-neutral-700">
-                {{ page.get_course_type_display }}
-              </span>
-              <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-neutral-100 text-neutral-700">
-                {{ page.get_difficulty_display }}
-              </span>
-              {% if page.language %}
-                <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-neutral-100 text-neutral-700">{{ page.language }}</span>
-              {% endif %}
-              {% if page.is_free %}
-                <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Free</span>
-              {% endif %}
-            </div>
-            <h1 class="text-3xl md:text-4xl font-bold mb-4">{{ page.title }}</h1>
-            {% if page.summary %}
-              <p class="text-lg text-neutral-600 leading-relaxed">{{ page.summary }}</p>
-            {% endif %}
-            <!-- What You'll Learn -->
-            {% if page.what_you_learn %}
-              <div class="mt-8">
-                <h2 class="text-lg font-semibold mb-4">What You'll Learn</h2>
-                <div class="grid md:grid-cols-2 gap-2">
-                  {% for block in page.what_you_learn %}
-                    <div class="flex items-start gap-2">
-                      <i data-lucide="check" class="w-4 h-4 text-green-600 mt-0.5 shrink-0"></i>
-                      <span class="text-sm text-neutral-700">{{ block.value }}</span>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-            <!-- Prerequisites -->
-            {% if page.prerequisites %}
-              <div class="mt-8">
-                <h2 class="text-lg font-semibold mb-3">Prerequisites</h2>
-                <ul class="space-y-1.5">
-                  {% for block in page.prerequisites %}
-                    <li class="flex items-start gap-2 text-sm text-neutral-600">
-                      <i data-lucide="arrow-right"
-                         class="w-3 h-3 mt-1 shrink-0 text-neutral-400"></i>
-                      {{ block.value }}
-                    </li>
-                  {% endfor %}
-                </ul>
-              </div>
-            {% endif %}
+  {% include "components/page_header.html" with title=page.title subtitle=page.summary page=page %}
+  <div class="-mt-2 mb-8 flex flex-wrap gap-2">
+    {% include "components/badge.html" with label=page.get_course_type_display %}
+    {% include "components/badge.html" with label=page.get_difficulty_display %}
+    {% if page.language %}
+      {% include "components/badge.html" with label=page.language %}
+    {% endif %}
+    {% if page.is_free %}
+      {% include "components/badge.html" with label="Free" tone="ok" %}
+    {% endif %}
+  </div>
+  <div class="grid gap-10 lg:grid-cols-3">
+    <div class="space-y-10 lg:col-span-2">
+      {% if page.what_you_learn %}
+        <section aria-labelledby="learn-h">
+          <h2 id="learn-h" class="mb-4 font-black text-xl tracking-tight">What you'll learn</h2>
+          <ul class="grid gap-2 md:grid-cols-2">
+            {% for block in page.what_you_learn %}
+              <li class="flex items-start gap-2 text-sm text-body-txt">
+                <span class="font-bold text-ok" aria-hidden="true">✓</span>
+                {{ block.value }}
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+      {% if page.prerequisites %}
+        <section aria-labelledby="prereq-h">
+          <h2 id="prereq-h" class="mb-3 font-black text-xl tracking-tight">Prerequisites</h2>
+          <ul class="space-y-1.5">
+            {% for block in page.prerequisites %}
+              <li class="flex items-start gap-2 text-sm text-body-txt">
+                <span aria-hidden="true">→</span>
+                {{ block.value }}
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+    </div>
+    <aside class="lg:col-span-1">
+      <div class="card lg:sticky lg:top-24">
+        {% if page.hero_image %}
+          {% image page.hero_image width-600 class="mb-4 h-auto w-full border-[3px] border-ink" alt="" %}
+        {% endif %}
+        <dl class="mb-6 space-y-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-muted">Lessons</dt>
+            <dd class="font-bold">
+              {{ lessons|length }}
+            </dd>
           </div>
-          <!-- Right: Sidebar Card -->
-          <div class="lg:col-span-1">
-            <div class="border border-neutral-200 rounded-xl p-6 sticky top-20">
-              {% if page.hero_image %}
-                {% image page.hero_image width-600 class="w-full rounded-lg mb-4" %}
-              {% endif %}
-              <div class="space-y-3 text-sm mb-6">
-                <div class="flex justify-between">
-                  <span class="text-neutral-500">Lessons</span>
-                  <span class="font-medium">{{ lessons|length }}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-neutral-500">Duration</span>
-                  <span class="font-medium">{{ page.estimated_hours }}h</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-neutral-500">Level</span>
-                  <span class="font-medium">{{ page.get_difficulty_display }}</span>
-                </div>
-              </div>
-              {% if lessons %}
-                <a href="{{ lessons.0.url }}"
-                   class="block w-full text-center px-4 py-3 bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 transition-colors">
-                  Start Learning
-                </a>
-              {% endif %}
-            </div>
+          <div class="flex justify-between">
+            <dt class="text-muted">Duration</dt>
+            <dd class="font-bold">
+              {{ page.estimated_hours }}h
+            </dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-muted">Level</dt>
+            <dd class="font-bold">
+              {{ page.get_difficulty_display }}
+            </dd>
+          </div>
+        </dl>
+        {% if lessons %}
+          {% include "components/button.html" with label="Start learning" href=lessons.0.url full=True %}
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+  {% if lessons %}
+    <section class="mt-14"
+             aria-labelledby="content-h"
+             data-course-progress
+             data-total="{{ lessons|length }}">
+      <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <h2 id="content-h" class="font-black text-2xl tracking-tight">Course content</h2>
+        <div class="w-full sm:w-64">
+          <p class="mb-1.5 font-mono text-xs text-muted"
+             id="course-progress-count">
+            {{ lessons|length }} lesson{{ lessons|length|pluralize }} · progress is kept in this browser
+          </p>
+          <div class="h-2.5 overflow-hidden border-2 border-ink bg-bg-2"
+               aria-hidden="true">
+            <div class="h-full w-0 bg-ok transition-all" id="course-progress-bar"></div>
           </div>
         </div>
       </div>
+      <div class="divide-y-[3px] divide-ink border-[3px] border-ink bg-bg-2 shadow-card">
+        {% for lesson in lessons %}
+          <a href="{{ lesson.url }}"
+             data-lesson-slug="{{ lesson.slug }}"
+             class="group flex min-h-14 items-center gap-4 px-4 py-3 no-underline hover:bg-device sm:px-5">
+            <span class="lesson-index flex h-9 w-9 shrink-0 items-center justify-center border-2 border-ink bg-bg font-mono text-sm font-bold">{{ forloop.counter }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="lesson-title block font-bold text-ink group-hover:underline">{{ lesson.title }}</span>
+              <span class="font-mono text-xs text-muted">{{ lesson.estimated_minutes }} min</span>
+            </span>
+            <span data-lesson-state></span>
+            <span aria-hidden="true" class="font-bold">→</span>
+          </a>
+        {% endfor %}
+      </div>
     </section>
-    <!-- Lesson List -->
-    {% if lessons %}
-      <section class="py-12 px-6"
-               data-course-progress
-               data-total="{{ lessons|length }}">
-        <div class="max-w-6xl mx-auto">
-          <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-            <h2 class="text-xl font-bold">Course Content</h2>
-            <div class="w-full sm:w-56">
-              <div class="text-xs text-neutral-500 mb-1.5" id="course-progress-count">
-                {{ lessons|length }} lesson{{ lessons|length|pluralize }} · progress is kept in this browser
-              </div>
-              <div class="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
-                <div class="h-full w-0 bg-green-600 transition-all"
-                     id="course-progress-bar"></div>
-              </div>
-            </div>
-          </div>
-          <div class="border border-neutral-200 rounded-xl overflow-hidden divide-y divide-neutral-200">
-            {% for lesson in lessons %}
-              <a href="{{ lesson.url }}"
-                 data-lesson-slug="{{ lesson.slug }}"
-                 class="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50 transition-colors group">
-                <span class="lesson-index w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-sm font-medium text-neutral-600 group-hover:bg-neutral-900 group-hover:text-white transition-colors shrink-0">
-                  {{ forloop.counter }}
-                </span>
-                <div class="flex-1 min-w-0">
-                  <span class="lesson-title font-medium text-sm block truncate">{{ lesson.title }}</span>
-                  <span class="text-xs text-neutral-500">{{ lesson.estimated_minutes }} min</span>
-                </div>
-                <span data-lesson-state></span>
-                <i data-lucide="chevron-right"
-                   class="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors"></i>
-              </a>
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-    {% endif %}
-  </main>
+  {% endif %}
+{% endblock content %}
+{% block inline_javascript %}
   <script>
     // Expose lesson slugs for progress tracking
     window.__LESSON_SLUGS__ = {{ lesson_slugs_json|safe }};
@@ -160,4 +118,4 @@
   <script src="{% static 'js/pyverse-progress.js' %}"></script>
   <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
   {% include "lms/_lucide.html" %}
-{% endblock content %}
+{% endblock inline_javascript %}
