@@ -824,6 +824,11 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
       border-color: var(--accent);
     }
 
+    .pinput:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     .terminal {
       font-family: var(--mono);
       font-size: 12px;
@@ -944,15 +949,10 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
 {% endblock extra_head %}
 {% block body_attrs %} data-problem-slug="{{ problem.slug }}" data-problem-title="{{ problem.title }}" data-problem-topic="{{ page.title }}"{% endblock body_attrs %}
 {% block content %}
-  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+  <div class="page-container pt-7 pb-[90px]">
     {# ── breadcrumb + title ──────────────────────────────────────── #}
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-      {# djlint:off D018 #}
-      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice/</a>
-      {# djlint:on #}
-      <span class="mx-1">›</span>problem/
-    </p>
-    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ problem.title }}</h1>
+    {% include "components/breadcrumb.html" with page=page current=problem.title %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ problem.title }}</h1>
     {# ── problem metadata ────────────────────────────────────────── #}
     <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
       <span class="bg-ink text-bg px-[7px] py-[3px] uppercase">{{ problem.get_difficulty_display }}</span>

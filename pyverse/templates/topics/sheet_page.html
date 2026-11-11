@@ -19,24 +19,13 @@ slate/purple.
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 {% endblock extra_head %}
 {% block content %}
-  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-      {# djlint:off D018 #}
-      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
-      {# djlint:on #}
-      <span class="mx-1">›</span>
-      {# djlint:off D018 #}
-      <a href="/practice/sheets/"
-         class="text-muted no-underline hover:text-ink">sheets</a>
-      {# djlint:on #}
-      <span class="mx-1">›</span>
-      {{ page.slug }}
-    </p>
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
     <div class="mt-4 pe-engine pe-on-light bg-transparent text-ink min-h-0 [--bg0:#F5EEDA] [--bg1:#F5EEDA] [--bg2:#EDE6D2] [--bg3:#D6CEBD] [--bg4:#D6CEBD] [--border:rgba(26,26,26,0.15)] [--border-hi:#1A1A1A] [--text0:#1A1A1A] [--text1:#3A3529] [--text2:#6B6355] [--accent:#C62828] [--accent-dim:rgba(198,40,40,0.12)] [--green:#3D4F2F] [--green-dim:rgba(200,213,185,0.55)] [--red:#C62828] [--red-dim:rgba(198,40,40,0.12)] [--amber:#6B6355] [--amber-dim:rgba(214,206,189,0.7)] [--sans:Inter,system-ui,sans-serif] [--mono:'JetBrains_Mono',monospace]"
          data-progress-scope>
       <div class="flex flex-wrap items-center justify-between gap-6">
         <div>
-          <h1 class="font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+          <h1 class="font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
           {% if page.description %}
             <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.description|richtext }}</div>
           {% endif %}

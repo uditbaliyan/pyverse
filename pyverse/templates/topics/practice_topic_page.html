@@ -17,19 +17,9 @@ at the site palette so they read cream/ink/red on the light shell.
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 {% endblock extra_head %}
 {% block content %}
-  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-      {# djlint:off D018 #}
-      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
-      {# djlint:on #}
-      {% for crumb in practice_breadcrumb %}
-        <span class="mx-1">›</span>
-        <a href="{{ crumb.url }}" class="text-muted no-underline hover:text-ink">{{ crumb.slug }}</a>
-      {% endfor %}
-      <span class="mx-1">›</span>
-      <span>{{ page.slug }}</span>
-    </p>
-    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
     {% if page.theory_content %}
       <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.theory_content|richtext }}</div>
     {% endif %}
@@ -98,15 +88,15 @@ at the site palette so they read cream/ink/red on the light shell.
               <tr class="border-b-[3px] border-ink bg-device/40">
                 <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">Status</span></th>
                 <th scope="col" class="px-3 py-2 text-left" data-sort="title">
-                  <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                  <button class="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
                           type="button">Title</button>
                 </th>
                 <th scope="col" class="px-3 py-2 text-left" data-sort="difficulty">
-                  <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                  <button class="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
                           type="button">Difficulty</button>
                 </th>
                 <th scope="col" class="px-3 py-2 text-left" data-sort="status">
-                  <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                  <button class="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
                           type="button">Status</button>
                 </th>
                 <th scope="col" class="px-3 py-2 text-left">Topic</th>

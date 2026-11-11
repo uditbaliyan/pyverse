@@ -22,14 +22,10 @@ executes learner code, and the page ships as static HTML.
   <link rel="stylesheet" href="{% static 'css/lab-engine.css' %}" />
 {% endblock extra_head %}
 {% block content %}
-  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
+  <div class="page-container pt-7 pb-[90px]">
     {# ── breadcrumb + title ──────────────────────────────────────── #}
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-      <a href="{{ page.get_parent.url }}"
-         class="text-muted no-underline hover:text-ink">labs/</a>
-      <span class="mx-1">›</span>{{ page.slug }}
-    </p>
-    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
     <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
       <span class="bg-ink text-bg px-[7px] py-[3px] uppercase">{{ page.get_difficulty_display }}</span>
       <span class="text-muted">{{ page.estimated_minutes }} min</span>
@@ -51,7 +47,7 @@ executes learner code, and the page ships as static HTML.
              id="lab-root"
              data-mode="{{ lab_payload.mode }}"
              data-viz="{% static 'vendor/viz/3.11.0/viz-standalone.js' %}">
-          <main class="lab-main">
+          <div class="lab-main">
             {# ── program ─────────────────────────────────────────── #}
             <section class="lab-col">
               <div class="lab-panel-head"><span>Program</span></div>
@@ -143,7 +139,7 @@ executes learner code, and the page ships as static HTML.
               </div>
               <div class="lab-timeline hidden" id="lab-timeline"></div>
             </section>
-          </main>
+          </div>
         </div>
       </section>
       {# ── notes beside the tracer ───────────────────────────────── #}

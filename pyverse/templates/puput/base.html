@@ -17,13 +17,9 @@ Blocks for the blog templates: `blog_content` (the main column) and
   <link rel="stylesheet" href="{% static 'css/pyverse-blog.css' %}" />
 {% endblock extra_head %}
 {% block content %}
-  <div class="pv-blog max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-      <a href="{% pageurl blog_page.get_parent %}"
-         class="text-muted no-underline hover:text-ink">{{ blog_page.get_parent.slug }}/</a>
-      <span class="mx-1">›</span>{{ blog_page.slug }}
-    </p>
-    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">
+  <div class="pv-blog page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">
       <a href="{% pageurl blog_page %}" class="text-ink no-underline">{{ blog_page.title }}</a>
     </h1>
     {% if blog_page.description %}

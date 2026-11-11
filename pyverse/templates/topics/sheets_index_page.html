@@ -16,14 +16,9 @@ cream-2/device/red instead of slate/purple.
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 {% endblock extra_head %}
 {% block content %}
-  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">
-      {# djlint:off D018 #}
-      <a href="/practice/" class="text-muted no-underline hover:text-ink">practice</a>
-      {# djlint:on #}
-      <span class="mx-1">›</span>sheets
-    </p>
-    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
     {% if page.intro %}
       <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
     {% endif %}

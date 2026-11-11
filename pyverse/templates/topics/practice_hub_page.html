@@ -25,9 +25,9 @@ chrome is plain Tailwind on top.
   <link rel="stylesheet" href="{% static 'css/practice-engine.css' %}" />
 {% endblock extra_head %}
 {% block content %}
-  <div class="max-w-[1180px] mx-auto px-7 pt-7 pb-[90px]">
-    <p class="font-mono text-[12px] tracking-[2px] text-muted uppercase">practice/</p>
-    <h1 class="mt-2 font-black text-[clamp(36px,6vw,72px)] leading-[0.9] tracking-tighter">{{ page.title }}</h1>
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
     {% if page.intro %}
       <div class="mt-5 max-w-[65ch] text-body-txt leading-relaxed rich-text">{{ page.intro|richtext }}</div>
     {% endif %}
@@ -79,15 +79,15 @@ chrome is plain Tailwind on top.
         <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
           <span class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted">Difficulty</span>
           <div class="flex gap-1.5 flex-wrap">
-            <button class="font-mono font-bold text-[11px] px-3 py-1.5 border-[3px] border-ink bg-bg text-ink hover:bg-ink hover:text-bg transition-colors aria-pressed:bg-ink aria-pressed:text-bg"
+            <button class="btn btn-secondary btn-sm aria-pressed:bg-ink aria-pressed:text-bg"
                     type="button"
                     data-difficulty-chip="easy"
                     aria-pressed="false">Easy</button>
-            <button class="font-mono font-bold text-[11px] px-3 py-1.5 border-[3px] border-ink bg-bg text-ink hover:bg-ink hover:text-bg transition-colors aria-pressed:bg-ink aria-pressed:text-bg"
+            <button class="btn btn-secondary btn-sm aria-pressed:bg-ink aria-pressed:text-bg"
                     type="button"
                     data-difficulty-chip="medium"
                     aria-pressed="false">Medium</button>
-            <button class="font-mono font-bold text-[11px] px-3 py-1.5 border-[3px] border-ink bg-bg text-ink hover:bg-ink hover:text-bg transition-colors aria-pressed:bg-ink aria-pressed:text-bg"
+            <button class="btn btn-secondary btn-sm aria-pressed:bg-ink aria-pressed:text-bg"
                     type="button"
                     data-difficulty-chip="hard"
                     aria-pressed="false">Hard</button>
@@ -96,8 +96,7 @@ chrome is plain Tailwind on top.
         <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
           <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted"
                  for="filter-topic">Topic</label>
-          <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
-                  id="filter-topic">
+          <select class="form-control font-mono !text-xs" id="filter-topic">
             <option value="">All topics</option>
             {% for topic in practice_topics %}
               <option value="{{ topic.slug }}">{{ topic.title }}</option>
@@ -107,8 +106,7 @@ chrome is plain Tailwind on top.
         <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
           <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted"
                  for="filter-status">Status</label>
-          <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
-                  id="filter-status">
+          <select class="form-control font-mono !text-xs" id="filter-status">
             <option value="all">All</option>
             <option value="solved">Solved</option>
             <option value="attempted">Attempted</option>
@@ -118,7 +116,7 @@ chrome is plain Tailwind on top.
         <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
           <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted"
                  for="filter-q">Search</label>
-          <input class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
+          <input class="form-control font-mono !text-xs"
                  id="filter-q"
                  type="search"
                  placeholder="title or topic" />
@@ -127,8 +125,7 @@ chrome is plain Tailwind on top.
           <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
             <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted"
                    for="filter-company">Company</label>
-            <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
-                    id="filter-company">
+            <select class="form-control font-mono !text-xs" id="filter-company">
               <option value="">Any company</option>
               {% for company in company_options %}<option value="{{ company }}">{{ company }}</option>{% endfor %}
             </select>
@@ -138,8 +135,7 @@ chrome is plain Tailwind on top.
           <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
             <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted"
                    for="filter-pattern">Pattern</label>
-            <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
-                    id="filter-pattern">
+            <select class="form-control font-mono !text-xs" id="filter-pattern">
               <option value="">Any pattern</option>
               {% for pattern in pattern_options %}<option value="{{ pattern }}">{{ pattern }}</option>{% endfor %}
             </select>
@@ -149,16 +145,13 @@ chrome is plain Tailwind on top.
           <div class="flex flex-col gap-1.5 min-w-[140px] grow basis-[150px]">
             <label class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted"
                    for="filter-technique">Technique</label>
-            <select class="w-full border-[3px] border-ink bg-bg px-2 py-1.5 font-mono text-[12px] text-ink"
-                    id="filter-technique">
+            <select class="form-control font-mono !text-xs" id="filter-technique">
               <option value="">Any technique</option>
               {% for technique in technique_options %}<option value="{{ technique }}">{{ technique }}</option>{% endfor %}
             </select>
           </div>
         {% endif %}
-        <button class="font-mono font-bold text-[12px] px-4 py-2 border-[3px] border-ink text-ink hover:bg-ink hover:text-bg transition-colors"
-                type="button"
-                id="filter-clear">Reset</button>
+        <button class="btn btn-secondary btn-sm" type="button" id="filter-clear">Reset</button>
       </div>
       {# ── Problem table ────────────────────────────────────────────── #}
       <div class="border-[3px] border-ink bg-bg-2 shadow-card overflow-hidden">
@@ -170,15 +163,15 @@ chrome is plain Tailwind on top.
               <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">Status</span></th>
               <th scope="col" class="px-3 py-2 text-left"><span class="pe-hidden">#</span></th>
               <th scope="col" class="px-3 py-2 text-left" data-sort="title">
-                <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                <button class="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
                         type="button">Title</button>
               </th>
               <th scope="col" class="px-3 py-2 text-left" data-sort="difficulty">
-                <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                <button class="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
                         type="button">Difficulty</button>
               </th>
               <th scope="col" class="px-3 py-2 text-left" data-sort="status">
-                <button class="font-mono text-[10.5px] uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
+                <button class="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[1.5px] text-muted hover:text-ink cursor-pointer [[aria-sort]_&]:text-red"
                         type="button">Status</button>
               </th>
               <th scope="col" class="px-3 py-2 text-left">Topics</th>
