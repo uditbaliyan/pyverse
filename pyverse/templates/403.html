@@ -1,13 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Forbidden (403){% endblock title %}
+{% block title %}Access denied{% endblock title %}
 {% block content %}
-  <h1>Forbidden (403)</h1>
-  <p>
-    {% if exception %}
-      {{ exception }}
-    {% else %}
-      You're not allowed to access this page.
-    {% endif %}
-  </p>
+  {% include "components/empty_state.html" with as_h1=True code="403" title="You can't open this page" text=exception|default:"You don't have permission to view this page. If you think that's a mistake, log in with the right account and try again." action_label="Log in" action_url="/accounts/login/" %}
 {% endblock content %}

@@ -1,13 +1,6 @@
-{% extends "home/base_.html" %}
+{% extends "base.html" %}
 
 {% block title %}Page not found{% endblock title %}
 {% block content %}
-  <h1>Page not found</h1>
-  <p>
-    {% if exception %}
-      {{ exception }}
-    {% else %}
-      This is not the page you were looking for.
-    {% endif %}
-  </p>
+  {% include "components/empty_state.html" with as_h1=True code="404" title="We couldn't find that page" text="The link may be old or mistyped. Head back to the home page, or pick a section from the menu." action_label="Go to the home page" action_url="/" %}
 {% endblock content %}

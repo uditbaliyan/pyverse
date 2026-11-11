@@ -1,13 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Forbidden (403){% endblock title %}
+{% block title %}Form expired{% endblock title %}
 {% block content %}
-  <h1>Forbidden (403)</h1>
-  <p>
-    {% if exception %}
-      {{ exception }}
-    {% else %}
-      You're not allowed to access this page.
-    {% endif %}
-  </p>
+  {% include "components/empty_state.html" with as_h1=True code="403" title="That form has expired" text="Your session may have timed out, or the form was sent from another site. Reload the page and submit again." action_label="Go to the home page" action_url="/" %}
 {% endblock content %}
