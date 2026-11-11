@@ -1,0 +1,24 @@
+{% comment %}
+Page title block: breadcrumbs -> h1 -> subtitle -> meta -> one primary action.
+This is the only place a page's <h1> is written.
+  title            required
+  page             Wagtail page, for breadcrumbs (optional)
+  current          label for the last crumb on routable sub-pages (optional)
+  subtitle, meta   optional text
+  action_label, action_url   the page's single primary action (optional)
+{% endcomment %}
+<header class="mb-8">
+  {% if page %}
+    {% include "components/breadcrumb.html" with page=page current=current %}
+  {% endif %}
+  <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+    <div class="min-w-0">
+      <h1 class="font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter text-ink">{{ title }}</h1>
+      {% if subtitle %}<p class="measure mt-3 text-base text-body-txt">{{ subtitle }}</p>{% endif %}
+      {% if meta %}<p class="mt-2 font-mono text-xs text-muted">{{ meta }}</p>{% endif %}
+    </div>
+    {% if action_label and action_url %}
+      {% include "components/button.html" with label=action_label href=action_url %}
+    {% endif %}
+  </div>
+</header>

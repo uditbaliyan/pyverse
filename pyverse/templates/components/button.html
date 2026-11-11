@@ -1,0 +1,26 @@
+{% comment %}
+Button. The look lives in CSS (`.btn`, styles.css): this only picks classes.
+  label     visible text (or aria_label for icon-only)
+  href      renders <a> when set, <button> otherwise
+  variant   primary (default) | secondary | ghost | danger
+  size      md (default) | sm | lg   (md/lg are >= 44px tall; sm only from the sm: breakpoint)
+  type      button (default) | submit | reset
+  id        optional element id (for JS hooks)
+  disabled  truthy: native `disabled` on <button>, aria-disabled on <a>
+  loading   truthy: spinner + aria-busy, and not clickable
+  full      truthy: full width
+  aria_label, extra_class  optional
+States: hover, active, :focus-visible (global ring), disabled, loading.
+{% endcomment %}
+{# djlint:off #}
+<{% if href %}a href="{{ href }}"{% if disabled or loading %} aria-disabled="true" tabindex="-1"{% endif %}{% else %}button type="{{ type|default:'button' }}"{% if disabled or loading %} disabled{% endif %}{% endif %}
+  {% if id %}id="{{ id }}"{% endif %}
+  {% if loading %}aria-busy="true"{% endif %}
+  {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
+  class="btn{% if variant and variant != 'primary' %} btn-{{ variant }}{% endif %}{% if size == 'sm' or size == 'lg' %} btn-{{ size }}{% endif %}{% if full %} w-full{% endif %} {{ extra_class }}">
+  {% if loading %}
+    <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round" /></svg>
+  {% endif %}
+  {{ label }}
+</{% if href %}a{% else %}button{% endif %}>
+{# djlint:on #}

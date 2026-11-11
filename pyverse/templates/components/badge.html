@@ -1,0 +1,7 @@
+{% comment %}
+Badge / tag. The label is always text, so meaning never rests on colour.
+  label   text (e.g. "Easy")
+  tone    neutral (default) | ok | warn | err | info | ink
+Difficulty: Easy -> ok, Medium -> warn, Hard -> err.
+{% endcomment %}
+<span class="badge{% if tone and tone != 'neutral' %} badge-{{ tone }}{% endif %}">{{ label }}</span>

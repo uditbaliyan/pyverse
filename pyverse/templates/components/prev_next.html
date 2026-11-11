@@ -1,0 +1,33 @@
+{% comment %}
+Previous / next navigation: one pattern for lessons, problems and anything sequential.
+  prev_url, prev_title        optional
+  next_url, next_title        optional
+  next_kicker                 label above the next title (default "Next")
+  next_id                     optional id on the next link (JS hooks)
+{% endcomment %}
+<nav aria-label="Previous and next"
+     class="mt-12 grid gap-4 border-t-[3px] border-ink pt-6 sm:grid-cols-2">
+  {% if prev_url %}
+    <a href="{{ prev_url }}"
+       class="btn btn-secondary !h-auto !justify-start py-3 text-left !whitespace-normal">
+      <span aria-hidden="true">←</span>
+      <span>
+        <span class="block text-xs font-normal text-muted">Previous</span>
+        {{ prev_title }}
+      </span>
+    </a>
+  {% else %}
+    <span class="hidden sm:block"></span>
+  {% endif %}
+  {% if next_url %}
+    <a href="{{ next_url }}"
+       {% if next_id %}id="{{ next_id }}"{% endif %}
+       class="btn !h-auto !justify-end py-3 text-right !whitespace-normal">
+      <span>
+        <span class="block text-xs font-normal opacity-80">{{ next_kicker|default:"Next" }}</span>
+        {{ next_title }}
+      </span>
+      <span aria-hidden="true">→</span>
+    </a>
+  {% endif %}
+</nav>

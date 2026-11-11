@@ -1,0 +1,23 @@
+{% comment %}
+Empty / error state: says what happened and what to do next.
+  title         required
+  text          one or two sentences: what happened, how to fix it
+  code          optional big marker (e.g. "404")
+  action_label, action_url   the way forward (optional)
+  level         error (default) | info: sets the role (alert vs status)
+  as_h1         truthy when this IS the page's main content (error pages): the
+                title becomes the page <h1>, otherwise an <h2>
+{% endcomment %}
+<div class="border-[3px] border-ink bg-bg-2 p-6 shadow-card sm:p-10"
+     role="{% if level == 'info' %}status{% else %}alert{% endif %}">
+  {% if code %}<p class="font-mono text-sm font-bold text-red" aria-hidden="true">{{ code }}</p>{% endif %}
+  {% if as_h1 %}
+    <h1 class="mt-1 font-black text-3xl tracking-tight text-ink sm:text-4xl">{{ title }}</h1>
+  {% else %}
+    <h2 class="mt-1 font-black text-2xl tracking-tight text-ink sm:text-3xl">{{ title }}</h2>
+  {% endif %}
+  {% if text %}<p class="measure mt-3 text-body-txt">{{ text }}</p>{% endif %}
+  {% if action_label and action_url %}
+    <div class="mt-6">{% include "components/button.html" with label=action_label href=action_url %}</div>
+  {% endif %}
+</div>

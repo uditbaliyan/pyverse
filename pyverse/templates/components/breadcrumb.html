@@ -1,0 +1,35 @@
+{% comment %}
+Breadcrumb trail built from the Wagtail tree, from the site root down to `page`.
+  page         the current Wagtail page (required)
+  current      optional label for the last crumb when a routable sub-page
+               (a problem, a quiz) is shown under `page`; `page` is then a link
+Renders nothing on the site root.
+{% endcomment %}
+{% load wagtailcore_tags %}
+
+{% wagtail_site as current_site %}
+{% if page and current_site and page.depth > current_site.root_page.depth %}
+  <nav aria-label="Breadcrumb" class="mb-4 font-mono text-xs text-muted">
+    <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {% for crumb in page.get_ancestors %}
+        {% if crumb.depth >= current_site.root_page.depth %}
+          <li class="flex items-center gap-2">
+            <a href="{% pageurl crumb %}"
+               class="inline-flex min-h-11 items-center sm:min-h-6 text-body-txt underline underline-offset-4 hover:text-red">{{ crumb.title }}</a>
+            <span aria-hidden="true">/</span>
+          </li>
+        {% endif %}
+      {% endfor %}
+      {% if current %}
+        <li class="flex items-center gap-2">
+          <a href="{% pageurl page %}"
+             class="inline-flex min-h-11 items-center sm:min-h-6 text-body-txt underline underline-offset-4 hover:text-red">{{ page.title }}</a>
+          <span aria-hidden="true">/</span>
+        </li>
+        <li aria-current="page" class="font-bold text-ink">{{ current }}</li>
+      {% else %}
+        <li aria-current="page" class="font-bold text-ink">{{ page.title }}</li>
+      {% endif %}
+    </ol>
+  </nav>
+{% endif %}
