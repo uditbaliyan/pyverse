@@ -9,29 +9,337 @@
   */
 @source "../../../**/*.{html,py,js}";
 
+/*
+ * Design tokens: the ONE source of truth for the site theme.
+ *
+ * Before this, `home/base_.html` carried its own Tailwind Play-CDN config with
+ * different values than this file (two creams, two inks, two shadow sets), so
+ * the same class (`bg-bg`, `shadow-card`) looked different per shell. Both
+ * shells now load the built stylesheet and read only what is defined here.
+ * Contrast (WCAG AA, checked): body-txt/ink/muted on bg >= 5.1:1; red on bg
+ * 4.85:1. `text-muted` on `bg-device` is only 3.8:1: use `text-body-txt` there.
+ */
 @theme {
-  --color-bg: #eae1c8;
-  --color-bg-2: #e2d8bc;
-  --color-ink: #1b1712;
-  --color-screen: #8c9873;
-  --color-screen-dk: #6e7a5a;
-  --color-red: #b23a2e;
-  --color-device: #ddd4b4;
-  --color-device-edge: #b9af8e;
-  --color-muted: #5b5645;
-  --color-body-txt: #3a342a;
-  --color-s1: #c0392b;
-  --color-s2: #e08a3c;
-  --color-s3: #e8c547;
-  --color-s4: #7a9b5c;
-  --color-s5: #4a8b7c;
-  --color-s6: #3d6b8c;
+  /* palette */
+  --color-bg: #f5eeda;
+  --color-bg-2: #ede6d2;
+  --color-ink: #1a1a1a;
+  --color-red: #c62828;
+  --color-device: #d6cebd;
+  --color-screen: #c8d5b9;
+  --color-screen-dk: #3d4f2f;
+  --color-muted: #6b6355;
+  --color-body-txt: #3a3529;
 
-  --font-black: "Archivo Black", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-  --font-sans: Inter, sans-serif;
+  /* accent series (used for topic/difficulty chips and card stripes) */
+  --color-s1: #c62828;
+  --color-s2: #d6cebd;
+  --color-s3: #1a1a1a;
+  --color-s4: #c8d5b9;
+  --color-s5: #f5eeda;
+  --color-s6: #6b6355;
 
-  --shadow-device: 8px 8px 0 #b9af8e;
-  --shadow-card: 6px 6px 0 #b9af8e;
-  --shadow-card-h: 9px 9px 0 #b23a2e;
+  /* status: always paired with an icon + text, never colour alone. AA >= 6:1 */
+  --color-ok: #2f5d2a;
+  --color-ok-bg: #dce8cf;
+  --color-warn: #6b4300;
+  --color-warn-bg: #f6e3b0;
+  --color-err: #8f1d1d;
+  --color-err-bg: #f4d6d2;
+  --color-info: #1f4e79;
+  --color-info-bg: #d8e4ee;
+
+  /* type: Inter + JetBrains Mono are loaded once in base.html */
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* hard-offset shadows: the site's "device" look */
+  --shadow-device: 4px 4px 0 0 var(--color-ink);
+  --shadow-card: 3px 3px 0 0 var(--color-ink);
+  --shadow-card-h: 5px 5px 0 0 var(--color-ink);
+}
+
+:root {
+  /* layout */
+  --page-max: 1180px;
+  --measure: 72ch; /* prose line length, <= ~75ch */
+  --nav-h: 60px;
+
+  /* z-index layers: use via z-(--z-nav) etc. Never write a bare z-NN. */
+  --z-sticky: 20;
+  --z-nav: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+}
+
+/* One page container: every page's content column. */
+@utility page-container {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 40rem) {
+    padding-inline: 1.75rem;
+  }
+}
+
+/* Readable line length for long-form text. */
+@utility measure {
+  max-width: var(--measure);
+}
+
+/* Current section, marked by partials/_site_nav_items.html. Deliberately
+   unlayered: Tailwind utilities (text-ink on the links) live in a later layer
+   and would otherwise win, leaving ink text on an ink background. */
+nav a.nav-active,
+nav a[aria-current="page"] {
+  background: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* Alpine: hide x-cloak elements until it initialises (no inline styles). */
+[x-cloak] {
+  display: none !important;
+}
+
+@layer base {
+  html {
+    /* anchors and focus targets must not hide under the sticky nav */
+    scroll-padding-top: calc(var(--nav-h) + 1rem);
+  }
+
+  /* Visible keyboard focus on everything, from one rule. The offset keeps the
+     ring outside filled buttons so it reads on both light and dark surfaces. */
+  :focus-visible {
+    outline: 3px solid var(--color-red);
+    outline-offset: 3px;
+  }
+
+  /* Honour the OS "reduce motion" setting. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+
+  /* ---- Button: the one implementation. `.btn` alone is primary. ----------
+     components/button.html emits these classes; hand-written, JS-hooked
+     buttons and the allauth `btn btn-primary` markup use them directly. */
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 border-[3px] border-ink bg-ink px-4 font-mono text-[13px] font-bold whitespace-nowrap text-bg no-underline transition-colors hover:border-red hover:bg-red active:translate-y-px;
+  }
+  .btn-secondary {
+    @apply bg-bg text-ink hover:border-ink hover:bg-ink hover:text-bg;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-ink hover:border-ink hover:bg-bg-2 hover:text-ink;
+  }
+  .btn-danger {
+    @apply bg-red text-bg hover:border-ink hover:bg-ink;
+  }
+  .btn-success {
+    @apply bg-ok text-bg hover:border-ink hover:bg-ink;
+  }
+  .btn-warning {
+    @apply bg-warn text-bg hover:border-ink hover:bg-ink;
+  }
+  .btn-sm {
+    @apply px-3 text-xs sm:min-h-9;
+  }
+  .btn-lg {
+    @apply min-h-12 px-6 text-sm;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    @apply pointer-events-none cursor-not-allowed opacity-50;
+  }
+
+  /* ---- Badge: label is always text, so meaning never rests on colour. ---- */
+  .badge {
+    @apply inline-flex items-center border-2 border-ink bg-bg-2 px-2 py-0.5 font-mono text-xs leading-tight font-bold text-body-txt;
+  }
+  .badge-ok {
+    @apply bg-ok-bg text-ok;
+  }
+  .badge-warn {
+    @apply bg-warn-bg text-warn;
+  }
+  .badge-err {
+    @apply bg-err-bg text-err;
+  }
+  .badge-info {
+    @apply bg-info-bg text-info;
+  }
+  .badge-ink {
+    @apply bg-ink text-bg;
+  }
+
+  /* ---- Alert: always paired with an icon + hidden prefix in the template. */
+  .alert {
+    @apply flex items-start gap-3 border-[3px] border-ink bg-info-bg p-3 text-sm leading-snug text-info shadow-card sm:p-4;
+  }
+  .alert-success {
+    @apply bg-ok-bg text-ok;
+  }
+  .alert-warning {
+    @apply bg-warn-bg text-warn;
+  }
+  .alert-error {
+    @apply bg-err-bg text-err;
+  }
+
+  /* ---- Long-form text (lessons, entries, pages). Replaces `prose`, which
+     needs the typography plugin this build does not have. ---------------- */
+  .long-form {
+    @apply max-w-(--measure) text-body-txt;
+  }
+  .long-form > * + * {
+    @apply mt-4;
+  }
+  .long-form h2 {
+    @apply mt-10 font-black text-2xl tracking-tight text-ink;
+  }
+  .long-form h3 {
+    @apply mt-8 font-black text-xl tracking-tight text-ink;
+  }
+  .long-form h4 {
+    @apply mt-6 font-bold text-ink;
+  }
+  .long-form ul {
+    @apply list-disc pl-6;
+  }
+  .long-form ol {
+    @apply list-decimal pl-6;
+  }
+  .long-form li + li {
+    @apply mt-1.5;
+  }
+  .long-form a {
+    @apply text-red underline underline-offset-4 hover:text-ink;
+  }
+  .long-form :not(pre) > code {
+    @apply bg-bg-2 px-1.5 py-0.5 font-mono text-[0.9em] text-ink;
+  }
+  .long-form blockquote {
+    @apply border-l-4 border-ink pl-4 text-muted italic;
+  }
+  .long-form img {
+    @apply h-auto max-w-full border-[3px] border-ink;
+  }
+  .long-form table {
+    @apply block max-w-full overflow-x-auto text-sm;
+  }
+  .long-form th,
+  .long-form td {
+    @apply border-2 border-ink px-3 py-2 text-left;
+  }
+
+  /* Lesson progress (classes toggled by lms/js/lesson-progress.js) */
+  .lesson-check {
+    @apply ml-2 font-bold text-ok;
+  }
+  .lesson-done .lesson-title {
+    @apply text-muted;
+  }
+  .lesson-done .lesson-index {
+    @apply bg-ok-bg text-ok;
+  }
+
+
+  /* ---- Form fields. crispy (bootstrap5 pack) and the allauth element
+     overrides emit these class names; styling them here fixes every form at
+     once. Errors carry an "Error:" prefix, never colour alone. ------------- */
+  .form-label {
+    @apply mb-1.5 block font-mono text-xs font-bold text-ink;
+  }
+  .form-control,
+  .form-select {
+    @apply block min-h-11 w-full border-[3px] border-ink bg-bg px-3 py-2 text-base text-ink placeholder:text-muted;
+  }
+  .form-control.is-invalid,
+  .form-select.is-invalid {
+    @apply border-err;
+  }
+  .invalid-feedback,
+  .errorlist li {
+    @apply mt-1 block text-sm font-bold text-err;
+  }
+  .invalid-feedback::before {
+    content: "Error: ";
+  }
+  .errorlist {
+    @apply list-none p-0;
+  }
+  .form-text,
+  .helptext {
+    @apply mt-1 block text-xs text-muted;
+  }
+  .form-check {
+    @apply flex min-h-11 items-center gap-2;
+  }
+  .form-check-input {
+    @apply h-5 w-5 shrink-0 accent-ink;
+  }
+  .form-check-label {
+    @apply text-sm text-body-txt;
+  }
+
+  /* Table: scrolls inside its own container (wrap in .table-scroll). */
+  .table-scroll {
+    @apply max-w-full overflow-x-auto;
+  }
+  .table {
+    @apply w-full border-collapse text-sm;
+  }
+  .table th,
+  .table td {
+    @apply border-2 border-ink px-3 py-2 text-left;
+  }
+  .table th {
+    @apply bg-bg-2 font-mono text-xs;
+  }
+
+  /* Card: one border / padding / shadow everywhere. Grid items stretch, so
+     cards in a row are equal height; links get the lifted-shadow hover and
+     the global :focus-visible ring. */
+  .card {
+    @apply flex h-full flex-col border-[3px] border-ink bg-bg-2 p-5 shadow-card;
+  }
+  a.card {
+    @apply transition-shadow hover:shadow-card-h;
+  }
+
+  /* Wagtail rich text: brutalist list style (was an inline <style> in base_) */
+  .rich-text ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  .rich-text ul li {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 5px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  }
+  .rich-text ul li::before {
+    content: "+ ";
+    color: var(--color-red);
+    font-weight: 700;
+  }
+  .rich-text p {
+    margin-bottom: 0.75em;
+  }
+  .rich-text a {
+    color: var(--color-red);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
