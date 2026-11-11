@@ -73,6 +73,7 @@
 .pv-blog .pv-search input { flex: 1; min-width: 0; border: 3px solid var(--ink); border-right: 0; background: #f5eeda; padding: 7px 10px;
   font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink); outline: none; border-radius: 0; }
 .pv-blog .pv-search input:focus { background: #fff9e8; }
+.pv-blog .pv-search input:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
 
 /* related */
 .pv-blog .pv-related { margin-top: 36px; }
@@ -98,3 +99,12 @@
 .pv-blog .pv-body .pv-share li::before { content: none; }
 .pv-blog .pv-body .pv-share a { color: var(--muted); text-decoration: none; }
 .pv-blog .pv-body .pv-share a:hover { color: var(--red); }
+
+/* Archive links: 44px touch rows on touch / narrow screens. */
+@media (pointer: coarse), (max-width: 640px) {
+  .pv-blog .pv-archive a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

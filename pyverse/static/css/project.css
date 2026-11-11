@@ -11,3 +11,21 @@
   background-color: #f2dede;
   border-color: #eed3d7;
 }
+
+/* Touch targets: engine controls (problem, lab, blog search) are >= 44px on
+   touch / narrow screens. Desktop keeps the compact toolbar density. */
+@media (pointer: coarse), (max-width: 640px) {
+  .tbtn,
+  .btbtn,
+  .pinput,
+  .lab-tab,
+  .lab-btn,
+  .pv-blog .pv-search input,
+  .pv-blog .pv-search button {
+    min-height: 44px;
+  }
+
+  .lab-btn {
+    min-width: 44px;
+  }
+}

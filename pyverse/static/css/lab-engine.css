@@ -89,6 +89,10 @@
   resize: none;
   outline: none;
 }
+.lab-editor textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 .lab-run-row {
   display: flex;
   align-items: center;
