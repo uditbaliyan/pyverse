@@ -7,6 +7,7 @@ that crashed when rendered without a request.
 """
 
 import re
+from http import HTTPStatus
 from pathlib import Path
 
 import pytest
@@ -32,9 +33,7 @@ def _count(html: str, tag: str) -> int:
 
 
 def test_no_template_loads_the_tailwind_play_cdn():
-    offenders = [
-        str(p) for p in _templates() if "cdn.tailwindcss.com" in p.read_text()
-    ]
+    offenders = [str(p) for p in _templates() if "cdn.tailwindcss.com" in p.read_text()]
     assert not offenders, f"Play CDN is back in: {offenders}"
 
 
@@ -45,15 +44,24 @@ def test_only_the_shell_owns_the_document():
     for p in _templates():
         if p.name in allowed or "wagtailadmin" in p.parts:
             continue
-        text = re.sub(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}", "", p.read_text(), flags=re.S)
+        text = re.sub(
+            r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}",
+            "",
+            p.read_text(),
+            flags=re.S,
+        )
         if re.search(r"<body[\s>]|<html[\s>]|<!DOCTYPE", text, re.I):
             offenders.append(str(p.relative_to(TEMPLATE_ROOTS[0].parent)))
     assert not offenders, f"templates that nest a document: {offenders}"
 
 
 def test_font_black_is_not_a_font_family_token():
-    css = (Path(__file__).resolve().parents[1] / "theme/static_src/src/styles.css").read_text()
-    assert "--font-black" not in css, "collides with Tailwind's font-black weight utility"
+    css = (
+        Path(__file__).resolve().parents[1] / "theme/static_src/src/styles.css"
+    ).read_text()
+    assert "--font-black" not in css, (
+        "collides with Tailwind's font-black weight utility"
+    )
 
 
 # --- the shell, rendered ------------------------------------------------------
@@ -75,7 +83,7 @@ def test_auth_pages_use_the_shell(url):
 def test_404_is_a_real_page():
     resp = Client().get("/definitely/not/here/")
     html = resp.content.decode()
-    assert resp.status_code == 404
+    assert resp.status_code == HTTPStatus.NOT_FOUND
     assert "find that page" in html
     assert _count(html, "h1") == 1
     assert _count(html, "main") == 1
@@ -109,43 +117,64 @@ def test_alert_is_never_colour_only(level, role, prefix):
 
 
 def test_static_alert_has_no_live_region():
-    html = render_to_string("components/alert.html", {"level": "tip", "text": "x", "static": True})
+    html = render_to_string(
+        "components/alert.html",
+        {"level": "tip", "text": "x", "static": True},
+    )
     assert "role=" not in html
 
 
 def test_button_renders_link_or_button_with_states():
     link = render_to_string("components/button.html", {"label": "Go", "href": "/x/"})
-    assert link.lstrip().startswith("<a ") and 'class="btn' in link
+    assert link.lstrip().startswith("<a ")
+    assert 'class="btn' in link
     btn = render_to_string(
         "components/button.html",
         {"label": "Save", "type": "submit", "variant": "danger", "disabled": True},
     )
-    assert "<button" in btn and "disabled" in btn and "btn-danger" in btn
+    assert "<button" in btn
+    assert "disabled" in btn
+    assert "btn-danger" in btn
     busy = render_to_string("components/button.html", {"label": "Run", "loading": True})
-    assert 'aria-busy="true"' in busy and "disabled" in busy
+    assert 'aria-busy="true"' in busy
+    assert "disabled" in busy
 
 
 def test_badge_label_is_text():
     html = render_to_string("components/badge.html", {"label": "Hard", "tone": "err"})
-    assert ">Hard<" in html and "badge-err" in html
+    assert ">Hard<" in html
+    assert "badge-err" in html
 
 
 def test_empty_state_can_be_the_page_h1():
-    h1 = render_to_string("components/empty_state.html", {"title": "Gone", "as_h1": True})
+    h1 = render_to_string(
+        "components/empty_state.html",
+        {"title": "Gone", "as_h1": True},
+    )
     h2 = render_to_string("components/empty_state.html", {"title": "Gone"})
-    assert "<h1" in h1 and "<h2" in h2 and "<h1" not in h2
+    assert "<h1" in h1
+    assert "<h2" in h2
+    assert "<h1" not in h2
 
 
 def test_prev_next_is_one_pattern():
     html = render_to_string(
         "components/prev_next.html",
-        {"prev_url": "/a/", "prev_title": "A", "next_url": "/b/", "next_title": "B", "next_id": "go"},
+        {
+            "prev_url": "/a/",
+            "prev_title": "A",
+            "next_url": "/b/",
+            "next_title": "B",
+            "next_id": "go",
+        },
     )
-    assert 'aria-label="Previous and next"' in html and 'id="go"' in html
+    assert 'aria-label="Previous and next"' in html
+    assert 'id="go"' in html
 
 
 def test_navbar_drawer_is_a_native_disclosure():
     """No-JS-safe: <details>/<summary>, and 44px targets."""
     html = render_to_string("partials/_navbar.html", {})
-    assert "<details" in html and "<summary" in html
+    assert "<details" in html
+    assert "<summary" in html
     assert "min-h-11" in html

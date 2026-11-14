@@ -9,7 +9,7 @@ Never colour-only: every level has its own icon and a visually-hidden prefix.
 Django messages: pass level=message.level_tag, text=message.
 {% endcomment %}
 <div class="alert{% if level == 'success' %} alert-success{% elif level == 'warning' %} alert-warning{% elif level == 'error' or level == 'danger' %} alert-error{% endif %}"
-     {% if not static %}role="{% if level == 'error' or level == 'danger' %}alert{% else %}status{% endif %}"{% endif %}
+     {% if static %}{% elif level == 'error' or level == 'danger' %}role="alert"{% else %}role="status"{% endif %}
      {% if dismissible %}x-data="{ show: true }" x-show="show" x-cloak{% endif %}>
   <svg class="mt-0.5 h-5 w-5 shrink-0"
        viewBox="0 0 24 24"
