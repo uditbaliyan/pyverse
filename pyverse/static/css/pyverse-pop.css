@@ -1,0 +1,99 @@
+/* PyVerse "pop" layer.
+ *
+ * A thin, purely additive stylesheet that adds the poster's little pops of
+ * colour on top of the existing cream / ink / red theme. It is plain CSS (not
+ * Tailwind), so it works without rebuilding `dist/styles.css`, and it is loaded
+ * after project.css on every page by templates/base.html. To switch the whole
+ * layer off, remove that one <link>.
+ *
+ * Rules of the road
+ *  - Colour is decoration here, never meaning: every state keeps its text label
+ *    or icon. Pop colours are used for fills, bands and rules, not for small
+ *    text on cream (orange and yellow fail contrast there).
+ *  - No url() references: production uses a manifest static-files storage that
+ *    fails collectstatic on a CSS url() it cannot resolve.
+ *  - This file is unlayered, so it outranks Tailwind's utility layer. Keep
+ *    selectors narrow and name the hook (`.pv-*`) rather than restyling a
+ *    utility globally.
+ */
+
+:root {
+  /* The five-hue series from the poster. Red is the site's own red. */
+  --pop-1: #c62828; /* red    */
+  --pop-2: #f08a00; /* orange */
+  --pop-3: #f2c500; /* yellow */
+  --pop-4: #2f9e6a; /* green  */
+  --pop-5: #2f6fb0; /* blue   */
+  --pop-ink: #1a1a1a;
+  /* The current section's colour (set from the active nav item, see below). */
+  --pop: var(--pop-1);
+  --pop-rule: linear-gradient(
+    90deg,
+    var(--pop-1) 20%,
+    var(--pop-2) 20% 40%,
+    var(--pop-3) 40% 60%,
+    var(--pop-4) 60% 80%,
+    var(--pop-5) 80%
+  );
+}
+
+/* ── The signature stripe ─────────────────────────────────────────────────
+ * Home, Labs, Notes, Problem and Quiz pages carry a six-block divider built
+ * from `bg-s1`..`bg-s6` (used nowhere else). Recolour it: five pops and one
+ * ink block to close the line, instead of red / tan / ink / sage / cream / mud.
+ */
+.bg-s1 { background-color: var(--pop-1); }
+.bg-s2 { background-color: var(--pop-2); }
+.bg-s3 { background-color: var(--pop-3); }
+.bg-s4 { background-color: var(--pop-4); }
+.bg-s5 { background-color: var(--pop-5); }
+.bg-s6 { background-color: var(--pop-ink); }
+
+/* ── Scroll progress ──────────────────────────────────────────────────────
+ * A 6px rule across the very top whose colour is revealed as you scroll.
+ * Width comes from --p (0..1), written by js/pyverse-pop.js. With no JS it is
+ * simply empty. It sits above the sticky header and ignores the pointer.
+ */
+.pv-prog {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 6px;
+  z-index: calc(var(--z-nav, 50) + 1);
+  pointer-events: none;
+}
+.pv-prog > i {
+  display: block;
+  height: 100%;
+  width: calc(var(--p, 0) * 100%);
+  background: var(--pop-rule);
+  background-size: 100vw 100%;
+}
+@media print {
+  .pv-prog { display: none; }
+}
+
+/* ── Section colour ───────────────────────────────────────────────────────
+ * Every page gets a band under the header in the colour of its section, taken
+ * from the active nav item's position (1 red, 2 orange, 3 yellow, 4 green,
+ * 5 blue). Home, About and anything past the fifth item get the full rule.
+ * `:has()` is a progressive enhancement: without it the band is the full rule.
+ */
+main#main::before {
+  content: "";
+  display: block;
+  height: 8px;
+  background: var(--pop-rule);
+}
+body:has(header nav a.nav-active:nth-child(1)) { --pop: var(--pop-1); }
+body:has(header nav a.nav-active:nth-child(2)) { --pop: var(--pop-2); }
+body:has(header nav a.nav-active:nth-child(3)) { --pop: var(--pop-3); }
+body:has(header nav a.nav-active:nth-child(4)) { --pop: var(--pop-4); }
+body:has(header nav a.nav-active:nth-child(5)) { --pop: var(--pop-5); }
+body:has(header nav a.nav-active:nth-child(-n + 5)) main#main::before {
+  background: var(--pop);
+}
+
+/* The active nav chip keeps its ink fill and gains a bar in the section colour. */
+header nav a.nav-active:nth-child(-n + 5) {
+  box-shadow: inset 0 -4px 0 var(--pop);
+}
