@@ -1,6 +1,6 @@
 {% extends "home/base_.html" %}
 
-{% load wagtailcore_tags %}
+{% load static wagtailcore_tags %}
 
 {% block content %}
   <div class="page-container pt-7 pb-[90px]">
@@ -46,11 +46,13 @@
         </div>
         <div class="bg-ink p-2.5 rounded-sm">
           <div class="bg-screen text-[#1F2914] font-mono text-[11.5px] leading-normal px-3 py-3.5 min-h-[150px] border-2 border-screen-dk overflow-hidden"
-               id="device-screen">
+               id="device-screen"
+               data-device-screen>
             <span class="code-line text-[#26311A] font-bold">&gt;&gt;&gt; trace(fn)</span>
             <br />
             <span class="code-line text-muted">// no code loaded</span>
           </div>
+          {{ page.device_code|json_script:"device-code" }}
         </div>
         <div class="font-black text-xl text-center tracking-tight">
           PY<span class="text-red">VERSE</span>
@@ -61,12 +63,14 @@
             <div class="absolute w-[18px] h-14 bg-ink top-0 left-[19px]"></div>
           </div>
           <div class="flex gap-2.5">
-            <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"></div>
-            <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"></div>
+            <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"
+                 data-device-btn="prev"></div>
+            <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"
+                 data-device-btn="next"></div>
           </div>
         </div>
         <div class="flex justify-center gap-2.5 font-mono text-[9px] text-muted">
-          <div class="w-[34px] h-[9px] bg-ink rounded-full"></div>
+          <div class="w-[34px] h-[9px] bg-ink rounded-full" data-device-btn="play"></div>
           <div class="w-[34px] h-[9px] bg-ink rounded-full"></div>
         </div>
       </div>
@@ -132,27 +136,8 @@
   </div>
 {% endblock content %}
 {# ════════════════════════════════════════════════════════════ #}
-{#  DEVICE TYPING ANIMATION                                   #}
+{#  DEVICE: live line-by-line trace (progressive enhancement)  #}
 {# ════════════════════════════════════════════════════════════ #}
 {% block extra_js %}
-  <script>
-    (function() {
-      var lines = document.querySelectorAll('.code-line');
-      if (!lines.length) return;
-
-      function animate() {
-        lines.forEach(function(l) {
-          l.style.opacity = '0';
-        });
-        lines.forEach(function(line, i) {
-          setTimeout(function() {
-            line.style.opacity = '1';
-          }, i * 450);
-        });
-      }
-
-      animate();
-      setInterval(animate, lines.length * 450 + 3500);
-    })();
-  </script>
+  <script defer src="{% static 'js/home-device.js' %}"></script>
 {% endblock extra_js %}
