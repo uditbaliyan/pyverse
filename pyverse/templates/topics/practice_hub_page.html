@@ -35,7 +35,7 @@ chrome is plain Tailwind on top.
       {# ── Stats strip (IndexedDB-backed) ───────────────────────────── #}
       <div class="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5 mb-[18px]"
            data-progress-scope>
-        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
           <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Problems solved</div>
           <div class="font-mono text-[22px] font-bold text-screen-dk"
                id="stat-solved">0</div>
@@ -45,29 +45,29 @@ chrome is plain Tailwind on top.
             <span id="stat-hard">0</span> hard
           </div>
         </div>
-        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
           <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Quizzes passed</div>
           <div class="font-mono text-[22px] font-bold text-red" id="stat-quizzes">0</div>
           <div class="font-mono text-[10.5px] text-muted mt-1">of <span id="stat-quiz-total">0</span> available</div>
         </div>
-        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
           <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Attempted</div>
           <div class="font-mono text-[22px] font-bold text-ink" id="stat-attempted">0</div>
           <div class="font-mono text-[10.5px] text-muted mt-1">submitted, not yet accepted</div>
         </div>
-        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
           <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Available</div>
           <div class="font-mono text-[22px] font-bold text-ink" id="stat-total">{{ problems|length }}</div>
           <div class="font-mono text-[10.5px] text-muted mt-1">
             across {{ practice_topics|length }} topic{{ practice_topics|length|pluralize }}
           </div>
         </div>
-        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+        <div class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
           <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-1.5">Streak</div>
           <div class="font-mono text-[22px] font-bold text-red" id="stat-streak">0</div>
           <div class="font-mono text-[10.5px] text-muted mt-1">consecutive days with a submission</div>
         </div>
-        <div class="pe-hidden bg-bg-2 border-[3px] border-ink p-[18px] shadow-card"
+        <div class="pe-hidden pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card"
              id="stat-cta">
           <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-muted mb-2">New here?</div>
           <a class="inline-block font-mono font-bold text-[12px] px-4 py-2 border-[3px] border-ink bg-red text-[#F5EEDA] hover:bg-[#963026] transition-colors"
@@ -229,7 +229,7 @@ chrome is plain Tailwind on top.
       </p>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[18px]">
         {% for track in tracks %}
-          <a class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
+          <a class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block"
              href="{{ track.page.url }}"
              data-progress-scope>
             {% for problem in track.problems %}

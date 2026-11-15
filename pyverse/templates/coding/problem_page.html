@@ -955,7 +955,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
     <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ problem.title }}</h1>
     {# ── problem metadata ────────────────────────────────────────── #}
     <div class="mt-4 flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
-      <span class="bg-ink text-bg px-[7px] py-[3px] uppercase">{{ problem.get_difficulty_display }}</span>
+      <span class="pv-diff pv-diff-{{ problem.difficulty }} bg-ink text-bg px-[7px] py-[3px] uppercase">{{ problem.get_difficulty_display }}</span>
       {% if topic %}
         <a href="{{ topic.url }}"
            class="text-red no-underline uppercase tracking-wide hover:text-ink">{{ topic.title }}</a>

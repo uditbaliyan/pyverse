@@ -2,7 +2,7 @@
 
 {% comment %}A course as a card. Same .card as every other card on the site.{% endcomment %}
 <a href="{{ course.url }}" class="card group !p-0 no-underline">
-  <div class="aspect-video overflow-hidden border-b-[3px] border-ink bg-device">
+  <div class="pv-cover aspect-video overflow-hidden border-b-[3px] border-ink bg-device">
     {% if course.hero_image %}
       {% image course.hero_image width-600 class="h-full w-full object-cover" alt="" %}
     {% else %}
