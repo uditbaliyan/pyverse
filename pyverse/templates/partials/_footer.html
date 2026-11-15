@@ -1,3 +1,5 @@
+{% load home_tags %}
+
 {% comment %}
 Site footer: the ONE footer for every page. Content is Site Settings -> footer.
 {% endcomment %}
@@ -7,7 +9,7 @@ Site footer: the ONE footer for every page. Content is Site Settings -> footer.
     <div class="flex flex-wrap justify-between gap-10 mb-7">
       <div class="max-w-[240px]">
         <div class="font-black text-[18px] tracking-tight mb-2">
-          {{ settings.home.SiteSettings.logo_text|default:"PYVERSE." }}
+          <span class="pv-wordmark">{{ settings.home.SiteSettings.logo_text|brand_text }}<i class="pv-sq" aria-hidden="true"></i></span>
         </div>
         <p class="font-mono text-xs text-muted leading-relaxed">{{ settings.home.SiteSettings.footer_tagline|default:"" }}</p>
       </div>

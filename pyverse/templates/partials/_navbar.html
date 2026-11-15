@@ -1,4 +1,4 @@
-{% load wagtailimages_tags %}
+{% load wagtailimages_tags home_tags %}
 
 {% comment %}
 Site header: the ONE navigation for every page.
@@ -12,13 +12,17 @@ Site header: the ONE navigation for every page.
  - Touch targets are 44px (`min-h-11`).
 {% endcomment %}
 <header class="sticky top-0 z-(--z-nav) border-b-[3px] border-ink bg-bg">
+  {# Scroll progress: drawn over the header's own bottom border (see pyverse-pop.css). #}
+  <div class="pv-prog" aria-hidden="true">
+    <i class="pv-prog-fill"></i>
+  </div>
   <div class="page-container flex h-(--nav-h) items-center justify-between gap-4">
     <a href="/"
        class="flex min-h-11 items-center gap-2 font-black text-xl tracking-tight text-ink no-underline">
       {% if site_nav.logo %}
         {% image site_nav.logo width-32 class="h-7 w-auto" alt="" %}
       {% endif %}
-      <span>{{ site_nav.brand|default:"PYVERSE." }}</span>
+      <span class="pv-wordmark">{{ site_nav.brand|brand_text }}<i class="pv-sq" aria-hidden="true"></i></span>
     </a>
     <nav aria-label="Main" class="hidden items-center gap-1 lg:flex">
       {% include "partials/_site_nav_items.html" with nav_link_class="inline-flex min-h-11 items-center whitespace-nowrap px-2.5 font-mono text-xs text-ink no-underline hover:bg-ink hover:text-bg" %}

@@ -50,15 +50,15 @@
 .bg-s6 { background-color: var(--pop-ink); }
 
 /* ── Scroll progress ──────────────────────────────────────────────────────
- * A 6px rule across the very top whose colour is revealed as you scroll.
- * Width comes from --p (0..1), written by js/pyverse-pop.js. With no JS it is
- * simply empty. It sits above the sticky header and ignores the pointer.
+ * The poster's one data line. It is drawn over the header's own 3px bottom
+ * border, so it reads as part of the nav rather than a bar stuck on top of the
+ * page: as you scroll, the border fills with colour from the left. Width comes
+ * from --p (0..1), written by js/pyverse-pop.js. With no JS it stays empty.
  */
 .pv-prog {
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: 6px;
-  z-index: calc(var(--z-nav, 50) + 1);
+  position: absolute;
+  inset: auto 0 -3px 0;
+  height: 3px;
   pointer-events: none;
 }
 .pv-prog > i {
@@ -73,30 +73,35 @@
 }
 
 /* ── Section colour ───────────────────────────────────────────────────────
- * Every page gets a band under the header in the colour of its section, taken
- * from the active nav item's position (1 red, 2 orange, 3 yellow, 4 green,
- * 5 blue). Home, About and anything past the fifth item get the full rule.
- * `:has()` is a progressive enhancement: without it the band is the full rule.
+ * Each nav item carries `.nav-tone-N` (set from its URL in the context
+ * processor): 1 Learn red, 2 Practice orange, 3 Labs yellow, 4 Blog green,
+ * 5 About blue. The tone is a colour plus a text colour that stays readable
+ * on it (cream on red and blue, ink on the lighter three).
  */
-main#main::before {
-  content: "";
-  display: block;
-  height: 8px;
-  background: var(--pop-rule);
-}
-body:has(header nav a.nav-active:nth-child(1)) { --pop: var(--pop-1); }
-body:has(header nav a.nav-active:nth-child(2)) { --pop: var(--pop-2); }
-body:has(header nav a.nav-active:nth-child(3)) { --pop: var(--pop-3); }
-body:has(header nav a.nav-active:nth-child(4)) { --pop: var(--pop-4); }
-body:has(header nav a.nav-active:nth-child(5)) { --pop: var(--pop-5); }
-body:has(header nav a.nav-active:nth-child(-n + 5)) main#main::before {
-  background: var(--pop);
-}
+.nav-tone-1 { --tone: var(--pop-1); --tone-ink: #f5eeda; }
+.nav-tone-2 { --tone: var(--pop-2); --tone-ink: var(--pop-ink); }
+.nav-tone-3 { --tone: var(--pop-3); --tone-ink: var(--pop-ink); }
+.nav-tone-4 { --tone: var(--pop-4); --tone-ink: var(--pop-ink); }
+.nav-tone-5 { --tone: var(--pop-5); --tone-ink: #f5eeda; }
 
-/* The active nav chip keeps its ink fill and gains a bar in the section colour. */
-header nav a.nav-active:nth-child(-n + 5) {
-  box-shadow: inset 0 -4px 0 var(--pop);
+/* Hover: the section's own colour instead of black. */
+header nav a[class*="nav-tone-"]:not(.nav-active):hover,
+header nav a[class*="nav-tone-"]:not(.nav-active):focus-visible {
+  background-color: var(--tone);
+  color: var(--tone-ink);
 }
+/* Current section: ink chip with a bar in its colour. */
+header nav a.nav-active[class*="nav-tone-"] { box-shadow: inset 0 -4px 0 var(--tone); }
+
+/* The page inherits its section colour (rich-text headings, lesson sidebar). */
+body:has(header nav a.nav-active.nav-tone-1) { --pop: var(--pop-1); }
+body:has(header nav a.nav-active.nav-tone-2) { --pop: var(--pop-2); }
+body:has(header nav a.nav-active.nav-tone-3) { --pop: var(--pop-3); }
+body:has(header nav a.nav-active.nav-tone-4) { --pop: var(--pop-4); }
+body:has(header nav a.nav-active.nav-tone-5) { --pop: var(--pop-5); }
+
+/* The six-block divider is a hairline rule, not a banner. */
+.h-\[14px\]:has(> .bg-s1) { height: 6px; }
 
 /* ═══ Components ═════════════════════════════════════════════════════════
  * Everything below hangs off an explicit hook: `.pv-*` classes added in the
@@ -320,3 +325,46 @@ a.card .pv-cover > div {
 .pv-device-btn:active { translate: 1px 1px; }
 /* The play/pause pill turns orange while paused. */
 .pv-device-btn[data-state="paused"] { background: var(--pop-2); }
+
+/* ═══ Type and brand ═════════════════════════════════════════════════════
+ * Archivo is a variable font with a width axis; the poster sets its display
+ * type condensed and heavy. The family is loaded from the same Google Fonts
+ * <link> as Inter and JetBrains Mono (templates/base.html). If it fails to
+ * load, the stack falls back to Inter and `font-stretch` is simply ignored,
+ * which is exactly how headings looked before.
+ */
+:root {
+  --pv-display: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Page titles, section headings and card titles. The dark practice console
+ * keeps its own type. */
+h1.font-black:not(.pe-console *),
+h2.font-black:not(.pe-console *),
+h3.font-black:not(.pe-console *) {
+  font-family: var(--pv-display);
+  letter-spacing: -0.01em;
+}
+h1.font-black:not(.pe-console *) { font-stretch: 76%; letter-spacing: -0.02em; }
+h2.font-black:not(.pe-console *) { font-stretch: 80%; }
+h3.font-black:not(.pe-console *) { font-stretch: 88%; }
+
+/* The wordmark: heavy condensed letters and a red square in place of the
+ * period. The square is drawn, not typed, so it stays crisp at any size and
+ * can be pressed in the hero. */
+.pv-wordmark {
+  font-family: var(--pv-display);
+  font-size: 1.2em;
+  font-weight: 900;
+  font-stretch: 80%;
+  letter-spacing: -0.01em;
+}
+.pv-sq {
+  display: inline-block;
+  width: 0.2em;
+  height: 0.2em;
+  min-width: 5px;
+  min-height: 5px;
+  margin-left: 0.07em;
+  background: var(--pop-1);
+}
