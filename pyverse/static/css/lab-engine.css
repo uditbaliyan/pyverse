@@ -73,9 +73,58 @@
 .lab-editor .CodeMirror {
   height: 100%;
   background: var(--bg0);
+  color: var(--text0);
   font-family: var(--mono);
   font-size: 12.5px;
+  line-height: 1.7;
 }
+.lab-editor .CodeMirror-lines { padding: 10px 0; }
+.lab-editor pre.CodeMirror-line,
+.lab-editor pre.CodeMirror-line-like { padding: 0 14px; }
+
+/* CodeMirror 5 ships a light "default" theme (white gutter, #e8f2ff active
+ * line, dark-on-light tokens). The engine is a dark surface, so re-point the
+ * pieces that show on it at the engine tokens. */
+.lab-editor .CodeMirror-gutters {
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+}
+.lab-editor .CodeMirror-linenumber { color: #5d6584; padding: 0 10px 0 12px; }
+.lab-editor .CodeMirror-activeline-gutter { background: var(--accent-dim); }
+.lab-editor .CodeMirror-activeline-gutter .CodeMirror-linenumber { color: var(--text0); }
+.lab-editor .CodeMirror-activeline-background {
+  background: var(--accent-dim);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.lab-editor .CodeMirror-cursor { border-left: 2px solid var(--text0); }
+.lab-editor .CodeMirror-selected,
+.lab-editor .CodeMirror-focused .CodeMirror-selected { background: rgba(124, 106, 247, 0.3); }
+.lab-editor div.CodeMirror span.CodeMirror-matchingbracket {
+  color: var(--green);
+  background: var(--green-dim);
+}
+.lab-editor div.CodeMirror span.CodeMirror-nonmatchingbracket {
+  color: var(--red);
+  background: var(--red-dim);
+}
+/* token palette tuned for --bg0 */
+.lab-editor .cm-s-default .cm-keyword { color: #c792ea; }
+.lab-editor .cm-s-default .cm-atom { color: #f78c6c; }
+.lab-editor .cm-s-default .cm-number { color: var(--amber); }
+.lab-editor .cm-s-default .cm-def { color: #82aaff; }
+.lab-editor .cm-s-default .cm-variable { color: var(--text0); }
+.lab-editor .cm-s-default .cm-variable-2 { color: #7fdbca; }
+.lab-editor .cm-s-default .cm-variable-3,
+.lab-editor .cm-s-default .cm-type { color: var(--green); }
+.lab-editor .cm-s-default .cm-builtin { color: var(--blue); }
+.lab-editor .cm-s-default .cm-string,
+.lab-editor .cm-s-default .cm-string-2 { color: var(--green); }
+.lab-editor .cm-s-default .cm-comment { color: #6b7390; font-style: italic; }
+.lab-editor .cm-s-default .cm-operator,
+.lab-editor .cm-s-default .cm-punctuation { color: var(--text1); }
+.lab-editor .cm-s-default .cm-bracket { color: var(--text1); }
+.lab-editor .cm-s-default .cm-meta { color: var(--amber); }
+.lab-editor .cm-s-default .cm-error { color: var(--red); }
 .lab-editor textarea {
   width: 100%;
   height: 100%;
@@ -245,6 +294,15 @@
   white-space: pre-wrap;
 }
 .lab-empty { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+.lab-source:empty::before,
+#lab-vars:empty::before {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+}
+.lab-source:empty::before { content: "// the executed lines appear here"; padding: 4px 14px; }
+#lab-vars:empty::before { content: "no variables yet"; }
 .lab-stdout {
   margin: 0;
   font-family: var(--mono);

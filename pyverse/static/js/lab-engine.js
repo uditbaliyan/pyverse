@@ -140,7 +140,7 @@
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: false,
-        lineWrapping: true,
+        lineWrapping: false,
         autoCloseBrackets: true,
         matchBrackets: true,
         styleActiveLine: true,
