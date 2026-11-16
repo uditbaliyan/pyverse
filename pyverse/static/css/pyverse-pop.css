@@ -280,52 +280,6 @@ a.card .pv-cover > div {
  */
 .pe-engine.pe-on-light a.bg-red { color: #f5eeda; }
 
-/* ═══ Home: live device screen ═══════════════════════════════════════════
- * Styles for the trace that js/home-device.js draws into [data-device-screen].
- * The screen is given its final height up front so swapping the static
- * fallback for the live trace never shifts the layout.
- */
-[data-device-screen] { min-height: 196px; }
-.pv-lcd-hd {
-  margin-bottom: 6px;
-  font-weight: 700;
-  color: #26311a;
-  white-space: nowrap;
-}
-.pv-lcd-ln {
-  margin: 0 -6px;
-  padding: 0 6px;
-  overflow: hidden;
-  color: #26311a;
-  white-space: pre;
-}
-/* The line that just ran: red with cream text, as on the poster (cream on red is 4.85:1). */
-.pv-lcd-ln.on { background: var(--pop-1); color: #f5eeda; }
-.pv-lcd-st {
-  margin-top: 6px;
-  padding-top: 5px;
-  overflow: hidden;
-  border-top: 1px dashed rgba(38, 49, 26, 0.45);
-  color: #26311a;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.pv-lcd-st b {
-  display: inline-block;
-  width: 8ch;
-  font-weight: 700;
-  color: #3d4f2f;
-}
-
-/* The decorative buttons become real controls once the script upgrades them
- * (it adds .pv-device-btn). The ::after grows the hit area to ~44px. */
-.pv-device-btn { position: relative; cursor: pointer; }
-.pv-device-btn::after { content: ""; position: absolute; inset: -9px; }
-.pv-device-btn[data-device-btn="play"]::after { inset: -18px -6px; }
-.pv-device-btn:active { translate: 1px 1px; }
-/* The play/pause pill turns orange while paused. */
-.pv-device-btn[data-state="paused"] { background: var(--pop-2); }
-
 /* ═══ Type and brand ═════════════════════════════════════════════════════
  * Archivo is a variable font with a width axis; the poster sets its display
  * type condensed and heavy. The family is loaded from the same Google Fonts

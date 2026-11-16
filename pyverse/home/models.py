@@ -412,6 +412,14 @@ class HomePage(SEOFields, Page):
     def __str__(self):
         return self.title
 
+    # ── context ───────────────────────────────────────────
+    def get_context(self, request, *args, **kwargs):
+        from .sections import build_home_sections  # noqa: PLC0415
+
+        context = super().get_context(request, *args, **kwargs)
+        context["home"] = build_home_sections()
+        return context
+
     # ── helpers ───────────────────────────────────────────
     @property
     def primary_cta_url(self):

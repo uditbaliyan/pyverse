@@ -1,25 +1,28 @@
 {% extends "home/base_.html" %}
 
-{% load static wagtailcore_tags %}
+{% load static wagtailcore_tags home_tags %}
 
+{% block extra_head %}
+  <link href="{% static 'css/pyverse-home.css' %}" rel="stylesheet" />
+{% endblock extra_head %}
 {% block content %}
-  <div class="page-container pt-7 pb-[90px]">
+  <div class="page-container pvh-page pt-7 pb-[90px]">
     {# ════════════════════════════════════════════════════════ #}
     {#  HERO                                                   #}
     {# ════════════════════════════════════════════════════════ #}
-    <section class="mt-[26px] grid grid-cols-[60px_1fr_340px] gap-6 items-stretch max-[900px]:grid-cols-1"
+    <section class="pvh-hero mt-[26px] grid grid-cols-[60px_1fr_340px] gap-6 items-stretch max-[900px]:grid-cols-1"
              aria-label="Hero">
       {# ── vertical side text ──────────────────────────────── #}
       {% if page.hero_side_text %}
-        <div class="max-[900px]:hidden [writing-mode:vertical-rl] font-mono text-[12.5px] tracking-[2px] text-bg bg-ink px-1.5 py-4 flex items-center justify-center select-none">
+        <div class="pvh-tab max-[900px]:hidden [writing-mode:vertical-rl] font-mono text-[12.5px] tracking-[2px] text-bg bg-ink px-1.5 py-4 flex items-center justify-center select-none">
           {{ page.hero_side_text }}
         </div>
       {% endif %}
       {# ── headline + CTAs ─────────────────────────────────── #}
-      <div>
-        <h1 class="font-black text-[clamp(52px,9vw,108px)] leading-[0.86] tracking-tighter text-ink">
-          {{ page.hero_text|safe }}
-        </h1>
+      <div class="pvh-copy">
+        {# djlint:off #}
+        <h1 class="pvh-title">{% for line in page.hero_text|hero_lines %}<span{% if forloop.last %} class="pvh-v"{% endif %}>{{ line }}{% if forloop.last %}<span class="pvh-dot" id="egg"></span>{% endif %}</span>{% empty %}<span>Py</span><span class="pvh-v">Verse<span class="pvh-dot" id="egg"></span></span>{% endfor %}</h1>
+        {# djlint:on #}
         {% if page.hero_subtitle %}
           <p class="mt-[22px] max-w-[46ch] text-body-txt">{{ page.hero_subtitle }}</p>
         {% endif %}
@@ -38,54 +41,86 @@
           {% endif %}
         </div>
       </div>
-      {# ── device mockup ───────────────────────────────────── #}
-      <div class="bg-device border-[3px] border-ink px-4 pt-[18px] pb-[22px] flex flex-col gap-3.5 shadow-device">
-        <div class="flex justify-between font-mono text-[10px] text-muted">
-          <span>PYVERSE UNIT</span>
-          <span>{{ page.device_model_label|default:"MODEL // PV-01" }}</span>
-        </div>
-        <div class="bg-ink p-2.5 rounded-sm">
-          <div class="bg-screen text-[#1F2914] font-mono text-[11.5px] leading-normal px-3 py-3.5 min-h-[150px] border-2 border-screen-dk overflow-hidden"
-               id="device-screen"
-               data-device-screen>
-            <span class="code-line text-[#26311A] font-bold">&gt;&gt;&gt; trace(fn)</span>
-            <br />
-            <span class="code-line text-muted">// no code loaded</span>
+      {# ── device mockup: Game Boy body, terminal screen ───── #}
+      <div class="pvh-unit">
+        <div class="bg-device border-[3px] border-ink px-4 pt-[18px] pb-[22px] flex flex-col gap-3.5 shadow-device">
+          <div class="flex justify-between font-mono text-[10px] text-muted">
+            <span>PYVERSE UNIT</span>
+            <span>{{ page.device_model_label|default:"MODEL // PV-01" }}</span>
           </div>
-          {{ page.device_code|json_script:"device-code" }}
-        </div>
-        <div class="font-black text-xl text-center tracking-tight">
-          PY<span class="text-red">VERSE</span>
-        </div>
-        <div class="flex justify-between items-center mt-1.5">
-          <div class="w-14 h-14 relative">
-            <div class="absolute w-14 h-[18px] bg-ink top-[19px] left-0"></div>
-            <div class="absolute w-[18px] h-14 bg-ink top-0 left-[19px]"></div>
+          <div class="bg-ink p-2.5 rounded-sm">
+            <div class="pvh-scr" role="group" aria-label="Live code trace">
+              <div class="pvh-bar">
+                <span data-device-title>Live trace</span>
+                <span data-device-step></span>
+              </div>
+              {# Static frame: what you see with no JavaScript. The script replaces it. #}
+              <div class="pvh-lcd" id="device-screen" data-device-screen aria-live="off">
+                {% if page.device_code %}
+                  <div class="hd">&gt;&gt;&gt; trace(fn)</div>
+                  <div class="code">
+                    {% for line in page.device_code.splitlines %}<div class="ln">{{ line }}</div>{% endfor %}
+                  </div>
+                {% else %}
+                  <div class="hd">&gt;&gt;&gt; trace(average)</div>
+                  <div class="code">
+                    <div class="ln">def average(nums):</div>
+                    <div class="ln">total = 0</div>
+                    <div class="ln">for n in nums:</div>
+                    <div class="ln">total += n</div>
+                    <div class="ln">return total / len(nums)</div>
+                    <div class="ln on">average([1, 2, 3, 4])</div>
+                  </div>
+                  <div class="st"><b>values</b>nums=[1, 2, 3, 4]</div>
+                  <div class="st"><b>output</b></div>
+                {% endif %}
+              </div>
+              <div class="pvh-sp" aria-hidden="true">
+                <i data-device-progress></i>
+              </div>
+            </div>
+            {{ page.device_code|json_script:"device-code" }}
           </div>
-          <div class="flex gap-2.5">
-            <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"
-                 data-device-btn="prev"></div>
-            <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"
-                 data-device-btn="next"></div>
+          <div class="text-center text-xl">
+            <span class="pv-wordmark">PY<span class="text-red">VERSE</span><i class="pv-sq" aria-hidden="true"></i></span>
+          </div>
+          <div class="flex justify-between items-center mt-1.5">
+            <div class="w-14 h-14 relative">
+              <div class="absolute w-14 h-[18px] bg-ink top-[19px] left-0"></div>
+              <div class="absolute w-[18px] h-14 bg-ink top-0 left-[19px]"></div>
+            </div>
+            <div class="flex gap-2.5">
+              <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"
+                   data-device-btn="prev"></div>
+              <div class="w-[26px] h-[26px] rounded-full bg-red border-2 border-ink"
+                   data-device-btn="next"></div>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2.5 font-mono text-[9px] text-muted">
+            <div class="w-[34px] h-[9px] bg-ink rounded-full" data-device-btn="play"></div>
+            <div class="w-[34px] h-[9px] bg-ink rounded-full"></div>
           </div>
         </div>
-        <div class="flex justify-center gap-2.5 font-mono text-[9px] text-muted">
-          <div class="w-[34px] h-[9px] bg-ink rounded-full" data-device-btn="play"></div>
-          <div class="w-[34px] h-[9px] bg-ink rounded-full"></div>
+        {# Shown by the script: with no JavaScript these would be dead buttons. #}
+        <div class="pvh-ctl" hidden>
+          <button type="button" data-k="back">Back</button>
+          <button type="button" data-k="next">Next line</button>
+          <button type="button" data-k="play" aria-pressed="true">Pause</button>
+          <button type="button" data-k="prog">Next program</button>
         </div>
+        <p class="pvh-hint" hidden>
+          The red bar is the line Python is running right now. <b>values</b> are your variables after that line. <b>output</b> is what the program prints or returns. Press Next line to step through it yourself.
+        </p>
       </div>
     </section>
     {# ════════════════════════════════════════════════════════ #}
-    {#  STRIPE DIVIDER                                         #}
+    {#  RAIL: five colour-designated links to the sections     #}
     {# ════════════════════════════════════════════════════════ #}
-    <div class="mt-10 h-[14px] flex" aria-hidden="true">
-      <div class="flex-1 bg-s1"></div>
-      <div class="flex-1 bg-s2"></div>
-      <div class="flex-1 bg-s3"></div>
-      <div class="flex-1 bg-s4"></div>
-      <div class="flex-1 bg-s5"></div>
-      <div class="flex-1 bg-s6"></div>
-    </div>
+    <nav class="pvh-rail" aria-label="Sections">
+      {% for item in home.rail %}
+        <a href="{{ item.href }}" class="nav-tone-{{ item.tone }}">{{ item.label }}<small>{{ item.note }}</small></a>
+      {% endfor %}
+    </nav>
     {# ════════════════════════════════════════════════════════ #}
     {#  SOCIAL PROOF STRIP                                     #}
     {# ════════════════════════════════════════════════════════ #}
@@ -133,10 +168,236 @@
         {% endif %}
       {% endfor %}
     </div>
+    {# ════════════════════════════════════════════════════════ #}
+    {#  SECTIONS: a taste of each part, from live content      #}
+    {# ════════════════════════════════════════════════════════ #}
+    <section class="pvh-sec" id="learn" data-c="1" aria-labelledby="learn-title">
+      <h2 id="learn-title">Learn</h2>
+      <p class="pvh-sub">
+        Short ordered courses that build on each other. Each lesson is a few minutes of reading plus something to run yourself.
+      </p>
+      <div class="pvh-two">
+        {% with course=home.learn.course %}
+          {% if course %}
+            <article class="pvh-card">
+              <div class="pvh-pills">
+                <span class="pvh-pill">{{ course.get_course_type_display }}</span>
+                <span class="pvh-pill">{{ course.get_difficulty_display }}</span>
+                {% if course.is_free %}<span class="pvh-pill on">Free</span>{% endif %}
+              </div>
+              <h3>{{ course.title }}</h3>
+              {% if course.summary %}<p>{{ course.summary }}</p>{% endif %}
+              {% if home.learn.lessons %}
+                <ol class="pvh-lessons">
+                  {% for lesson in home.learn.lessons %}
+                    <li>
+                      <a href="{{ lesson.url }}">{{ lesson.title }}</a>
+                      {% if lesson.estimated_minutes %}<i>{{ lesson.estimated_minutes }} min</i>{% endif %}
+                    </li>
+                  {% endfor %}
+                </ol>
+              {% endif %}
+              <a class="pvh-btn red pv-press" href="{{ course.url }}">Start learning</a>
+            </article>
+          {% endif %}
+        {% endwith %}
+        <div class="pvh-case ok">
+          <div class="lab">greet.py</div>
+          <pre><span class="k">def</span> greet(name):
+    <span class="g">return</span> "Hello, " + name + "!"
+
+print(greet("Ada"))  # Hello, Ada!</pre>
+          <div class="res">
+            <span>print shows it to you</span>
+            <span>return hands it back</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="pvh-sec"
+             id="practice"
+             data-c="2"
+             aria-labelledby="practice-title">
+      <h2 id="practice-title">Practice</h2>
+      <p class="pvh-sub">
+        Problems with a console, hidden test cases, hints and an editorial. Python runs in your browser, so Run and Submit never wait on a server.
+      </p>
+      <div class="pvh-chips" aria-label="Ways to filter problems">
+        <span>Filter by</span>
+        <span class="pvh-pill">difficulty</span>
+        <span class="pvh-pill">topic</span>
+        <span class="pvh-pill">company</span>
+        <span class="pvh-pill">pattern</span>
+        <span class="pvh-pill">technique</span>
+      </div>
+      <div class="pvh-two">
+        {% if home.practice.problems %}
+          <table class="pvh-tb">
+            <thead>
+              <tr>
+                <th scope="col">Problem</th>
+                <th scope="col">Level</th>
+                <th scope="col">Topic</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for problem in home.practice.problems %}
+                <tr>
+                  <td>
+                    <a href="{{ problem.get_absolute_url }}">{{ problem.title }}</a>
+                  </td>
+                  <td>
+                    <span class="pvh-lv pv-diff-{{ problem.difficulty }}">{{ problem.get_difficulty_display }}</span>
+                  </td>
+                  <td>{{ problem.topic.title }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+        <div class="pvh-case ok">
+          <div class="lab">average.py</div>
+          <pre><span class="k">def</span> average(nums):
+    <span class="g">return</span> sum(nums) / len(nums)
+
+average([1, 2, 3, 4])</pre>
+          <div class="res">
+            <span>3 of 3 cases passed</span>
+            <span>2.5</span>
+          </div>
+        </div>
+      </div>
+      {% if home.practice.url %}
+        <a class="pvh-btn red pv-press" href="{{ home.practice.url }}">
+          {% if home.practice.total %}Browse all {{ home.practice.total }} problems{% else %}Open Practice{% endif %}
+        </a>
+      {% endif %}
+    </section>
+    <section class="pvh-sec" id="labs" data-c="3" aria-labelledby="labs-title">
+      <h2 id="labs-title">Labs</h2>
+      <p class="pvh-sub">
+        Step through a program one line at a time and watch what Python actually does: which lines run, what each name points at, and what the memory behind it looks like.
+      </p>
+      <div class="pvh-two">
+        <div>
+          {% if home.labs.labs %}
+            <ol class="pvh-lessons pvh-flush">
+              {% for lab in home.labs.labs %}
+                <li>
+                  <a href="{{ lab.url }}">{{ lab.title }}</a>
+                  <i>{{ lab.get_default_mode_display }}, {{ lab.estimated_minutes }} min</i>
+                </li>
+              {% endfor %}
+            </ol>
+          {% endif %}
+          <p>Aliasing is where most beginners get surprised. Flip between the two cases and watch the arrows.</p>
+          {% if home.labs.url %}
+            <p class="pvh-cta">
+              <a class="pvh-btn red pv-press" href="{{ home.labs.url }}">Trace a program</a>
+            </p>
+          {% endif %}
+        </div>
+        <div class="pvh-fig" data-mode="alias">
+          <svg viewBox="0 0 360 170"
+               role="img"
+               aria-label="Names a and b pointing at lists in memory">
+            <defs>
+            <marker id="pvh-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0L10 5L0 10z" />
+            </marker>
+            </defs>
+            <rect x="8" y="22" width="52" height="32" fill="#1c1b19" />
+            <text class="nm" x="34" y="43" text-anchor="middle">a</text>
+            <rect x="8" y="108" width="52" height="32" fill="#1c1b19" />
+            <text class="nm" x="34" y="129" text-anchor="middle">b</text>
+            <rect class="box" x="200" y="22" width="150" height="32" />
+            <text x="275" y="43" text-anchor="middle">[1, 2, 3]</text>
+            <line x1="62" y1="38" x2="196" y2="38" marker-end="url(#pvh-ah)" />
+            <g class="al">
+            <line x1="62" y1="124" x2="196" y2="52" marker-end="url(#pvh-ah)" />
+            </g>
+            <g class="cp">
+            <rect class="box" x="200" y="108" width="150" height="32" />
+            <text x="275" y="129" text-anchor="middle">[1, 2, 3]</text>
+            <line x1="62" y1="124" x2="196" y2="124" marker-end="url(#pvh-ah)" />
+            </g>
+          </svg>
+          <div class="sw" hidden>
+            <button type="button" data-m="alias" aria-pressed="true">b = a</button>
+            <button type="button" data-m="copy" aria-pressed="false">b = a.copy()</button>
+          </div>
+          <p class="cap">a is b: True. One list, two names. b.append(4) changes both.</p>
+        </div>
+      </div>
+    </section>
+    <section class="pvh-sec" id="blog" data-c="4" aria-labelledby="blog-title">
+      <h2 id="blog-title">Blog</h2>
+      <p class="pvh-sub">Longer notes on the concepts people trip over, with snippets you can run.</p>
+      {% with entry=home.blog.entry %}
+        {% if entry %}
+          <article class="pvh-card pvh-narrow">
+            <div class="pvh-pills">
+              <span class="pvh-pill">{{ entry.date|date:"j M Y" }}</span>
+              <span class="pvh-pill">{{ entry.blog_page.title }}</span>
+            </div>
+            <h3>
+              <a href="{{ entry.url }}">{{ entry.title }}</a>
+            </h3>
+            {% if home.blog.excerpt %}<p>{{ home.blog.excerpt }}</p>{% endif %}
+          </article>
+        {% endif %}
+      {% endwith %}
+      {% if home.blog.url %}
+        <p class="pvh-cta">
+          <a class="pvh-btn pv-press" href="{{ home.blog.url }}">All notes</a>
+        </p>
+      {% endif %}
+    </section>
+    <section class="pvh-sec" id="python" data-c="5" aria-labelledby="python-title">
+      <h2 id="python-title">All about Python</h2>
+      <p class="pvh-sub">
+        Python is a general-purpose language built for readable code. The same few ideas carry from a ten-line script to a web app or a data pipeline.
+      </p>
+      <div class="pvh-use">
+        <div class="pvh-card">
+          <h3>Web</h3>
+          <p>Sites and APIs with Django, Flask or FastAPI. PyVerse itself is Django and Wagtail.</p>
+          <code>path("learn/", views.learn)</code>
+        </div>
+        <div class="pvh-card">
+          <h3>Data</h3>
+          <p>Load, clean and summarise tables with pandas and NumPy.</p>
+          <code>df.groupby("city")["sales"].sum()</code>
+        </div>
+        <div class="pvh-card">
+          <h3>Automation</h3>
+          <p>Rename files, scrape pages and glue tools together in a few lines.</p>
+          <code>for f in Path(".").glob("*.csv"):</code>
+        </div>
+        <div class="pvh-card">
+          <h3>AI and science</h3>
+          <p>Numerical work, plots and machine learning all start from the same basics.</p>
+          <code>np.mean([1, 2, 3, 4])</code>
+        </div>
+      </div>
+      <div class="pvh-chips" aria-label="Core ideas">
+        <span>Core ideas</span>
+        <span class="pvh-pill on">values and names</span>
+        <span class="pvh-pill on">functions</span>
+        <span class="pvh-pill on">loops</span>
+        <span class="pvh-pill nx">lists</span>
+        <span class="pvh-pill nx">dictionaries</span>
+        <span class="pvh-pill nx">classes</span>
+        <span class="pvh-pill nx">modules</span>
+      </div>
+      {% if home.learn.url %}
+        <a class="pvh-btn red pv-press" href="{{ home.learn.url }}">Run your first program</a>
+      {% endif %}
+    </section>
   </div>
 {% endblock content %}
 {# ════════════════════════════════════════════════════════════ #}
-{#  DEVICE: live line-by-line trace (progressive enhancement)  #}
+{#  DEVICE + EASTER EGG: progressive enhancement               #}
 {# ════════════════════════════════════════════════════════════ #}
 {% block extra_js %}
   <script defer src="{% static 'js/home-device.js' %}"></script>
