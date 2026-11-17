@@ -100,6 +100,13 @@ jobs:
       - name: Fetch vendored browser assets
         run: uv run python utility/vendor_assets.py
 
+      - name: Build Tailwind stylesheet
+        # pyverse/theme/static/css/dist/styles.css is gitignored build output;
+        # without it base.html links a stylesheet that does not exist (the
+        # export check flags 404.html). django-tailwind uses a standalone
+        # binary, so no Node is needed.
+        run: uv run python manage.py tailwind build
+
       - name: Build static site
         run: |
           uv run python manage.py migrate
@@ -139,6 +146,13 @@ jobs:
 
       - name: Fetch vendored browser assets
         run: uv run python utility/vendor_assets.py
+
+      - name: Build Tailwind stylesheet
+        # pyverse/theme/static/css/dist/styles.css is gitignored build output;
+        # without it base.html links a stylesheet that does not exist (the
+        # export check flags 404.html). django-tailwind uses a standalone
+        # binary, so no Node is needed.
+        run: uv run python manage.py tailwind build
 
       - name: Migrate and start the site
         run: |
