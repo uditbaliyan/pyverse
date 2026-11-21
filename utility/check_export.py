@@ -3,7 +3,12 @@
 resolve to a file in the export, every local <a href> must lead to an exported
 page, and the sitemap must match the pages.
 
-    python utility/check_export.py _site
+    python utility/check_export.py _site [--min-pages N]
+
+Also fails on placeholder content (example/scaffold URLs, lorem, "page desc"), on
+duplicate element ids within a page, on pages without exactly one <main>, and,
+with ``--min-pages``, when the export has fewer HTML pages than expected (the
+guard against CI quietly exporting an empty database).
 """
 
 from __future__ import annotations
@@ -21,6 +26,21 @@ REF = re.compile(
 )
 ANCHOR = re.compile(r"""<a\b[^>]*?\bhref=["']([^"']*)["']""", re.I)
 LOC = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>")
+ID_ATTR = re.compile(r"""<[a-z][^>]*?\sid=["']([^"']+)["']""", re.I)
+MAIN = re.compile(r"<main\b", re.I)
+SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
+TAG = re.compile(r"<[^>]+>")
+
+# Text that must never ship: scaffold leftovers and stand-in copy.
+PLACEHOLDERS = (
+    "neetcode.io",
+    "chat.z.ai",
+    "lorem ipsum",
+    "page desc",
+    "welcome to your new wagtail site",
+    "example.com",
+    "todo:",
+)
 
 
 def exported(target: Path) -> bool:
@@ -49,15 +69,50 @@ def check_anchor(root: Path, page: Path, href: str) -> str | None:
     return None if inside and exported(target) else f"dead link {href}"
 
 
-def main(site: str) -> int:
+def placeholder_problems(html: str) -> list[str]:
+    """Placeholder strings in the page's markup or visible text."""
+    visible = TAG.sub(" ", SCRIPT_STYLE.sub(" ", html)).lower()
+    haystack = html.lower()
+    found = [needle for needle in PLACEHOLDERS if needle in haystack]
+    # A card or link whose entire title is the bare word "page".
+    if re.search(r">\s*page\s*<", html, re.I) and " page " in f" {visible} ":
+        found.append("untitled 'page' card")
+    return [f"placeholder content: {needle}" for needle in found]
+
+
+def structure_problems(html: str, name: Path) -> list[str]:
+    problems = []
+    redirect_stub = re.search(r"http-equiv=[\"']refresh", html, re.I) is not None
+    if name.name == "index.html" and not redirect_stub and name.parts[:-1] != ("404",):
+        mains = len(MAIN.findall(html))
+        if mains != 1:
+            problems.append(f"expected exactly one <main>, found {mains}")
+    seen: set[str] = set()
+    dupes: set[str] = set()
+    for ident in ID_ATTR.findall(SCRIPT_STYLE.sub(" ", html)):
+        (dupes if ident in seen else seen).add(ident)
+    problems.extend(f"duplicate id {ident!r}" for ident in sorted(dupes))
+    return problems
+
+
+def main(site: str, min_pages: int = 0, *, content_checks: bool = False) -> int:
     root = Path(site).resolve()
     if not root.is_dir():
         print(f"{site}: not a directory")  # noqa: T201
         return 2
     errors: list[str] = []
-    for page in root.rglob("*.html"):
+    pages = list(root.rglob("*.html"))
+    if len(pages) < min_pages:
+        errors.append(
+            f"export has {len(pages)} HTML pages, expected at least {min_pages}"
+            " (was the content loaded?)",
+        )
+    for page in pages:
         html = page.read_text(encoding="utf-8", errors="ignore")
         name = page.relative_to(root)
+        if content_checks:
+            errors.extend(f"{name}: {p}" for p in placeholder_problems(html))
+            errors.extend(f"{name}: {p}" for p in structure_problems(html, name))
         for ref in REF.findall(html):
             url = urlparse(ref)
             if url.scheme or url.netloc or ref.startswith(("#", "data:")):
@@ -85,4 +140,10 @@ def main(site: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "_site"))
+    args = sys.argv[1:]
+    floor = 0
+    if "--min-pages" in args:
+        at = args.index("--min-pages")
+        floor = int(args[at + 1])
+        del args[at : at + 2]
+    sys.exit(main(args[0] if args else "_site", floor, content_checks=True))

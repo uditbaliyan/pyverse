@@ -105,3 +105,80 @@ def test_missing_assets_are_still_reported_as_before(site, capsys):
         "index.html: dead reference /media/x.png",
         "index.html: dead reference /static/a.js",
     ]
+
+
+# ── content checks: placeholders, landmarks, duplicate ids, page-count floor ──
+
+
+def content_problems(site: Path, capsys, floor: int = 0) -> list[str]:
+    check_export.main(str(site), floor, content_checks=True)
+    lines = capsys.readouterr().out.splitlines()
+    return [line for line in lines if "problem(s)" not in line]
+
+
+PAGE = "<body><main id='main'><h1>ok</h1></main></body>"
+
+
+def test_a_clean_page_passes_content_checks(site, capsys):
+    write(site, "index.html", PAGE)
+    write(site, "learn/index.html", PAGE)
+    write(site, "learn/topic/index.html", PAGE)
+
+    assert content_problems(site, capsys) == []
+
+
+@pytest.mark.parametrize(
+    "snippet",
+    [
+        "<a href='https://neetcode.io/'>x</a>",
+        "<a href='https://chat.z.ai'>x</a>",
+        "<p>Lorem ipsum dolor</p>",
+        "<p>page desc</p>",
+        "<h1>Welcome to your new Wagtail site!</h1>",
+    ],
+)
+def test_placeholder_content_is_reported(site, capsys, snippet):
+    write(site, "index.html", f"<main id='main'>{snippet}</main>")
+
+    found = content_problems(site, capsys)
+
+    assert any("placeholder content" in line and "index.html" in line for line in found)
+
+
+def test_a_page_needs_exactly_one_main(site, capsys):
+    write(site, "index.html", "<main>a</main><main>b</main>")
+
+    assert any("exactly one <main>" in line for line in content_problems(site, capsys))
+
+
+def test_a_redirect_stub_needs_no_main(site, capsys):
+    write(site, "index.html", PAGE)
+    write(
+        site,
+        "old/index.html",
+        '<meta http-equiv="refresh" content="0; url=/learn/">',
+    )
+
+    assert not any("old/index.html" in line for line in content_problems(site, capsys))
+
+
+def test_duplicate_ids_are_reported_but_scripts_are_ignored(site, capsys):
+    write(
+        site,
+        "index.html",
+        "<main id='main'><div id='a'></div><div id='a'></div>"
+        "<script>var s = '<div id=\"z\"></div><div id=\"z\"></div>';</script></main>",
+    )
+
+    found = content_problems(site, capsys)
+
+    assert any("duplicate id 'a'" in line for line in found)
+    assert not any("'z'" in line for line in found)
+
+
+def test_page_count_floor_catches_an_empty_export(site, capsys):
+    write(site, "index.html", PAGE)
+
+    found = content_problems(site, capsys, floor=38)
+
+    assert any("expected at least 38" in line for line in found)
