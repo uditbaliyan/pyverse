@@ -33,6 +33,25 @@ jobs:
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
 
+  python-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: "true"
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+      - run: uv sync --locked
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Mypy (non-blocking until the baseline is clean)
+        continue-on-error: true
+        run: uv run mypy pyverse
+      - name: Known vulnerabilities in runtime dependencies
+        run: uv export --no-dev --locked --no-emit-project -o /tmp/req.txt && uv run pip-audit -r /tmp/req.txt --no-deps --disable-pip
+
   # With no caching at all the entire ci process takes 3m to complete!
   pytest:
     runs-on: ubuntu-latest
@@ -110,19 +129,26 @@ jobs:
       - name: Build static site
         run: |
           uv run python manage.py migrate
+          uv run python manage.py load_content
           uv run python manage.py distill-local _site --collectstatic --force
 
-      - name: Check export
-        run: python3 utility/check_export.py _site
+      - name: Content gates
+        run: |
+          uv run python manage.py check_gym
+          uv run python manage.py check_problem_traces
+
+      - name: Check export (placeholders, dead refs, duplicate ids, page floor)
+        run: python3 utility/check_export.py _site --min-pages 38
 
   e2e:
     # Headless-browser smoke test of the learner loop (pyverse/tests/e2e).
-    # Uses the committed db.sqlite3 content and the vendored Pyodide, so it needs
+    # Uses content/site.json (load_content) and the vendored Pyodide, so it needs
     # no internet beyond installing Chromium. Playwright is added per run with
     # `--with` so it stays out of pyproject.toml / uv.lock.
     runs-on: ubuntu-latest
     env:
       DJANGO_SETTINGS_MODULE: config.settings.local
+      DATABASE_URL: 'sqlite:///${{ github.workspace }}/e2e.sqlite3'
       PYVERSE_E2E_URL: http://127.0.0.1:8000
     steps:
       - name: Checkout Code Repository
@@ -157,6 +183,7 @@ jobs:
       - name: Migrate and start the site
         run: |
           uv run python manage.py migrate
+          uv run python manage.py load_content
           nohup uv run python manage.py runserver 127.0.0.1:8000 --noreload > server.log 2>&1 &
           for i in $(seq 1 30); do curl -sf "$PYVERSE_E2E_URL/practice/problem/two-sum/" -o /dev/null && break; sleep 2; done
 

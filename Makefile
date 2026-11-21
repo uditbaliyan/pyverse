@@ -17,5 +17,5 @@ build-site: vendor
 	DJANGO_SETTINGS_MODULE=config.settings.distill \
 	DATABASE_URL=sqlite:///$(CURDIR)/$(DB) \
 	PYVERSE_CANONICAL_BASE_URL=$${PYVERSE_CANONICAL_BASE_URL:-https://pyverse.com} \
-	sh -c 'uv run python manage.py migrate && uv run python manage.py distill-local _site --collectstatic --force'
-	python3 utility/check_export.py _site
+	sh -c 'uv run python manage.py migrate && uv run python manage.py load_content && uv run python manage.py distill-local _site --collectstatic --force'
+	python3 utility/check_export.py _site --min-pages 38
