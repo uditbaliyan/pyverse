@@ -1,8 +1,11 @@
-import json
+import re
+from functools import cached_property
 
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
+from django.core.validators import RegexValidator
 from django.db import models
+from django.utils.html import conditional_escape
+from django.utils.html import format_html_join
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.admin.panels import MultiFieldPanel
@@ -17,10 +20,17 @@ from wagtail_ai.panels import AITitleFieldPanel
 from pyverse.home.models import SEOFields
 from pyverse.taxonomy import Difficulty as SiteDifficulty
 
+from .utils import course_counts_for
 from .utils import lesson_counts_for
 
-
 # ── Choices ──────────────────────────────────────────────────────────────
+# `TopicPage.color` ends up in a style attribute and `icon` in a `data-lucide`
+# name, so both are checked on save; `accent_color` checks again on the way out
+# for rows saved before the validators existed.
+HEX_COLOR = r"\A#[0-9A-Fa-f]{6}\Z"
+ICON_NAME = r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z"
+
+
 class CourseType(models.TextChoices):
     COURSE = "course", "Standard Course"
     MICRO = "micro", "Micro-course"
@@ -67,6 +77,28 @@ class CodeExampleBlock(blocks.StructBlock):
         icon = "code"
         template = "lms/blocks/code_example.html"
         label = "Code Example"
+
+    def get_context(self, value, parent_context=None):
+        context = super().get_context(value, parent_context=parent_context)
+        # The <code> contents are built here, not in the template, because
+        # whitespace inside <pre> is rendered and must be exact. With line numbers
+        # every line is its own <span> and CSS (`.code-lines`) draws the digits
+        # from a counter, so they are not text: selecting or copying never picks
+        # them up. `format_html_join` / `conditional_escape` escape the code.
+        if value["show_line_numbers"]:
+            lines = re.split(r"\r\n|\r|\n", value["code"])
+            if lines and lines[-1] == "":
+                lines.pop()  # a trailing newline is not a numbered empty line
+            context["code_html"] = format_html_join(
+                "\n",
+                '<span class="code-line">{}</span>',
+                ((line,) for line in lines),
+            )
+            context["code_lines_class"] = "code-lines"
+        else:
+            context["code_html"] = conditional_escape(value["code"])
+            context["code_lines_class"] = ""
+        return context
 
 
 class MermaidBlock(blocks.TextBlock):
@@ -120,7 +152,12 @@ class PracticeBlock(blocks.StructBlock):
     """A graded checkpoint embedded in a lesson body.
 
     Exactly one of `problem` / `quiz` must be set; StructBlock has no native
-    "exactly one of", so `clean()` enforces it.
+    "exactly one of", so `clean()` enforces it. The target must also sit in a
+    Practice topic: the static export only writes the pages of problems and
+    quizzes that have one (`seo.live_problems` / `live_quizzes`), so a topic-less
+    target would leave this checkpoint linking to a page that does not exist. A
+    topic that is merely unpublished is accepted, so authors can build the lesson
+    first; publish the topic before the lesson.
     """
 
     problem = SnippetChooserBlock("coding.CodingProblem", required=False)
@@ -145,6 +182,16 @@ class PracticeBlock(blocks.StructBlock):
                 block_errors={
                     "problem": ValidationError(
                         "Choose exactly one: a problem or a quiz, not both or neither.",
+                    ),
+                },
+            )
+        field = "problem" if result["problem"] else "quiz"
+        if result[field].topic_id is None:
+            raise blocks.StructBlockValidationError(
+                block_errors={
+                    field: ValidationError(
+                        f"This {field} is not in a Practice topic, so its page is "
+                        "never published. Add it to a topic first.",
                     ),
                 },
             )
@@ -201,13 +248,19 @@ class LMSIndexPage(SEOFields, Page):
 
     def get_context(self, request):
         context = super().get_context(request)
-        context["topics"] = TopicPage.objects.child_of(self).live().order_by("title")
+        topics = list(
+            TopicPage.objects.child_of(self).live().order_by("display_order", "title"),
+        )
+        topic_counts = course_counts_for(self, topics)
+        for topic in topics:
+            topic.set_course_count(topic_counts.get(topic.pk, 0))
+        context["topics"] = topics
         featured_courses = list(
             CoursePage.objects.descendant_of(self)
             .live()
             .filter(is_featured=True)
             .select_related("hero_image")
-            .order_by("-first_published_at")[:6],
+            .order_by("-first_published_at", "path")[:6],
         )
         counts = lesson_counts_for(self, featured_courses)
         for course in featured_courses:
@@ -216,7 +269,7 @@ class LMSIndexPage(SEOFields, Page):
         context["all_courses_count"] = (
             CoursePage.objects.descendant_of(self).live().count()
         )
-        context["all_topics_count"] = context["topics"].count()
+        context["all_topics_count"] = len(topics)
         return context
 
 
@@ -225,11 +278,21 @@ class TopicPage(Page):
     icon = models.CharField(
         max_length=50,
         blank=True,
+        validators=[
+            RegexValidator(
+                ICON_NAME,
+                "Use a Lucide icon name: lowercase letters, digits and single "
+                "hyphens, e.g. chart-bar.",
+            ),
+        ],
         help_text='Icon name (e.g. "code", "database", "chart-bar")',
     )
     color = models.CharField(
         max_length=7,
         blank=True,
+        validators=[
+            RegexValidator(HEX_COLOR, "Use a six-digit hex colour, e.g. #C62828."),
+        ],
         help_text='Hex color, e.g. "#C62828"',
     )
     description = models.TextField(blank=True)
@@ -254,37 +317,44 @@ class TopicPage(Page):
     class Meta:
         ordering = ["display_order", "title"]
 
+    @property
+    def accent_color(self):
+        """`color` when it is a valid hex colour, else "" (see `HEX_COLOR`)."""
+        return self.color if re.fullmatch(HEX_COLOR, self.color) else ""
+
+    #: Filled by `set_course_count` on the hub so a grid of topic cards costs one
+    #: query instead of one COUNT per card. `None` means "not filled".
+    _course_count: int | None = None
+
+    def set_course_count(self, count):
+        """Record a count the caller already batched (`course_counts_for`), so
+        rendering this topic's card costs no query."""
+        self._course_count = count
+
+    @property
+    def course_count(self):
+        """Live course count — cached on the instance after the first access."""
+        if self._course_count is None:
+            self._course_count = CoursePage.objects.child_of(self).live().count()
+        return self._course_count
+
     def get_context(self, request):
         context = super().get_context(request)
-        courses = (
+        # Every live course goes on this one page. The export writes one file per
+        # page and never sees a query string, so the grid cannot be filtered or
+        # paged on the server; `static/lms/js/course-filter.js` filters it in the
+        # browser. Editors arrange courses with `display_order`; courses sharing
+        # a number stay newest first, and `path` keeps equal timestamps stable.
+        courses = list(
             CoursePage.objects.child_of(self)
             .live()
             .select_related("hero_image")
-            .order_by("-first_published_at")
+            .order_by("display_order", "-first_published_at", "path"),
         )
-
-        difficulty = request.GET.get("difficulty")
-        if difficulty in DifficultyLevel.values:
-            courses = courses.filter(difficulty=difficulty)
-
-        course_type = request.GET.get("type")
-        if course_type in CourseType.values:
-            courses = courses.filter(course_type=course_type)
-
-        is_free = request.GET.get("free")
-        if is_free == "1":
-            courses = courses.filter(is_free=True)
-
-        paginator = Paginator(courses, 12)
-        page_number = request.GET.get("page", 1)
-        courses_page = paginator.get_page(page_number)
-        counts = lesson_counts_for(self, courses_page)
-        for course in courses_page:
+        counts = lesson_counts_for(self, courses)
+        for course in courses:
             course.set_lesson_count(counts.get(course.pk, 0))
-        context["courses_page"] = courses_page
-        context["active_difficulty"] = difficulty
-        context["active_type"] = course_type
-        context["active_free"] = is_free
+        context["courses"] = courses
         context["difficulty_choices"] = DifficultyLevel.choices
         context["type_choices"] = CourseType.choices
         return context
@@ -312,6 +382,14 @@ class CoursePage(SEOFields, Page):
     # `isAccessibleForFree`, so it defaults on for every course.
     is_free = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
+    display_order = models.IntegerField(
+        default=0,
+        help_text=(
+            "Position in its topic: lower numbers come first (use a negative "
+            "number to pin a course to the top). Courses with the same number "
+            "stay newest first."
+        ),
+    )
     estimated_hours = models.PositiveIntegerField(
         default=1,
         help_text="Estimated time to complete (in hours)",
@@ -346,6 +424,7 @@ class CoursePage(SEOFields, Page):
                 FieldPanel("estimated_hours"),
                 FieldPanel("is_free"),
                 FieldPanel("is_featured"),
+                FieldPanel("display_order"),
             ],
             heading="Course Details",
         ),
@@ -383,20 +462,13 @@ class CoursePage(SEOFields, Page):
         for "All Levels" (which has no site-wide equivalent)."""
         return _COURSE_TO_SITE_DIFFICULTY.get(self.difficulty)
 
-    @property
+    @cached_property
     def topic(self):
-        parent = self.get_parent()
-        if parent and isinstance(parent.specific, TopicPage):
-            return parent.specific
-        return None
+        return TopicPage.objects.parent_of(self).first()
 
     def get_context(self, request):
         context = super().get_context(request)
-        lessons = self.ordered_lessons()
-        context["lessons"] = lessons
-        context["lesson_slugs_json"] = json.dumps(
-            [lesson.slug for lesson in lessons],
-        )
+        context["lessons"] = self.ordered_lessons()
         return context
 
 
@@ -429,35 +501,57 @@ class LessonPage(Page):
     parent_page_types = ["lms.CoursePage"]
     subpage_types = []
 
-    @property
+    @cached_property
     def course(self):
-        parent = self.get_parent()
-        if parent and isinstance(parent.specific, CoursePage):
-            return parent.specific
-        return None
+        return CoursePage.objects.parent_of(self).first()
 
-    @property
+    @cached_property
     def topic(self):
         course = self.course
         return course.topic if course else None
 
+    @property
+    def progress_key(self):
+        """The identity the browser stores this lesson's progress under.
+
+        `topic/course/lesson` slugs, read off `url_path` (no query). A lesson slug
+        alone is only unique among its siblings, so two courses that both have an
+        `introduction` lesson would otherwise share one progress record. See
+        `static/lms/js/lesson-progress.js`.
+        """
+        return "/".join(self.url_path.strip("/").split("/")[-3:])
+
+    def _lessons_in_reading_order(self):
+        """The course's live lessons in tree order, with this lesson among them.
+
+        A draft previewed from the editor is not live, so the live query alone
+        would leave it out and the preview would read "Lesson 0 of N" with no
+        neighbours. Slot it in by tree path instead; a page that is not saved yet
+        has no place in the tree and goes last.
+        """
+        lessons = list(LessonPage.objects.sibling_of(self).live().order_by("path"))
+        if self in lessons:
+            return lessons
+        if self.pk is None:
+            return [*lessons, self]
+        before = [lesson for lesson in lessons if lesson.path < self.path]
+        return [*before, self, *lessons[len(before) :]]
+
     def get_context(self, request):
         context = super().get_context(request)
-        siblings = list(LessonPage.objects.sibling_of(self).live().order_by("path"))
-        idx = siblings.index(self) if self in siblings else -1
+        siblings = self._lessons_in_reading_order()
+        idx = siblings.index(self)
         context["prev_lesson"] = siblings[idx - 1] if idx > 0 else None
-        context["next_lesson"] = (
-            siblings[idx + 1] if 0 <= idx < len(siblings) - 1 else None
-        )
-        context["lesson_index"] = idx + 1 if idx >= 0 else 0
+        context["next_lesson"] = siblings[idx + 1] if idx < len(siblings) - 1 else None
+        context["lesson_index"] = idx + 1
         context["total_lessons"] = len(siblings)
         context["course"] = self.course
         context["topic"] = self.topic
         context["lesson_list"] = siblings
-        # The lesson page includes the PyScript runtime only when it has a
-        # notebook: a page includes `includes/pyscript_runtime.html` once, never
-        # twice (see that file's header).
-        context["has_notebook"] = any(
-            block.block_type == "notebook" for block in self.body
-        )
+        # Heavy scripts load only on lessons that use them: a page includes
+        # `includes/pyscript_runtime.html` once, never twice (see that file's
+        # header), and Mermaid is a multi-megabyte CDN download.
+        block_types = {block.block_type for block in self.body}
+        context["has_notebook"] = "notebook" in block_types
+        context["has_mermaid"] = "mermaid" in block_types
         return context

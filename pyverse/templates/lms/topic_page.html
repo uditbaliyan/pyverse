@@ -1,53 +1,74 @@
 {% extends "base.html" %}
 
+{% load static %}
+
 {% block content %}
   {% include "components/page_header.html" with title=page.title subtitle=page.description page=page %}
-  <section aria-label="Filter courses"
-           class="mb-8 border-y-[3px] border-ink py-4">
-    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="font-mono text-xs font-bold text-muted">Difficulty</span>
-        {% for value, label in difficulty_choices %}
-          <a href="?difficulty={% if active_difficulty == value %}{% else %}{{ value }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
-             {% if active_difficulty == value %}aria-current="true"{% endif %}
-             class="btn btn-sm {% if active_difficulty != value %}btn-secondary{% endif %}">{{ label }}</a>
-        {% endfor %}
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="font-mono text-xs font-bold text-muted">Type</span>
-        {% for value, label in type_choices %}
-          <a href="?type={% if active_type == value %}{% else %}{{ value }}{% endif %}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
-             {% if active_type == value %}aria-current="true"{% endif %}
-             class="btn btn-sm {% if active_type != value %}btn-secondary{% endif %}">{{ label }}</a>
-        {% endfor %}
-      </div>
-      <a href="?free={% if active_free == '1' %}{% else %}1{% endif %}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}"
-         {% if active_free == '1' %}aria-current="true"{% endif %}
-         class="btn btn-sm {% if active_free != '1' %}btn-secondary{% endif %}">Free only</a>
-    </div>
-  </section>
-  {% if courses_page %}
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {% for course in courses_page %}
+  {% if courses %}
+    {% if courses|length > 1 %}
+      {% comment %}
+      The export is static, so filtering cannot happen on a server: every course is
+      in the page and lms/js/course-filter.js hides the ones that do not match. The
+      bar stays hidden until that script enables it, so without JavaScript the
+      learner simply sees every course and no control that cannot work.
+      {% endcomment %}
+      <section aria-label="Filter courses"
+               class="mb-8 border-y-[3px] border-ink py-4"
+               data-course-filter
+               hidden>
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div class="flex flex-wrap items-center gap-2"
+               role="group"
+               aria-labelledby="filter-difficulty">
+            <span id="filter-difficulty" class="font-mono text-xs font-bold text-muted">Difficulty</span>
+            {% for value, label in difficulty_choices %}
+              <button type="button"
+                      class="btn btn-sm btn-secondary"
+                      data-filter="difficulty"
+                      data-value="{{ value }}"
+                      aria-pressed="false">{{ label }}</button>
+            {% endfor %}
+          </div>
+          <div class="flex flex-wrap items-center gap-2"
+               role="group"
+               aria-labelledby="filter-type">
+            <span id="filter-type" class="font-mono text-xs font-bold text-muted">Type</span>
+            {% for value, label in type_choices %}
+              <button type="button"
+                      class="btn btn-sm btn-secondary"
+                      data-filter="type"
+                      data-value="{{ value }}"
+                      aria-pressed="false">{{ label }}</button>
+            {% endfor %}
+          </div>
+          <button type="button"
+                  class="btn btn-sm btn-secondary"
+                  data-filter="free"
+                  data-value="1"
+                  aria-pressed="false">Free only</button>
+        </div>
+        <p class="mt-3 font-mono text-xs text-muted"
+           role="status"
+           data-filter-status></p>
+      </section>
+    {% endif %}
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3" data-course-grid>
+      {% for course in courses %}
         {% include "lms/components/course_card.html" with course=course %}
       {% endfor %}
     </div>
-    {% if courses_page.has_other_pages %}
-      <nav aria-label="Pagination"
-           class="mt-12 flex flex-wrap items-center justify-center gap-3">
-        {% if courses_page.has_previous %}
-          <a href="?page={{ courses_page.previous_page_number }}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
-             class="btn btn-secondary">← Previous</a>
-        {% endif %}
-        <span class="font-mono text-xs text-muted">Page {{ courses_page.number }} of {{ courses_page.paginator.num_pages }}</span>
-        {% if courses_page.has_next %}
-          <a href="?page={{ courses_page.next_page_number }}{% if active_difficulty %}&difficulty={{ active_difficulty }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_free %}&free={{ active_free }}{% endif %}"
-             class="btn btn-secondary">Next →</a>
-        {% endif %}
-      </nav>
+    {% if courses|length > 1 %}
+      <div data-filter-empty hidden>
+        {% include "components/empty_state.html" with level="info" title="No courses match these filters" text="Remove a filter to see more courses." %}
+        <button type="button" class="btn btn-secondary mt-4" data-filter-clear>Clear filters</button>
+      </div>
     {% endif %}
   {% else %}
-    {% include "components/empty_state.html" with level="info" title="No courses match your filters" text="Try removing a filter to see more courses." action_label="Clear filters" action_url=page.url %}
+    {% include "components/empty_state.html" with level="info" title="No courses yet" text="Courses will appear here as they are published." %}
   {% endif %}
-  {% include "lms/_lucide.html" %}
 {% endblock content %}
+{% block inline_javascript %}
+  {% if courses|length > 1 %}
+    <script src="{% static 'lms/js/course-filter.js' %}" defer></script>
+  {% endif %}
+{% endblock inline_javascript %}

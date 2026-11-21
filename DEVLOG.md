@@ -20,6 +20,82 @@ Django notes` get overwritten in place. `README.md` (deploy notes) and `docs/`
 
 ## Session log
 
+### 2026-11-19 — LMS follow-ups: arranging courses, line numbers, a stricter export check
+
+- **`show_line_numbers` is honoured.** The checkbox existed but no template read
+  it. `CodeExampleBlock.get_context` now builds the `<code>` contents (one span
+  per line, escaped) and `.code-lines` draws the digits with a CSS counter, so
+  Copy and selection never include them. Every existing example had the box
+  ticked (it defaults on), so every existing example now shows numbers.
+- **Editors can arrange courses.** `CoursePage.display_order` (migration 0005,
+  default 0: every topic keeps today's order until someone sets one). Topic pages
+  sort by it, then newest first. The hub's featured row stays newest first.
+- **`TopicPage.color` / `icon` are validated** (hex colour; Lucide-style name) and
+  `color` is finally rendered: it tints the topic's icon on the hub through
+  `accent_color`, which re-checks the stored value before it reaches a `style`
+  attribute.
+- **"Continue learning".** On a course page the Start button reads the progress
+  store: partway through it says "Continue learning" and lands on the first
+  unfinished lesson; with everything done, "Review course".
+- **`utility/check_export.py` checks `<a href>`.** A link to a page that was not
+  exported is now an error (a lesson checkpoint pointing at a problem in an
+  unpublished topic was the case that motivated it), as is a query-only link
+  (`?page=2`), which a static host ignores. Relative links resolve against the
+  page they are on. On the committed content it reports 7 dead links, all in the
+  Blog's Notes pages (date archives, the feed, and the dated entry URL); none in
+  the LMS. They are real 404s on the static site, so CI will fail on them until
+  they are fixed or the Blog stops linking to unexported URLs.
+- Removed `static/lms/js/quiz.js` (nothing referenced it; superseded by the quiz
+  app) and the missing `type="button"` on the Mermaid copy button (djlint H043).
+- Measured, not changed: course-card hero images. With Wagtail's rendition cache
+  warm a topic page costs the same however many images it shows; cold, it is one
+  query per distinct image (15 -> 19 queries for 1 -> 5 images), paid once per
+  export. A prefetch would save that by tying the Python to the template's
+  `width-600`, so it is not worth it; `test_pages.py` guards the warm path.
+
+### 2026-11-19 — LMS audit: a static-safe topic grid, lesson progress identity, leaner lessons
+
+- **Topic grid works on the static site.** The filter chips and pager were
+  `?difficulty=` / `?page=` links, but the export writes one file per path and
+  never sees a query string: on a 15-course topic the exported page showed 12
+  courses, nine links did nothing, and three courses were unreachable from it.
+  `TopicPage` now puts every live course on its one page and
+  `static/lms/js/course-filter.js` filters in the browser (state mirrored into
+  the query string so a view can be linked). The bar ships `hidden`, so without
+  JS every course is listed; a one-course topic shows no filter; an empty topic
+  says "No courses yet" instead of "No courses match your filters".
+- **Lesson progress no longer collides across courses.** `lesson_status` is keyed
+  by `slug`, and a lesson slug is only unique inside its course, so completing
+  `introduction` in one course ticked every other `introduction`. Pages now carry
+  `data-lesson-key` = `LessonPage.progress_key` (`topic/course/lesson`, read off
+  `url_path`, no query) and the shared store is untouched. Records written under
+  bare slugs are ignored (nothing was deployed). The unread `__LESSON_SLUGS__` /
+  `__CURRENT_LESSON__` globals and `lesson_slugs_json` went with it. Mark complete
+  / Undo now move focus to the control that replaced them.
+- **Hub.** The topic cards printed " courses" with no number
+  (`topic.coursepage_set` does not exist; templates swallow the error). Counts now
+  come from `course_counts_for`, one query for the whole grid, and the hub honours
+  `display_order` (it sorted by title). Both counters share `_live_child_counts`.
+- **`PracticeBlock`.** `clean()` rejects a problem/quiz that is in no Practice
+  topic (never exported, so the checkpoint linked to nothing); the template
+  renders nothing if the target was deleted.
+- **Leaner lesson pages.** Mermaid loads only when the lesson has a diagram
+  (`has_mermaid`, like `has_notebook`); Lucide only on the hub, the one page with
+  icons. `LessonPage` resolves `course` / `topic` once each (5 queries -> 3 for
+  its context). A draft previewed from the editor sits in its real place instead
+  of "Lesson 0 of N".
+- **Look and a11y.** The checkpoint and notebook blocks were the only LMS
+  templates still on default Tailwind neutrals; they now use the site's tokens
+  (checkpoint "done" is `border-ok bg-ok-bg`, so `lesson-progress.js` no longer
+  names `green-*` classes). The notebook status line is a live region.
+- **Tests.** `lms/tests/` (was an empty stub): page rendering as the export does
+  it (no query string), the batching, `PracticeBlock`, progress keys, preview.
+  The browser scripts were exercised in jsdom against the exported HTML, not
+  committed (the repo has no JS test runner).
+- Left alone on purpose: Mermaid/Lucide stay on the CDN (roadmap item).
+- Heads-up, not LMS: with the committed lock (`djangorestframework 3.17.1` on
+  Django 6.1.3) Django fails to start (`cc_delim_re` import); DRF >= 3.18.0 works.
+
 ### 2026-09-26 — Lesson checkpoints and notebooks
 
 - `LessonPage.body` gained two blocks, so a lesson no longer ends at prose:

@@ -1,7 +1,12 @@
 {% load wagtailimages_tags %}
 
 {% comment %}A course as a card. Same .card as every other card on the site.{% endcomment %}
-<a href="{{ course.url }}" class="card group !p-0 no-underline">
+<a href="{{ course.url }}"
+   class="card group !p-0 no-underline"
+   data-course
+   data-difficulty="{{ course.difficulty }}"
+   data-type="{{ course.course_type }}"
+   data-free="{{ course.is_free|yesno:'1,0' }}">
   <div class="pv-cover aspect-video overflow-hidden border-b-[3px] border-ink bg-device">
     {% if course.hero_image %}
       {% image course.hero_image width-600 class="h-full w-full object-cover" alt="" %}
@@ -22,7 +27,7 @@
     {% if course.summary %}<p class="mt-1.5 line-clamp-2 text-sm text-body-txt">{{ course.summary }}</p>{% endif %}
     <p class="mt-auto pt-3 font-mono text-xs text-muted">
       {% if course.language %}{{ course.language }} ·{% endif %}
-      {{ course.lesson_count }} lessons · {{ course.estimated_hours }}h
+      {{ course.lesson_count }} lesson{{ course.lesson_count|pluralize }} · {{ course.estimated_hours }}h
     </p>
   </div>
 </a>

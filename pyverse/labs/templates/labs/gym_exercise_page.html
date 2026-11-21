@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static wagtailcore_tags %}
+{% block title %}{{ page.title }} · {{ page.get_library_display }} gym{% endblock %}
+{% block content %}
+<main class="max-w-6xl mx-auto px-4 py-8">
+  <p class="text-sm mb-2"><a href="{{ page.get_parent.url }}" class="underline">&larr; Gym</a>
+    · {{ page.get_library_display }} · {{ page.get_difficulty_display }}</p>
+  <h1 class="text-3xl font-bold mb-6">{{ page.title }}</h1>
+  <div class="grid gap-6 lg:grid-cols-2">
+    <section>
+      <div class="prose max-w-none mb-4">{{ page.prompt|richtext }}</div>
+      <button id="gym-hint" type="button" class="border-2 border-black px-3 py-1 font-bold">Show a hint</button>
+      <ol id="gym-hints" class="list-decimal pl-6 mt-3 space-y-1"></ol>
+      <details id="gym-solution" class="mt-6">
+        <summary class="cursor-pointer font-bold">Show reference solution</summary>
+        <pre class="whitespace-pre-wrap font-mono text-sm p-3 border-2 border-black bg-white mt-2"></pre>
+      </details>
+      <p class="text-xs mt-6">Runs in your browser. Nothing is saved or sent anywhere; reload and it is gone.</p>
+    </section>
+    <section>
+      <label for="gym-code" class="sr-only">Your code</label>
+      <textarea id="gym-code" spellcheck="false" rows="14"
+        class="w-full font-mono text-sm p-3 border-2 border-black bg-white"></textarea>
+      <div class="flex flex-wrap items-center gap-3 my-3">
+        <button id="gym-run" type="button" class="border-2 border-black px-4 py-1 font-bold">Run (Ctrl+Enter)</button>
+        <button id="gym-check" type="button" class="border-2 border-black bg-black text-white px-4 py-1 font-bold">Check</button>
+        <button id="gym-reset" type="button" class="underline">Reset</button>
+        <span id="gym-status" class="text-sm" role="status"></span>
+      </div>
+      <p id="gym-verdict" aria-live="polite"></p>
+      <div id="gym-out" class="space-y-3 mt-3"></div>
+    </section>
+  </div>
+</main>
+{{ gym|json_script:"gym-data" }}
+<script src="{% static 'labs/js/gym.js' %}" defer></script>
+{% endblock content %}

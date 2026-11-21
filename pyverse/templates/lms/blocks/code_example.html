@@ -3,6 +3,12 @@ Code block: the one implementation for lesson code. Light text on ink (the old
 markup inherited dark ink on near-black, so code was unreadable); long lines
 scroll inside the block; the scroller is focusable so keyboard users can reach
 it; the whole figure carries `.code-block` so Copy can find the <code>.
+
+`CodeExampleBlock.get_context` supplies `code_html` (escaped, and one span per line
+when `show_line_numbers` is on) and `code_lines_class`; `.code-lines` (styles.css)
+numbers the lines with a CSS counter, so the digits are never part of the text
+Copy reads. Keep the code element's content on one line: whitespace inside a pre
+element is rendered.
 {% endcomment %}
 {% if value.code %}
   <figure class="code-block my-6 border-[3px] border-ink bg-ink text-bg shadow-card">
@@ -18,6 +24,6 @@ it; the whole figure carries `.code-block` so Copy can find the <code>.
       </figcaption>
     {% endif %}
     <pre class="m-0 overflow-x-auto p-4 font-mono text-sm leading-relaxed"
-         tabindex="0"><code class="language-{{ value.language }}">{{ value.code }}</code></pre>
+         tabindex="0"><code class="language-{{ value.language }} {{ code_lines_class }}">{{ code_html }}</code></pre>
   </figure>
 {% endif %}

@@ -10,12 +10,16 @@
     <div class="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {% for topic in topics %}
         <a href="{{ topic.url }}" class="card group no-underline">
+          {# The one inline style here is deliberate: the colour is chosen in the CMS, so no utility class can name it. #}
+          {# djlint:off H021 #}
           <span class="mb-3 flex h-10 w-10 items-center justify-center border-[3px] border-ink bg-device text-ink"
+                {% if topic.accent_color %}style="color: {{ topic.accent_color }}"{% endif %}
                 aria-hidden="true">
             <i data-lucide="{% if topic.icon %}{{ topic.icon }}{% else %}book-open{% endif %}"></i>
           </span>
+          {# djlint:on #}
           <h3 class="font-black text-lg leading-tight text-ink group-hover:underline">{{ topic.title }}</h3>
-          <p class="mt-auto pt-2 font-mono text-xs text-muted">{{ topic.coursepage_set.live.count }} courses</p>
+          <p class="mt-auto pt-2 font-mono text-xs text-muted">{{ topic.course_count }} course{{ topic.course_count|pluralize }}</p>
         </a>
       {% empty %}
         <div class="col-span-full">

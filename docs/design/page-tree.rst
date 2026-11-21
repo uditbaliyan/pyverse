@@ -44,10 +44,28 @@ The LMS chain specifically:
 * ``LMSIndexPage`` — ``/learn/``, one per site. Lists topics and featured
   courses.
 * ``TopicPage`` — a subject ("Arrays & Hashing"). Carries ``icon``, ``color``,
-  ``description`` and ``display_order``; orders by ``display_order, title``.
-  Filters its course grid by ``?difficulty=``, ``?type=``, ``?free=1`` with
-  server-side pagination (12 per page).
-* ``CoursePage`` — one course. ``course_type`` and ``difficulty`` discriminate;
+  ``description`` and ``display_order``; orders by ``display_order, title``, and
+  the Learn hub lists topics in that order. ``icon`` must be a Lucide-style name
+  (lowercase, digits, single hyphens) and ``color`` a six-digit hex colour;
+  both are validated on save. The hub tints the topic's icon with ``color``
+  through ``accent_color``, which re-checks the value so a row saved before the
+  validators existed can never reach a ``style`` attribute (the one inline
+  style in the LMS templates, marked as a deliberate exception). Its page
+  carries *every* live course, ordered by ``CoursePage.display_order`` and then
+  newest first, and ``static/lms/js/course-filter.js`` filters the grid in the
+  browser by difficulty, type and "free only", mirroring the choice into
+  ``?difficulty=`` / ``?type=`` / ``?free=1`` so a filtered view can be linked.
+  The export writes one file per page and never sees a query string, so the grid
+  is neither filtered nor paged on a server: a server-side filter or pager would
+  be dead controls on the static site, and courses past the first page would be
+  unreachable from it. The filter bar ships ``hidden`` and the script reveals it,
+  so without JavaScript every course is listed and no control is offered that
+  cannot work; a topic with a single course shows no filter at all.
+* ``CoursePage`` — one course. ``display_order`` (default 0, negatives pin to the
+  top) lets editors arrange a topic's courses; courses that share a number stay
+  newest first, so existing topics keep their order until someone sets one. The
+  hub's featured row is unaffected: it stays newest first across topics.
+  ``course_type`` and ``difficulty`` discriminate;
   ``ordered_lessons()`` returns ``LessonPage.objects.child_of(self).live()
   .order_by("path")`` — treebeard path order, i.e. the order the editor arranged
   them. ``lesson_count`` is cached on the instance, and card grids fill it from
@@ -55,8 +73,16 @@ The LMS chain specifically:
   grid of cards").
 * ``LessonPage`` — one lesson. ``body`` is a StreamField of ``text`` / ``video``
   / ``code_example`` / ``callout`` / ``image`` / ``mermaid`` / ``notebook`` /
-  ``practice`` blocks. ``prev`` / ``next`` navigation is computed from sibling
-  order.
+  ``practice`` blocks. ``code_example`` honours ``show_line_numbers``:
+  ``CodeExampleBlock.get_context`` builds the ``<code>`` contents (one span per
+  line) and ``.code-lines`` numbers them with a CSS counter, so the digits are
+  not text and Copy / selection never include them. ``prev`` / ``next``
+  navigation is computed from sibling order. A draft previewed from the editor is not live, so it is slotted in by
+  tree path (``LessonPage._lessons_in_reading_order``) and previews in its real
+  place instead of reading "Lesson 0 of N". ``progress_key`` — the
+  ``topic/course/lesson`` slugs read off ``url_path`` — is the identity the
+  browser stores progress under (``progress-tracking.rst``); ``course`` and
+  ``topic`` are resolved once per instance with one query each.
 
 ``course_type`` and ``difficulty``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -99,8 +125,14 @@ block only one app renders carries that app's template with it.
     ``quiz.Quiz``, plus ``required_to_advance``. Exactly one of the two choosers
     must be set: ``StructBlock`` has no native "exactly one of", so
     ``PracticeBlock.clean()`` raises ``blocks.StructBlockValidationError`` keyed
-    on ``problem`` when both or neither are filled. Renders
-    ``templates/lms/blocks/practice_embed.html``.
+    on ``problem`` when both or neither are filled. It also rejects a target
+    that is in no Practice topic (``topic_id is None``): the export writes the
+    page of a problem or quiz only when it has a live topic (``seo.live_problems``
+    / ``live_quizzes``), so such a checkpoint would link to a page that does not
+    exist. A target whose topic is merely unpublished is accepted, so an author
+    can build the lesson first — publish the topic before the lesson. Renders
+    ``templates/lms/blocks/practice_embed.html``, which renders nothing if the
+    target was deleted after the lesson was saved.
 
     The chooser targets are the snippets the practice surfaces already serve —
     "a problem page" is a route on a snippet, not a page (see ``labs.rst``'s
@@ -186,8 +218,13 @@ it, and the naive implementation costs one ``COUNT`` per card.
   ``ordered_lessons().count()`` when nothing filled it: a single-course page
   keeps working with no plumbing, and a grid that forgets to fill the cache is
   correct-but-slower rather than wrong.
-* Both grids are wired: ``TopicPage.get_context`` (the course grid, 12 per page)
-  and ``LMSIndexPage.get_context`` (the up-to-six featured courses).
+* ``course_counts_for(container, topics)`` is the same batch one level up —
+  live courses under each topic — and feeds the "N courses" line on the hub's
+  topic cards (``TopicPage.set_course_count`` / ``course_count``). Both public
+  functions share one private helper, ``_live_child_counts``.
+* The grids are wired: ``TopicPage.get_context`` (every live course on the
+  page), ``LMSIndexPage.get_context`` (the up-to-six featured courses, and the
+  topic cards through ``course_counts_for``).
 
 ``container`` is the page the grid's courses hang under — the ``TopicPage``
 itself for the topic grid, the ``LMSIndexPage`` for featured courses — so the
@@ -299,7 +336,8 @@ and under ``full_clean()``; a body assigned from a script or a data migration ca
 carry both choosers, or neither, and the template then renders whichever side is
 truthy (both-set renders the problem, since ``{% if value.problem %}`` is tested
 first). The two malformed shapes are visible on the page — an empty title slot —
-but the invariant is not enforced at the database level.
+but the invariant is not enforced at the database level. The same goes for the
+rule that a target must sit in a Practice topic.
 
 *Lesson counts are per request.* ``lesson_counts_for`` runs on every grid render,
 with no cache beyond the instance attribute: one extra query per grid, traded

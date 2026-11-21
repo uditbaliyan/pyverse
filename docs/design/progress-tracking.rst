@@ -41,6 +41,14 @@ database ``pyverse_progress``, version ``2``:
    * - ``lesson_status``
      - ``slug``
      - LMS lesson completion: ``{slug, course, title, updated}``. Added in v2.
+       ``slug`` holds the lesson's *progress key* (``topic/course/lesson``, from
+       ``LessonPage.progress_key``), not the bare lesson slug: a lesson slug is
+       only unique inside one course, so two courses with an ``introduction``
+       lesson would otherwise share one record. A record written under a bare
+       slug before the key existed is ignored (nothing had been deployed). The
+       course page's "Start learning" button reads this store too: once some
+       lessons are done it becomes "Continue learning" and lands on the first
+       unfinished lesson ("Review course" when all are done).
 
 The comment at the top of the file states the model: "One IndexedDB store,
 shared by every Practice surface … and only the problem page writes to it.

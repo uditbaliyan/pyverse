@@ -6,13 +6,20 @@
  * to render: without the store, the course page shows no ticks and the lesson
  * page hides its controls instead of pretending a write happened.
  *
+ * A lesson is identified by its `progress_key` (`LessonPage.progress_key`, the
+ * topic/course/lesson slugs, e.g. "python/basics/introduction"), carried in
+ * `data-lesson-key`. Never the bare lesson slug: slugs are only unique inside one
+ * course, so two courses that both have an `introduction` lesson would share a
+ * record. The key is stored in the `slug` field of the `lesson_status` store (its
+ * keyPath), so the shared store needs no change.
+ *
  * DOM contract
  *   course page  [data-course-progress][data-total]  + #course-progress-count,
- *                #course-progress-bar, and one [data-lesson-slug] row per
+ *                #course-progress-bar, and one [data-lesson-key] row per
  *                lesson with an optional [data-lesson-state] slot inside.
- *   lesson page  #lesson-complete[data-lesson-slug][data-course-slug]
+ *   lesson page  #lesson-complete[data-lesson-key][data-course-slug]
  *                [data-lesson-title], #lesson-complete-done, #lesson-undo, and
- *                an optional [data-lesson-list] whose [data-lesson-slug] links
+ *                an optional [data-lesson-list] whose [data-lesson-key] links
  *                get marked too.
  *   lesson page  ... plus [data-checkpoint][data-checkpoint-slug]
  *                (optional [data-checkpoint-required], [data-checkpoint-state]),
@@ -52,38 +59,65 @@
   }
 
   function paintList(map) {
-    document.querySelectorAll("[data-lesson-slug]").forEach(function (element) {
-      // The lesson page's own control carries the slug too; it has its own
+    document.querySelectorAll("[data-lesson-key]").forEach(function (element) {
+      // The lesson page's own control carries the key too; it has its own
       // completed/not-completed state, so it is not a list row.
       if (element.id === "lesson-complete") return;
-      var slug = element.getAttribute("data-lesson-slug");
-      markElement(element, Boolean(map[slug]));
+      var key = element.getAttribute("data-lesson-key");
+      markElement(element, Boolean(map[key]));
     });
   }
 
   function paintCourseProgress(map) {
     if (!courseBlock) return;
-    var slugs = Array.prototype.map.call(
-      courseBlock.querySelectorAll("[data-lesson-slug]"),
+    var keys = Array.prototype.map.call(
+      courseBlock.querySelectorAll("[data-lesson-key]"),
       function (element) {
-        return element.getAttribute("data-lesson-slug");
+        return element.getAttribute("data-lesson-key");
       },
     );
-    if (!slugs.length) return;
-    var done = slugs.filter(function (slug) {
-      return Boolean(map[slug]);
+    if (!keys.length) return;
+    var done = keys.filter(function (key) {
+      return Boolean(map[key]);
     }).length;
-    var total = Number(courseBlock.getAttribute("data-total")) || slugs.length;
+    var total = Number(courseBlock.getAttribute("data-total")) || keys.length;
     var count = document.getElementById("course-progress-count");
     var bar = document.getElementById("course-progress-bar");
     if (count) count.textContent = done + " of " + total + " complete";
     if (bar) bar.style.width = ((done / total) * 100).toFixed(1) + "%";
+    paintContinue(courseBlock.querySelectorAll("[data-lesson-key]"), map);
+  }
+
+  // "Start learning" becomes "Continue learning" once some lessons are done and
+  // lands on the first one that is not; with every lesson done it reads "Review
+  // course" and points back at the first lesson. The original href/label are kept
+  // on the element so undoing a lesson restores them.
+  function paintContinue(rows, map) {
+    var cta = document.querySelector("[data-course-cta] a");
+    if (!cta || !rows.length) return;
+    if (!cta.hasAttribute("data-start-href")) {
+      cta.setAttribute("data-start-href", cta.getAttribute("href"));
+      cta.setAttribute("data-start-label", cta.textContent.trim());
+    }
+    var remaining = Array.prototype.filter.call(rows, function (row) {
+      return !map[row.getAttribute("data-lesson-key")];
+    });
+    var href = cta.getAttribute("data-start-href");
+    var label = cta.getAttribute("data-start-label");
+    if (remaining.length && remaining.length < rows.length) {
+      href = remaining[0].getAttribute("href");
+      label = "Continue learning";
+    } else if (!remaining.length) {
+      label = "Review course";
+    }
+    cta.setAttribute("href", href);
+    cta.textContent = label;
   }
 
   function paintLessonButton(map) {
     if (!completeButton) return;
-    var slug = completeButton.getAttribute("data-lesson-slug");
-    var done = Boolean(map[slug]);
+    var key = completeButton.getAttribute("data-lesson-key");
+    var done = Boolean(map[key]);
     var donePanel = document.getElementById("lesson-complete-done");
     completeButton.classList.toggle("hidden", done);
     if (donePanel) {
@@ -117,15 +151,17 @@
     .then(paint)
     .catch(fail);
 
+  var undo = document.getElementById("lesson-undo");
+
   if (completeButton) {
     completeButton.addEventListener("click", function () {
-      var slug = completeButton.getAttribute("data-lesson-slug");
+      var key = completeButton.getAttribute("data-lesson-key");
       completeButton.disabled = true;
       store
         .completeLesson({
-          slug: slug,
+          slug: key, // the store's keyPath; holds the lesson key (see above)
           course: completeButton.getAttribute("data-course-slug") || "",
-          title: completeButton.getAttribute("data-lesson-title") || slug,
+          title: completeButton.getAttribute("data-lesson-title") || key,
         })
         .then(function () {
           return store.lessonMap();
@@ -133,24 +169,26 @@
         .then(function (map) {
           completeButton.disabled = false;
           paint(map);
+          // "Mark complete" is hidden now; keep keyboard focus on a live control.
+          if (undo) undo.focus();
         })
         .catch(fail);
     });
   }
 
-  var undo = document.getElementById("lesson-undo");
   if (undo && completeButton) {
     undo.addEventListener("click", function () {
-      var slug = completeButton.getAttribute("data-lesson-slug");
+      var key = completeButton.getAttribute("data-lesson-key");
       undo.disabled = true;
       store
-        .uncompleteLesson(slug)
+        .uncompleteLesson(key)
         .then(function () {
           return store.lessonMap();
         })
         .then(function (map) {
           undo.disabled = false;
           paint(map);
+          completeButton.focus();
         })
         .catch(fail);
     });
@@ -168,13 +206,13 @@
       element.setAttribute("data-checkpoint-done", done ? "1" : "0");
       var slot = element.querySelector("[data-checkpoint-state]");
       if (slot) slot.textContent = done ? "✓ Done" : "Not started";
-      // The block ships with the neutral pair; swap it for the done pair rather
-      // than adding both, so the same border/background properties never
-      // compete.
-      element.classList.toggle("border-neutral-200", !done);
-      element.classList.toggle("bg-neutral-50", !done);
-      element.classList.toggle("border-green-300", done);
-      element.classList.toggle("bg-green-50", done);
+      // The block ships with the ink/paper pair (`practice_embed.html`); swap it
+      // for the done pair rather than adding both, so the same border/background
+      // properties never compete.
+      element.classList.toggle("border-ink", !done);
+      element.classList.toggle("bg-bg-2", !done);
+      element.classList.toggle("border-ok", done);
+      element.classList.toggle("bg-ok-bg", done);
     });
   }
 

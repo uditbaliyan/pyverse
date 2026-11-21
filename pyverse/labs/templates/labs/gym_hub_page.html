@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block content %}
+<main class="max-w-4xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-2">{{ page.title }}</h1>
+  <div class="prose max-w-none mb-8">{{ page.intro|richtext }}</div>
+  {% for g in groups %}
+  <section class="mb-8" id="{{ g.key }}">
+    <h2 class="text-xl font-bold mb-3">{{ g.label }}</h2>
+    <ul class="grid gap-3 sm:grid-cols-2">
+      {% for ex in g.items %}
+      <li><a href="{{ ex.url }}" class="block border-2 border-black p-3 hover:bg-black hover:text-white">
+        <span class="font-bold">{{ ex.title }}</span>
+        <span class="block text-sm">{{ ex.get_difficulty_display }}</span></a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% empty %}<p>No exercises yet.</p>{% endfor %}
+</main>
+{% endblock content %}

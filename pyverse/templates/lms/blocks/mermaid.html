@@ -2,7 +2,8 @@
   <div class="mermaid-wrap my-8 overflow-hidden border-[3px] border-ink shadow-card">
     <div class="flex items-center justify-between px-4 py-2 border-b-[3px] border-ink bg-bg-2">
       <span class="font-mono text-xs font-bold text-muted uppercase">Diagram</span>
-      <button onclick=" const src = this.closest('.mermaid-wrap').querySelector('.mermaid-src'); navigator.clipboard.writeText(src.textContent); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy source'), 1500); "
+      <button type="button"
+              onclick=" const src = this.closest('.mermaid-wrap').querySelector('.mermaid-src'); navigator.clipboard.writeText(src.textContent); this.textContent = 'Copied!'; setTimeout(() => (this.textContent = 'Copy source'), 1500); "
               class="inline-flex min-h-11 cursor-pointer items-center px-3 font-mono text-xs font-bold hover:bg-ink hover:text-bg">
         Copy source
       </button>

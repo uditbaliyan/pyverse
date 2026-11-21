@@ -1,33 +1,37 @@
 {% comment %}
 Practice Checkpoint (`pyverse.lms.models.PracticeBlock`). Exactly one of
-problem/quiz is set — `PracticeBlock.clean` rejects both/neither when the lesson
-is saved.
+problem/quiz is set — `PracticeBlock.clean` rejects both/neither (and a target
+outside any Practice topic) when the lesson is saved.
 
 `data-checkpoint-slug` is the slug `js/pyverse-progress.js` records when the
 problem is accepted or the quiz is passed, so `lms/js/lesson-progress.js` can
 tick this block and gate the next-lesson link when `required_to_advance` is set.
+
+If the problem/quiz was deleted after the lesson was saved there is nothing left
+to practise, so the block renders nothing rather than an empty card whose link
+goes nowhere.
 {% endcomment %}
-<div class="my-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4"
-     data-checkpoint
-     data-checkpoint-kind="{% if value.problem %}problem{% else %}quiz{% endif %}"
-     data-checkpoint-slug="{% if value.problem %}{{ value.problem.slug }}{% else %}{{ value.quiz.slug }}{% endif %}"
-     {% if value.required_to_advance %}data-checkpoint-required{% endif %}>
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-        {% if value.required_to_advance %}Required checkpoint{% else %}Practice checkpoint{% endif %}
+{% if value.problem or value.quiz %}
+  <div class="my-6 border-[3px] border-ink bg-bg-2 p-4 shadow-card"
+       data-checkpoint
+       data-checkpoint-kind="{% if value.problem %}problem{% else %}quiz{% endif %}"
+       data-checkpoint-slug="{% if value.problem %}{{ value.problem.slug }}{% else %}{{ value.quiz.slug }}{% endif %}"
+       {% if value.required_to_advance %}data-checkpoint-required{% endif %}>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="font-mono text-xs font-bold text-muted">
+          {% if value.required_to_advance %}Required checkpoint{% else %}Practice checkpoint{% endif %}
+        </p>
+        <p class="font-bold text-ink">{% if value.problem %}{{ value.problem.title }}{% else %}{{ value.quiz.title }}{% endif %}</p>
       </div>
-      <div class="font-medium">{% if value.problem %}{{ value.problem.title }}{% else %}{{ value.quiz.title }}{% endif %}</div>
-    </div>
-    <div class="flex items-center gap-3">
-      <span class="text-xs text-neutral-500" data-checkpoint-state>Not started</span>
-      {% if value.problem %}
-        <a href="{{ value.problem.get_absolute_url }}"
-           class="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">Try it</a>
-      {% else %}
-        <a href="{{ value.quiz.get_absolute_url }}"
-           class="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-700 transition-colors">Take the quiz</a>
-      {% endif %}
+      <div class="flex items-center gap-3">
+        <span class="font-mono text-xs text-body-txt" data-checkpoint-state>Not started</span>
+        {% if value.problem %}
+          <a href="{{ value.problem.get_absolute_url }}" class="btn btn-sm">Try it</a>
+        {% else %}
+          <a href="{{ value.quiz.get_absolute_url }}" class="btn btn-sm">Take the quiz</a>
+        {% endif %}
+      </div>
     </div>
   </div>
-</div>
+{% endif %}

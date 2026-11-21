@@ -13,7 +13,7 @@
              data-lesson-list>
           {% for lesson in lesson_list %}
             <a href="{{ lesson.url }}"
-               data-lesson-slug="{{ lesson.slug }}"
+               data-lesson-key="{{ lesson.progress_key }}"
                {% if lesson.id == page.id %}aria-current="page"{% endif %}
                class="flex min-h-11 items-center gap-2 px-3 py-1.5 text-sm no-underline hover:bg-bg-2 {% if lesson.id == page.id %}bg-ink font-bold !text-bg hover:!bg-ink{% else %}text-body-txt{% endif %}">
               <span class="font-mono text-xs opacity-70">{{ forloop.counter }}.</span>
@@ -44,7 +44,7 @@
         <div class="flex items-center gap-3">
           <button type="button"
                   id="lesson-complete"
-                  data-lesson-slug="{{ page.slug }}"
+                  data-lesson-key="{{ page.progress_key }}"
                   data-lesson-title="{{ page.title }}"
                   data-course-slug="{{ course.slug }}"
                   class="btn">Mark complete</button>
@@ -66,25 +66,20 @@
   </div>
 {% endblock content %}
 {% block inline_javascript %}
-  <script>
-    // Built from lesson_list: only CoursePage supplies lesson_slugs_json.
-    window.__LESSON_SLUGS__ = [{% for l in lesson_list %} "{{ l.slug|escapejs }}"
-      {% if not forloop.last %}, {% endif %}{% endfor %}
-    ];
-    window.__CURRENT_LESSON__ = "{{ page.slug }}";
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-  <script>
-    // Guarded: if the CDN is unreachable the lesson must still work.
-    if (window.mermaid) {
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: 'neutral',
-        securityLevel: 'loose',
-        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-      });
-    }
-  </script>
+  {% if has_mermaid %}
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+      // Guarded: if the CDN is unreachable the lesson must still work.
+      if (window.mermaid) {
+        mermaid.initialize({
+          startOnLoad: true,
+          theme: 'neutral',
+          securityLevel: 'loose',
+          fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+        });
+      }
+    </script>
+  {% endif %}
   <script src="{% static 'js/pyverse-progress.js' %}"></script>
   <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
   {% if has_notebook %}
@@ -94,5 +89,4 @@
             data-pyodide="{% static 'vendor/pyodide/0.27.7/pyodide.js' %}"></script>
     <script src="{% static 'lms/js/notebook.js' %}"></script>
   {% endif %}
-  {% include "lms/_lucide.html" %}
 {% endblock inline_javascript %}

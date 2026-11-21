@@ -254,6 +254,17 @@ nav a[aria-current="page"] {
     @apply bg-ok-bg text-ok;
   }
 
+  /* Code line numbers (`show_line_numbers`, templates/lms/blocks/code_example.html).
+     Drawn from a counter, so they are not text: select or copy never takes them. */
+  .code-lines {
+    counter-reset: code-line;
+  }
+  .code-line::before {
+    counter-increment: code-line;
+    content: counter(code-line);
+    @apply mr-4 inline-block w-[3ch] text-right text-bg/55 select-none;
+  }
+
 
   /* ---- Form fields. crispy (bootstrap5 pack) and the allauth element
      overrides emit these class names; styling them here fixes every form at

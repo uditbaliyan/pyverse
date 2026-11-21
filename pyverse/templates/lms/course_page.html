@@ -69,7 +69,10 @@
           </div>
         </dl>
         {% if lessons %}
-          {% include "components/button.html" with label="Start learning" href=lessons.0.url full=True %}
+          {# lms/js/lesson-progress.js turns this into "Continue learning" once some lessons are done. #}
+          <div data-course-cta>
+            {% include "components/button.html" with label="Start learning" href=lessons.0.url full=True %}
+          </div>
         {% endif %}
       </div>
     </aside>
@@ -95,7 +98,7 @@
       <div class="divide-y-[3px] divide-ink border-[3px] border-ink bg-bg-2 shadow-card">
         {% for lesson in lessons %}
           <a href="{{ lesson.url }}"
-             data-lesson-slug="{{ lesson.slug }}"
+             data-lesson-key="{{ lesson.progress_key }}"
              class="group flex min-h-14 items-center gap-4 px-4 py-3 no-underline hover:bg-device sm:px-5">
             <span class="lesson-index flex h-9 w-9 shrink-0 items-center justify-center border-2 border-ink bg-bg font-mono text-sm font-bold">{{ forloop.counter }}</span>
             <span class="min-w-0 flex-1">
@@ -111,11 +114,6 @@
   {% endif %}
 {% endblock content %}
 {% block inline_javascript %}
-  <script>
-    // Expose lesson slugs for progress tracking
-    window.__LESSON_SLUGS__ = {{ lesson_slugs_json|safe }};
-  </script>
   <script src="{% static 'js/pyverse-progress.js' %}"></script>
   <script src="{% static 'lms/js/lesson-progress.js' %}"></script>
-  {% include "lms/_lucide.html" %}
 {% endblock inline_javascript %}

@@ -4,28 +4,32 @@
 Notebook (`pyverse.lms.models.NotebookBlock`). Markdown cells are rendered here;
 code cells are read from the DOM and run in the learner's browser by
 `static/lms/js/notebook.js` + `includes/pyscript_runtime.html`.
+
+Styled like the other lesson blocks (ink border, hard shadow). The status line is
+a live region so a screen reader hears "Running…" and the result.
 {% endcomment %}
-<div class="notebook my-6 rounded-xl border border-neutral-200 overflow-hidden"
+<div class="notebook my-6 border-[3px] border-ink bg-bg-2 shadow-card"
      data-notebook>
-  <div class="flex items-center justify-between gap-3 px-4 py-2 border-b border-neutral-200 bg-neutral-50">
-    <span class="text-xs font-mono text-neutral-500">Notebook</span>
-    <span class="text-xs text-neutral-400" data-notebook-status>Loading Python runtime…</span>
-    <button type="button"
-            class="px-3 py-1 rounded-lg bg-neutral-900 text-white text-xs font-medium hover:bg-neutral-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            data-notebook-run
-            disabled>▶ Run</button>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-ink px-4 py-2">
+    <span class="font-mono text-xs font-bold text-muted">Notebook</span>
+    <span class="font-mono text-xs text-body-txt"
+          role="status"
+          data-notebook-status>Loading Python runtime…</span>
+    <button type="button" class="btn btn-sm" data-notebook-run disabled>▶ Run</button>
   </div>
-  <div class="p-4 space-y-3">
+  <div class="space-y-3 p-4">
     {% for cell in value.cells %}
-      {% if cell.cell_type == 'markdown' %}
+      {% if cell.cell_type == "markdown" %}
         <div class="rich-text" data-cell data-cell-type="markdown">{{ cell.source|markdown }}</div>
       {% else %}
-        <div class="rounded-lg border border-neutral-200 overflow-hidden"
+        <div class="overflow-hidden border-2 border-ink"
              data-cell
              data-cell-type="code">
-          <pre class="!m-0 !rounded-none !border-none bg-neutral-950 text-neutral-100 text-sm p-3 overflow-x-auto"
+          <pre class="!m-0 !rounded-none !border-none bg-ink p-3 font-mono text-sm text-bg overflow-x-auto"
+               tabindex="0"
                data-cell-source>{{ cell.source }}</pre>
-          <pre class="hidden !m-0 !rounded-none !border-none bg-neutral-50 text-xs p-3 overflow-x-auto"
+          <pre class="hidden !m-0 !rounded-none !border-none bg-bg p-3 font-mono text-xs text-body-txt overflow-x-auto"
+               tabindex="0"
                data-cell-out></pre>
         </div>
       {% endif %}
