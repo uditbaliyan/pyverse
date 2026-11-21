@@ -139,6 +139,7 @@ jobs:
           uv run python manage.py check_gym
           uv run python manage.py check_problem_traces
           uv run python manage.py check_parsons
+          uv run python manage.py check_drill_quizzes
 
       - name: Check export (placeholders, dead refs, duplicate ids, page floor)
         run: python3 utility/check_export.py _site --min-pages 38

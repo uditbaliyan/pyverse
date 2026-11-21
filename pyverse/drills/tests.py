@@ -8,9 +8,12 @@ from django.core.management.base import CommandError
 from django.utils.html import escape
 
 from pyverse.drills import parsons
+from pyverse.drills import quizitems
 from pyverse.drills.models import DrillTopicPage
 from pyverse.drills.models import ParsonsProblem
 from pyverse.lms.models import DrillTopicBlock
+from pyverse.quiz.models import Question
+from pyverse.quiz.models import QuestionType
 from pyverse.seo import live_drill_pages
 
 
@@ -111,8 +114,8 @@ def test_pages_render(seeded, client):
     first = client.get(seeded.url)
     second = client.get(f"{seeded.url}page/2/")
     assert first.status_code == second.status_code == 200
-    assert len(first.context["problems"]) == 10
-    assert len(second.context["problems"]) == 4
+    assert len(first.context["items"]) == 10
+    assert len(second.context["items"]) == 4
     body = first.content.decode()
     assert 'rel="next"' in body
     assert "parsons.js" in body
@@ -179,3 +182,67 @@ def test_type_page_cards_carry_slugs_for_progress(seeded, client):
     assert response.status_code == 200
     assert "data-drill-slugs=" in response.content.decode()
     assert "drill-progress.js" in response.content.decode()
+
+
+# ── quiz type ───────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def quiz_topic(db):
+    call_command("seed_drills", verbosity=0)
+    return DrillTopicPage.objects.get(slug="python-basics")
+
+
+def test_quiz_topic_lists_the_questions_of_its_quizzes(quiz_topic, client):
+    assert quiz_topic.kind == "quiz"
+    assert quiz_topic.item_count() == 5
+    response = client.get(quiz_topic.url)
+    body = response.content.decode()
+    assert response.status_code == 200
+    assert body.count("data-qitem") == 5
+    assert "drill-quiz.js" in body
+    assert "parsons.js" not in body
+    assert body.count('data-correct="1"') == 5  # one right answer per question
+    assert 'data-slugs="q' in body
+
+
+def test_quiz_questions_paginate_like_puzzles(quiz_topic, client):
+    quiz = quiz_topic.quizzes.get()
+    for i in range(8):
+        Question.objects.create(
+            quiz=quiz,
+            sort_order=100 + i,
+            question_type=QuestionType.TRUE_FALSE,
+            text=f"Extra {i}",
+            correct_bool=True,
+        )
+    assert quiz_topic.num_pages() == 2
+    assert f"{quiz_topic.url}page/2/" in set(live_drill_pages())
+    assert len(client.get(f"{quiz_topic.url}page/2/").context["items"]) == 3
+
+
+def test_quiz_options_cover_true_false_and_mcq(quiz_topic):
+    first = quiz_topic.items()[0]
+    assert [o["text"] for o in quizitems.options(first)] == [
+        "int",
+        "float",
+        "str",
+        "Fraction",
+    ]
+    tf = quiz_topic.items().filter(question_type=QuestionType.TRUE_FALSE).first()
+    assert [o["text"] for o in quizitems.options(tf)] == ["True", "False"]
+    assert sum(o["correct"] for o in quizitems.options(tf)) == 1
+
+
+def test_check_drill_quizzes_passes_then_fails_on_a_broken_question(quiz_topic):
+    call_command("check_drill_quizzes", verbosity=0)
+    broken = quiz_topic.items().filter(question_type=QuestionType.MCQ).first()
+    broken.choices.update(is_correct=False)
+    with pytest.raises(CommandError):
+        call_command("check_drill_quizzes", verbosity=0)
+
+
+def test_type_pages_label_their_items(quiz_topic, client):
+    html = client.get(quiz_topic.get_parent().url).content.decode()
+    assert "5 questions" in html
+    assert 'data-drill-store="pv:drillquiz:solved"' in html

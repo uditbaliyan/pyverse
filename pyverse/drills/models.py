@@ -29,6 +29,11 @@ from pyverse.home.models import SEOFields
 from pyverse.taxonomy import DIFFICULTY_RANK
 from pyverse.taxonomy import Difficulty
 
+STORES = {
+    "parsons": "pv:parsons:solved",
+    "quiz": "pv:drillquiz:solved",
+}
+
 
 class DrillsHubPage(SEOFields, Page):
     """`/drills/` — the question types. One per site."""
@@ -54,6 +59,7 @@ class DrillTypePage(SEOFields, Page):
 
     class Kind(models.TextChoices):
         PARSONS = "parsons", "Parsons (arrange the lines)"
+        QUIZ = "quiz", "Quiz (multiple choice, true / false)"
 
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.PARSONS)
     intro = models.TextField(blank=True)
@@ -68,11 +74,13 @@ class DrillTypePage(SEOFields, Page):
     def get_context(self, request, *args, **kwargs):
         context = super().get_context(request, *args, **kwargs)
         topics = list(self.get_children().live().public().specific())
+        context["item_noun"] = "question" if self.kind == self.Kind.QUIZ else "puzzle"
         context["topics"] = [
             {
                 "page": t,
-                "count": t.problem_count(),
-                "slugs": ",".join(t.problem_slugs()),
+                "count": t.item_count(),
+                "slugs": ",".join(t.item_slugs()),
+                "store": t.progress_store,
             }
             for t in topics
         ]
@@ -93,18 +101,41 @@ class DrillTopicPage(RoutablePageMixin, SEOFields, Page):
     class Meta:
         verbose_name = "Drill Topic Page"
 
-    def problems(self):
+    @property
+    def kind(self) -> str:
+        return self.get_parent().specific.kind
+
+    @property
+    def progress_store(self) -> str:
+        """localStorage key the browser records solved items under."""
+        return STORES[self.kind]
+
+    def items(self):
+        """Every item of this topic in display order: Parsons puzzles, or the
+        questions of the quizzes assigned to it. Items have no pages of their own."""
+        if self.kind == DrillTypePage.Kind.QUIZ:
+            from pyverse.quiz.models import Question  # noqa: PLC0415
+
+            return (
+                Question.objects.filter(quiz__drill_topic=self)
+                .select_related("quiz")
+                .prefetch_related("choices")
+                .order_by("quiz__id", "sort_order", "id")
+            )
         return self.parsons_problems.order_by("position", DIFFICULTY_RANK, "id")
 
-    def problem_count(self) -> int:
-        return self.parsons_problems.count()
+    def item_count(self) -> int:
+        return self.items().count()
 
-    def problem_slugs(self) -> list[str]:
-        """Slugs in display order; the browser matches them against saved progress."""
-        return [p.slug for p in self.problems()]
+    def item_slugs(self) -> list[str]:
+        """Stable per-item ids in display order; the browser matches them against
+        saved progress (``p<slug>`` for puzzles' slugs, ``q<pk>`` for questions)."""
+        if self.kind == DrillTypePage.Kind.QUIZ:
+            return [f"q{q.pk}" for q in self.items()]
+        return [p.slug for p in self.items()]
 
     def num_pages(self) -> int:
-        return max(1, Paginator(self.problems(), self.PER_PAGE).num_pages)
+        return max(1, Paginator(self.items(), self.PER_PAGE).num_pages)
 
     def page_url_for(self, number: int) -> str:
         return self.url if number == 1 else f"{self.url}page/{number}/"
@@ -115,12 +146,14 @@ class DrillTopicPage(RoutablePageMixin, SEOFields, Page):
 
     def get_context(self, request, *args, number: int = 1, **kwargs):
         context = super().get_context(request, *args, **kwargs)
-        paginator = Paginator(self.problems(), self.PER_PAGE)
+        paginator = Paginator(self.items(), self.PER_PAGE)
         try:
             current = paginator.page(number)
         except EmptyPage as exc:
             raise Http404 from exc
-        context["problems"] = list(current.object_list)
+        context["items"] = list(current.object_list)
+        context["kind"] = self.kind
+        context["store"] = self.progress_store
         context["total"] = paginator.count
         context["current"] = number
         context["offset"] = (number - 1) * self.PER_PAGE

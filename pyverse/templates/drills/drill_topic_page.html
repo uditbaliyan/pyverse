@@ -8,7 +8,7 @@ Everything is static HTML plus `parsons.js`; progress lives in localStorage.
 Puzzle text is placed with textContent in the script, never as markup.
 {% endcomment %}
 {% block extra_head %}
-  <link rel="stylesheet" href="{% static 'css/parsons.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/drills.css' %}" />
   {% if prev_url %}<link rel="prev" href="{{ prev_url }}" />{% endif %}
   {% if next_url %}<link rel="next" href="{{ next_url }}" />{% endif %}
 {% endblock extra_head %}
@@ -18,28 +18,17 @@ Puzzle text is placed with textContent in the script, never as markup.
     <h1 class="mt-2 font-black text-[clamp(28px,4.5vw,48px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
     {% if page.intro and current == 1 %}<p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ page.intro }}</p>{% endif %}
     <p class="mt-4 font-mono text-[12px] text-muted">
-      {{ total }} puzzle{{ total|pluralize }} · page {{ current }} of {{ page_links|length }}
-      · <span data-parsons-progress data-slugs="{% for p in problems %}{{ p.slug }}{% if not forloop.last %},{% endif %}{% endfor %}">0 solved on this page</span>
+      {{ total }} {% if kind == "quiz" %}question{% else %}puzzle{% endif %}{{ total|pluralize }} · page {{ current }} of {{ page_links|length }}
+      · <span data-page-progress data-store="{{ store }}" data-slugs="{% if kind == "quiz" %}{% for q in items %}q{{ q.pk }}{% if not forloop.last %},{% endif %}{% endfor %}{% else %}{% for p in items %}{{ p.slug }}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">0 solved on this page</span>
     </p>
-    {% for problem in problems %}
-      {% with payload_id="parsons-"|add:problem.slug %}
-        <article id="{{ problem.slug }}" class="pv-parsons" data-parsons data-payload="{{ payload_id }}">
-          <header class="pv-parsons__head">
-            <span class="pv-parsons__num">{{ forloop.counter|add:offset }}</span>
-            <h2 class="pv-parsons__title">{{ problem.title }}</h2>
-            <span class="pv-parsons__meta">{{ problem.get_difficulty_display }}{% if problem.concept %} · {{ problem.concept }}{% endif %}</span>
-          </header>
-          <p class="pv-parsons__desc">{{ problem.description }}</p>
-          {% if problem.expected_output %}
-            <p class="pv-parsons__label">Expected output</p>
-            <pre class="pv-parsons__out">{{ problem.expected_output }}</pre>
-          {% endif %}
-          <div class="pv-parsons__mount"><noscript>This puzzle needs JavaScript.</noscript></div>
-          {{ problem.payload|json_script:payload_id }}
-        </article>
-      {% endwith %}
+    {% for item in items %}
+      {% if kind == "quiz" %}
+        {% include "drills/_quiz_item.html" with question=item number=forloop.counter|add:offset %}
+      {% else %}
+        {% include "drills/_parsons_item.html" with problem=item number=forloop.counter|add:offset %}
+      {% endif %}
     {% empty %}
-      <p class="mt-9 font-mono text-[12px] text-muted">No puzzles in this topic yet.</p>
+      <p class="mt-9 font-mono text-[12px] text-muted">Nothing in this topic yet.</p>
     {% endfor %}
     {% if page_links|length > 1 %}
       <nav class="pv-pager" aria-label="Puzzle pages">
@@ -53,5 +42,9 @@ Puzzle text is placed with textContent in the script, never as markup.
   </div>
 {% endblock content %}
 {% block extra_js %}
-  <script src="{% static 'js/parsons.js' %}" defer></script>
+  {% if kind == "quiz" %}
+    <script src="{% static 'js/drill-quiz.js' %}" defer></script>
+  {% else %}
+    <script src="{% static 'js/parsons.js' %}" defer></script>
+  {% endif %}
 {% endblock extra_js %}

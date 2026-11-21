@@ -57,6 +57,18 @@ class Quiz(ClusterableModel):
         ),
     )
 
+    drill_topic = models.ForeignKey(
+        "drills.DrillTopicPage",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="quizzes",
+        help_text=(
+            "Show this quiz's questions in a Drills topic (/drills/quiz/...). "
+            "Independent of the Practice topic above; a quiz can be in both."
+        ),
+    )
+
     techniques = TaggableManager(
         through=QuizTechnique,
         related_name="quiz_techniques",
@@ -72,6 +84,7 @@ class Quiz(ClusterableModel):
         FieldPanel("title"),
         FieldPanel("slug"),
         FieldPanel("topic"),
+        FieldPanel("drill_topic"),
         FieldPanel("difficulty"),
         FieldPanel("instructions"),
         FieldPanel("pass_percentage"),

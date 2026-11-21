@@ -236,3 +236,60 @@ PUZZLES = [
         ],
     },
 ]
+
+QUIZ_TOPICS = {
+    "python-basics": "Python Basics",
+}
+
+# Question shape: ("mcq", text, code, explanation, [(choice, is_correct), ...])
+#                 (, text, code, explanation, correct_bool)
+QUIZZES = [
+    {
+        "slug": "drill-python-basics-1",
+        "title": "Python Basics: Set 1",
+        "topic": "python-basics",
+        "questions": [
+            (
+                "mcq",
+                "What does this print?",
+                "print(type(3 / 2).__name__)",
+                "`/` is true division and always returns a float in Python 3.",
+                [("int", False), ("float", True), ("str", False), ("Fraction", False)],
+            ),
+            (
+                "mcq",
+                "What is the value of `x` afterwards?",
+                "x = [1, 2, 3]\ny = x\ny.append(4)\nx = len(x)",
+                "`y` and `x` pointed at the same list, so it grew to four items "
+                "before `x` was rebound to its length.",
+                [("3", False), ("4", True), ("[1, 2, 3, 4]", False), ("None", False)],
+            ),
+            (
+                "tf",
+                "`'abc'[::-1]` evaluates to `'cba'`.",
+                "",
+                "A slice with step -1 walks the string backwards.",
+                True,
+            ),
+            (
+                "tf",
+                "Tuples can be changed in place with `t[0] = 1`.",
+                "",
+                "Tuples are immutable; item assignment raises `TypeError`.",
+                False,
+            ),
+            (
+                "mcq",
+                "Which expression is `True`?",
+                "",
+                "An empty list is falsy, so `not []` is `True`. The others are all falsy.",
+                [
+                    ("bool([])", False),
+                    ("bool('')", False),
+                    ("not []", True),
+                    ("bool(0)", False),
+                ],
+            ),
+        ],
+    },
+]

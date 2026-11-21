@@ -40,7 +40,7 @@
 
   const progress = () => {
     const done = read();
-    document.querySelectorAll("[data-parsons-progress]").forEach((node) => {
+    document.querySelectorAll("[data-page-progress]").forEach((node) => {
       const slugs = (node.dataset.slugs || "").split(",").filter(Boolean);
       const solved = slugs.filter((s) => done[s]).length;
       node.textContent = `${solved} of ${slugs.length} solved on this page`;

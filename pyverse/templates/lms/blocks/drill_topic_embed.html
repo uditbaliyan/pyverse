@@ -14,7 +14,7 @@ of the topic's puzzles this browser has solved. A deleted topic renders nothing.
           {% if value.prompt %}<p class="text-sm text-body-txt mt-1">{{ value.prompt }}</p>{% endif %}
         </div>
         <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-body-txt" data-drill-slugs="{{ topic.specific.problem_slugs|join:',' }}">{{ topic.specific.problem_count }} puzzle{{ topic.specific.problem_count|pluralize }}</span>
+          <span class="font-mono text-xs text-body-txt" data-drill-slugs="{{ topic.specific.item_slugs|join:',' }}" data-drill-store="{{ topic.specific.progress_store }}">{{ topic.specific.item_count }} item{{ topic.specific.item_count|pluralize }}</span>
           <a href="{{ topic.url }}" class="btn btn-sm">Practise</a>
         </div>
       </div>

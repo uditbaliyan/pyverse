@@ -28,3 +28,19 @@
 .pv-pager a{border:2px solid #111;padding:5px 11px;color:#111;text-decoration:none;font-weight:700}
 .pv-pager a.is-current{background:#111;color:#fff}
 @media (prefers-reduced-motion:reduce){.pv-line,.pv-actions button{transition:none}}
+
+/* Quiz questions */
+.pv-q{margin-top:22px;border:3px solid #111;background:#fffdf5;padding:16px 18px;box-shadow:5px 5px 0 #111}
+.pv-q__text{margin:10px 0 0;line-height:1.55;font-weight:600;max-width:70ch;white-space:pre-line}
+.pv-q__opts{display:grid;gap:8px;margin-top:12px}
+.pv-q__opt{text-align:left;font:inherit;background:#fff;border:2px solid #111;padding:9px 12px;cursor:pointer;min-height:40px}
+.pv-q__opt:hover:not(:disabled),.pv-q__opt:focus-visible{background:#111;color:#fff}
+.pv-q__opt:disabled{cursor:default}
+.pv-q__opt.is-answer{border-color:#15803d;background:#f0fdf4;color:#14532d}
+.pv-q__opt.is-wrong{border-color:#b91c1c;background:#fef2f2;color:#7f1d1d}
+.pv-q__result{margin-top:12px;padding:10px 12px;border-left:5px solid #111;background:#fff}
+.pv-q__verdict{margin:0;font-weight:700}
+.pv-q__verdict[data-kind=ok]{color:#15803d}
+.pv-q__verdict[data-kind=bad]{color:#b91c1c}
+.pv-q__why{margin:6px 0 0;line-height:1.5;max-width:70ch}
+.pv-q__retry{margin-top:8px;font-weight:700;border:2px solid #111;background:#fff;padding:5px 12px;cursor:pointer}
