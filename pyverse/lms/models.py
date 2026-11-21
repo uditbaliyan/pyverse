@@ -9,6 +9,7 @@ from django.utils.html import format_html_join
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.admin.panels import MultiFieldPanel
+from wagtail.blocks import PageChooserBlock
 from wagtail.fields import StreamField
 from wagtail.images.blocks import ImageChooserBlock
 from wagtail.models import Page
@@ -196,6 +197,28 @@ class PracticeBlock(blocks.StructBlock):
                 },
             )
         return result
+
+
+class DrillTopicBlock(blocks.StructBlock):
+    """A reference from a lesson to a whole Drills topic (e.g. a Parsons set).
+
+    Drill items have no page of their own, so the topic page is the unit a lesson
+    can point at. The card shows the item count and, client-side, how many the
+    learner has solved (``static/js/drill-progress.js``). No gating: a topic is a
+    practice set, not a checkpoint.
+    """
+
+    topic = PageChooserBlock(page_type="drills.DrillTopicPage")
+    prompt = blocks.CharBlock(
+        required=False,
+        max_length=200,
+        help_text="Optional one-liner: what to practise here, shown on the card.",
+    )
+
+    class Meta:
+        icon = "list-ol"
+        template = "lms/blocks/drill_topic_embed.html"
+        label = "Drill Set"
 
 
 class NotebookCellBlock(blocks.StructBlock):
@@ -484,6 +507,7 @@ class LessonPage(Page):
             ("mermaid", MermaidBlock()),
             ("notebook", NotebookBlock()),
             ("practice", PracticeBlock()),
+            ("drill_set", DrillTopicBlock()),
         ],
         use_json_field=True,
     )

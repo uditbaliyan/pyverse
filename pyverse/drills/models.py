@@ -68,7 +68,14 @@ class DrillTypePage(SEOFields, Page):
     def get_context(self, request, *args, **kwargs):
         context = super().get_context(request, *args, **kwargs)
         topics = list(self.get_children().live().public().specific())
-        context["topics"] = [{"page": t, "count": t.problem_count()} for t in topics]
+        context["topics"] = [
+            {
+                "page": t,
+                "count": t.problem_count(),
+                "slugs": ",".join(t.problem_slugs()),
+            }
+            for t in topics
+        ]
         return context
 
 
@@ -91,6 +98,10 @@ class DrillTopicPage(RoutablePageMixin, SEOFields, Page):
 
     def problem_count(self) -> int:
         return self.parsons_problems.count()
+
+    def problem_slugs(self) -> list[str]:
+        """Slugs in display order; the browser matches them against saved progress."""
+        return [p.slug for p in self.problems()]
 
     def num_pages(self) -> int:
         return max(1, Paginator(self.problems(), self.PER_PAGE).num_pages)
@@ -144,7 +155,8 @@ class DrillTopicPage(RoutablePageMixin, SEOFields, Page):
 
 class LineBlock(blocks.StructBlock):
     text = blocks.CharBlock(
-        max_length=200, help_text="One line of code, no leading spaces.",
+        max_length=200,
+        help_text="One line of code, no leading spaces.",
     )
     indent = blocks.IntegerBlock(
         min_value=0,
@@ -222,7 +234,8 @@ class ParsonsProblem(models.Model):
         super().clean()
         if self.lines:
             report = parsons.verify(
-                self.lines, "",
+                self.lines,
+                "",
             )  # parse only; running is check_parsons's job
             if report.errors:
                 raise ValidationError({"lines": report.errors})

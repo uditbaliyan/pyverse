@@ -1,0 +1,24 @@
+{% comment %}
+Drill Set (`pyverse.lms.models.DrillTopicBlock`): a card linking the lesson to a
+Drills topic page. `data-drill-slugs` lets `js/drill-progress.js` show how many
+of the topic's puzzles this browser has solved. A deleted topic renders nothing.
+{% endcomment %}
+{% load static %}
+{% with topic=value.topic %}
+  {% if topic and topic.live %}
+    <div class="my-6 border-[3px] border-ink bg-bg-2 p-4 shadow-card" data-drill-ref>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="font-mono text-xs font-bold text-muted">Practice set</p>
+          <p class="font-bold text-ink">{{ topic.title }}</p>
+          {% if value.prompt %}<p class="text-sm text-body-txt mt-1">{{ value.prompt }}</p>{% endif %}
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-xs text-body-txt" data-drill-slugs="{{ topic.specific.problem_slugs|join:',' }}">{{ topic.specific.problem_count }} puzzle{{ topic.specific.problem_count|pluralize }}</span>
+          <a href="{{ topic.url }}" class="btn btn-sm">Practise</a>
+        </div>
+      </div>
+    </div>
+    <script src="{% static 'js/drill-progress.js' %}" defer></script>
+  {% endif %}
+{% endwith %}

@@ -1,5 +1,7 @@
 {% extends "home/base_.html" %}
 
+{% load static %}
+
 {% comment %}`/drills/<type>/` — the topic groups, with how many items each holds.{% endcomment %}
 {% block content %}
   <div class="page-container pt-7 pb-[90px]">
@@ -12,7 +14,7 @@
           <a href="{{ topic.page.url }}"
              class="bg-bg-2 border-[3px] border-ink p-[16px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink flex justify-between items-baseline gap-3">
             <span class="font-black text-[17px] tracking-tight">{{ topic.page.title }}</span>
-            <span class="font-mono text-[11px] text-muted whitespace-nowrap" data-drill-topic="{{ topic.page.pk }}" data-total="{{ topic.count }}">{{ topic.count }} puzzle{{ topic.count|pluralize }}</span>
+            <span class="font-mono text-[11px] text-muted whitespace-nowrap" data-drill-slugs="{{ topic.slugs }}">{{ topic.count }} puzzle{{ topic.count|pluralize }}</span>
           </a>
         </li>
       {% empty %}
@@ -21,3 +23,6 @@
     </ul>
   </div>
 {% endblock content %}
+{% block extra_js %}
+  <script src="{% static 'js/drill-progress.js' %}" defer></script>
+{% endblock extra_js %}

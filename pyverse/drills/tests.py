@@ -5,10 +5,12 @@ from __future__ import annotations
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils.html import escape
 
 from pyverse.drills import parsons
 from pyverse.drills.models import DrillTopicPage
 from pyverse.drills.models import ParsonsProblem
+from pyverse.lms.models import DrillTopicBlock
 from pyverse.seo import live_drill_pages
 
 
@@ -147,3 +149,33 @@ def test_check_parsons_command(seeded):
     )
     with pytest.raises(CommandError):
         call_command("check_parsons", verbosity=0)
+
+
+# ── LMS reference block ─────────────────────────────────────────────────
+
+
+def test_drill_set_block_renders_a_card_with_slugs(seeded):
+    block = DrillTopicBlock()
+    html = block.render(block.to_python({"topic": seeded.pk, "prompt": "Warm up"}))
+    assert escape(seeded.title) in html
+    assert "Warm up" in html
+    assert 'data-drill-slugs="' in html
+    assert "grade-classifier" in html
+    assert f'href="{seeded.url}"' in html
+
+
+def test_drill_set_block_renders_nothing_for_a_missing_or_unpublished_topic(seeded):
+    block = DrillTopicBlock()
+    assert block.render(block.to_python({"topic": 999999, "prompt": ""})).strip() == ""
+    seeded.unpublish()
+    assert (
+        block.render(block.to_python({"topic": seeded.pk, "prompt": ""})).strip() == ""
+    )
+
+
+def test_type_page_cards_carry_slugs_for_progress(seeded, client):
+    type_page = seeded.get_parent()
+    response = client.get(type_page.url)
+    assert response.status_code == 200
+    assert "data-drill-slugs=" in response.content.decode()
+    assert "drill-progress.js" in response.content.decode()
