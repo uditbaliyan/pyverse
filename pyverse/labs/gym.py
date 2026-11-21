@@ -11,6 +11,8 @@ import os
 import subprocess
 import sys
 
+from pyverse.common.sandbox import run_python
+
 # key, label, Pyodide packages to load
 LIBRARIES = [
     ("python", "Core Python", ()),
@@ -38,16 +40,14 @@ for key in ("setup", "code", "check"):
 
 def verify(setup: str, code: str, check: str, timeout: int = 60) -> tuple[bool, str]:
     """Run setup + code + check in a throwaway interpreter. Authoring/CI only."""
-    env = {**os.environ, "MPLBACKEND": "Agg"}
     try:
-        p = subprocess.run(
+        p = run_python(
             [sys.executable, "-c", _RUNNER],
-            input=json.dumps({"setup": setup, "code": code, "check": check}),
-            capture_output=True,
-            text=True,
+            stdin=json.dumps({"setup": setup, "code": code, "check": check}),
             timeout=timeout,
-            env=env,
-            check=False,
+            parent_env=os.environ,
+            extra_env={"MPLBACKEND": "Agg"},
+            memory_mb=2048,  # numpy / pandas / matplotlib import cost
         )
     except subprocess.TimeoutExpired:
         return False, f"timed out after {timeout}s"

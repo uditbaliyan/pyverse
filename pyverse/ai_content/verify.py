@@ -11,11 +11,14 @@ that page's harness.
 
 The solution runs in a subprocess for two reasons: an infinite loop must not
 hang the command, and a solution that raises must not take the command with it.
+The child gets a scrubbed environment, a temp working directory and resource
+limits (``pyverse.common.sandbox``), so it cannot read secrets from ours.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -23,6 +26,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+
+from pyverse.common.sandbox import run_python
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -105,13 +110,13 @@ def verify(
     limit = settings.AI_CONTENT_VERIFY_TIMEOUT
 
     try:
-        completed = subprocess.run(  # noqa: S603 - argv list, no shell, absolute interpreter
+        # Scrubbed env + temp cwd + rlimits: generated code must not be able to
+        # read the provider API key out of this process's environment.
+        completed = run_python(
             [sys.executable, str(RUNNER)],
-            input=job,
-            capture_output=True,
-            text=True,
+            stdin=job,
             timeout=limit,
-            check=False,
+            parent_env=os.environ,
         )
     except subprocess.TimeoutExpired:
         message = (
