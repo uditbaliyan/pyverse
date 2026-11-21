@@ -1,4 +1,4 @@
-import datetime
+import datetime  # noqa: ICN001
 
 import markdown
 from django.core.exceptions import ValidationError

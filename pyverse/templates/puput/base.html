@@ -41,20 +41,6 @@ Blocks for the blog templates: `blog_content` (the main column) and
         {% endblock extra_content %}
       </div>
       <aside class="pv-side-col flex flex-col gap-5">
-        <a class="pv-feed"
-           href="{% feeds_url blog_page %}"
-           target="_blank"
-           rel="noopener">RSS feed ↗</a>
-        <form class="pv-search"
-              name="search_form"
-              method="get"
-              action="{% routablepageurl blog_page 'entries_search' %}">
-          <input type="search"
-                 name="q"
-                 placeholder="{% trans 'Search notes' %}"
-                 aria-label="{% trans 'Search' %}" />
-          <button type="submit">Go</button>
-        </form>
         {% if blog_page.display_last_entries %}
           <section class="pv-side">
             <h4>{% trans 'Last entries' %}</h4>

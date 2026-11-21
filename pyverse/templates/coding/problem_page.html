@@ -988,7 +988,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
         </span>
       </div>
       <div class="pe-engine pe-app flex-1 min-h-0">
-        <div class="main" id="main">
+        <div class="main" id="problem-main">
           <div class="left" id="left-panel">
             <div class="tab-bar">
               <button class="tbtn on" data-tab="desc">Description</button>
@@ -1447,7 +1447,7 @@ runtime fetch. The grading harness lives in includes/pyscript_runtime.html.
       });
       document.addEventListener("mousemove", (e) => {
         if (!dragging) return;
-        const maxW = document.getElementById("main").getBoundingClientRect().width;
+        const maxW = document.getElementById("problem-main").getBoundingClientRect().width;
         const next = Math.min(Math.max(startW + e.clientX - startX, 260), maxW - 300);
         lp.style.width = next + "px";
         editor.refresh();

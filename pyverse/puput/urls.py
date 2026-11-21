@@ -36,8 +36,14 @@ urlpatterns = [
 def get_entry_url(entry, blog_page, root_page):
     """
     Get the entry url given and entry page a blog page instances.
-    It will use an url or another depending if blog_page is the root page.
+
+    PyVerse ships as a static export, which writes every entry at its own
+    Wagtail route (``/python/notes/<slug>/``); the dated puput route is never
+    exported, so links to it 404. Prefer the page URL whenever it exists.
     """
+    page_url = getattr(entry, "url", None)
+    if page_url:
+        return page_url
     if root_page == blog_page:
         return reverse(
             "entry_page_serve",
