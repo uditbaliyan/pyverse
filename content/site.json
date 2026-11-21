@@ -1,0 +1,2408 @@
+[
+ {
+  "model": "wagtailcore.locale",
+  "pk": 1,
+  "fields": {
+   "language_code": "en"
+  }
+ },
+ {
+  "model": "wagtailcore.collection",
+  "fields": {
+   "path": "0001",
+   "depth": 1,
+   "numchild": 0,
+   "name": "Root"
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001",
+   "depth": 1,
+   "numchild": 1,
+   "translation_key": "31634661-e57c-43b2-a73d-1746241c7bf9",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": null,
+   "last_published_at": null,
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Root",
+   "draft_title": "Root",
+   "slug": "root",
+   "content_type": [
+    "wagtailcore",
+    "page"
+   ],
+   "url_path": "/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": null,
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001",
+   "depth": 2,
+   "numchild": 1,
+   "translation_key": "549833fe-81ab-4e48-b1ce-c57a96bf192c",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": null,
+   "last_published_at": null,
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Site root",
+   "draft_title": "Site root",
+   "slug": "home",
+   "content_type": [
+    "wagtailcore",
+    "page"
+   ],
+   "url_path": "/home/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": null,
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001",
+   "depth": 3,
+   "numchild": 5,
+   "translation_key": "d6449c92-4bac-49c4-abfa-6bbdca6bd5aa",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": true,
+   "first_published_at": "2026-07-18T17:01:32.292Z",
+   "last_published_at": "2026-07-20T07:07:54.689Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Home",
+   "draft_title": "Home",
+   "slug": "pyverse",
+   "content_type": [
+    "home",
+    "homepage"
+   ],
+   "url_path": "/home/pyverse/",
+   "owner": null,
+   "seo_title": "PyVerse — learn Python by running it",
+   "show_in_menus": false,
+   "search_description": "PyVerse is a free, browser-based Python learning platform: guided courses, graded practice challenges, memory-tracing labs and a blog. No signup — every exercise runs client-side.",
+   "latest_revision_created_at": "2026-07-20T07:11:33.358Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010001",
+   "depth": 4,
+   "numchild": 1,
+   "translation_key": "04cece0f-3826-470d-b368-733b7d77a10c",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-07-18T17:04:13.618Z",
+   "last_published_at": "2026-07-18T17:04:13.618Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Python",
+   "draft_title": "Python",
+   "slug": "python",
+   "content_type": [
+    "puput",
+    "blogfolderpage"
+   ],
+   "url_path": "/home/pyverse/python/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Longer-form Python notes: the concepts people trip over, with runnable snippets and links to the matching practice track.",
+   "latest_revision_created_at": "2026-07-18T17:04:13.485Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010002",
+   "depth": 4,
+   "numchild": 1,
+   "translation_key": "01df9072-efc1-4405-84c0-57603af57815",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-07-18T17:05:27.929Z",
+   "last_published_at": "2026-07-18T17:05:27.929Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Learn",
+   "draft_title": "Learn",
+   "slug": "learn",
+   "content_type": [
+    "lms",
+    "lmsindexpage"
+   ],
+   "url_path": "/home/pyverse/learn/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Structured, self-paced Python courses: start with the fundamentals and work up, one lesson at a time, with runnable examples and inline quizzes.",
+   "latest_revision_created_at": "2026-07-18T17:05:27.836Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010003",
+   "depth": 4,
+   "numchild": 0,
+   "translation_key": "5d1bba52-72eb-4892-b0db-1cba38114d82",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-07-18T17:06:57.099Z",
+   "last_published_at": "2026-07-18T17:06:57.099Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": true,
+   "locked_at": "2026-07-19T04:45:35.536Z",
+   "locked_by": null,
+   "title": "About",
+   "draft_title": "About",
+   "slug": "about",
+   "content_type": [
+    "home",
+    "standardpage"
+   ],
+   "url_path": "/home/pyverse/about/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "What PyVerse is: free, browser-based Python courses, practice challenges and tracing labs — how it works and what it covers.",
+   "latest_revision_created_at": "2026-07-18T17:06:57.018Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010005",
+   "depth": 4,
+   "numchild": 3,
+   "translation_key": "db0a6cff-6ccc-4ed9-8667-859cf94a6914",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-07-18T17:11:18.749Z",
+   "last_published_at": "2026-07-18T17:11:18.749Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Practice",
+   "draft_title": "Practice",
+   "slug": "practice",
+   "content_type": [
+    "topics",
+    "practicehubpage"
+   ],
+   "url_path": "/home/pyverse/practice/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Browse every practice challenge by difficulty, topic, pattern, company and technique. Solve in the browser and track progress as you go.",
+   "latest_revision_created_at": "2026-07-18T17:11:18.674Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100050001",
+   "depth": 5,
+   "numchild": 1,
+   "translation_key": "aa027039-8311-4ecf-9568-30cd96b1ad63",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-07-18T17:12:11.517Z",
+   "last_published_at": "2026-07-18T17:12:11.517Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Syntax",
+   "draft_title": "Syntax",
+   "slug": "syntax",
+   "content_type": [
+    "topics",
+    "practicetopicpage"
+   ],
+   "url_path": "/home/pyverse/practice/syntax/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Warm-up syntax drills: the shapes of Python you will use in every other problem — calls, arguments and return values.",
+   "latest_revision_created_at": "2026-07-18T17:12:11.421Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000500010001",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "12f64960-43bf-41be-8d2a-52649b61ab59",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-07-18T17:15:37.872Z",
+   "last_published_at": "2026-07-18T17:15:37.872Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Warm-up",
+   "draft_title": "Warm-up",
+   "slug": "warm-up",
+   "content_type": [
+    "topics",
+    "practicetopicpage"
+   ],
+   "url_path": "/home/pyverse/practice/syntax/warm-up/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "A single first problem to prove the editor, the grader and your progress tracking all work end to end.",
+   "latest_revision_created_at": "2026-07-18T17:15:37.786Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100050002",
+   "depth": 5,
+   "numchild": 0,
+   "translation_key": "d17c6927-e8af-413b-8e97-533518cbceb2",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T11:11:26.860Z",
+   "last_published_at": "2026-09-12T11:11:26.860Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Arrays & Hashing",
+   "draft_title": "Arrays & Hashing",
+   "slug": "arrays-and-hashing",
+   "content_type": [
+    "topics",
+    "practicetopicpage"
+   ],
+   "url_path": "/home/pyverse/practice/arrays-and-hashing/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Indexing, counting and hash maps — the three tools behind most easy and medium interview problems.",
+   "latest_revision_created_at": "2026-09-12T11:11:26.830Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100050003",
+   "depth": 5,
+   "numchild": 1,
+   "translation_key": "85fb1c29-b4d0-4096-9a5f-b5d2376467fc",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T11:17:36.431Z",
+   "last_published_at": "2026-09-12T11:17:36.431Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Sheets",
+   "draft_title": "Sheets",
+   "slug": "sheets",
+   "content_type": [
+    "topics",
+    "sheetsindexpage"
+   ],
+   "url_path": "/home/pyverse/practice/sheets/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Hand-curated orders to solve problems in, grouped by pattern — a path through the problem set instead of a flat list.",
+   "latest_revision_created_at": "2026-09-12T11:17:36.400Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000500030001",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "f470667d-c97e-4ed6-8c18-d4e791760ddd",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": true,
+   "first_published_at": "2026-09-12T11:17:36.561Z",
+   "last_published_at": "2026-09-12T11:17:36.561Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "PyVerse Fundamentals",
+   "draft_title": "PyVerse Fundamentals",
+   "slug": "pyverse-fundamentals",
+   "content_type": [
+    "topics",
+    "sheetpage"
+   ],
+   "url_path": "/home/pyverse/practice/sheets/pyverse-fundamentals/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-17T13:30:18.291Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100020001",
+   "depth": 5,
+   "numchild": 1,
+   "translation_key": "22bea038-8e97-4830-bfeb-5d824578f2c4",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T16:38:16.690Z",
+   "last_published_at": "2026-09-12T16:38:16.690Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Python Basics",
+   "draft_title": "Python Basics",
+   "slug": "python-basics",
+   "content_type": [
+    "lms",
+    "topicpage"
+   ],
+   "url_path": "/home/pyverse/learn/python-basics/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-12T16:38:16.658Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000200010001",
+   "depth": 6,
+   "numchild": 2,
+   "translation_key": "2d7dcc59-cc53-4a41-966b-a9f8fafd7f9c",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T16:38:16.812Z",
+   "last_published_at": "2026-09-12T16:38:16.812Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Python Foundations",
+   "draft_title": "Python Foundations",
+   "slug": "python-foundations",
+   "content_type": [
+    "lms",
+    "coursepage"
+   ],
+   "url_path": "/home/pyverse/learn/python-basics/python-foundations/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-12T16:38:16.784Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010002000100010001",
+   "depth": 7,
+   "numchild": 0,
+   "translation_key": "fec7724f-97ea-49f0-b699-fe44824c9646",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T16:38:16.932Z",
+   "last_published_at": "2026-09-12T16:38:16.932Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Functions that return a value",
+   "draft_title": "Functions that return a value",
+   "slug": "functions-that-return",
+   "content_type": [
+    "lms",
+    "lessonpage"
+   ],
+   "url_path": "/home/pyverse/learn/python-basics/python-foundations/functions-that-return/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-12T16:38:16.903Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010002000100010006",
+   "depth": 7,
+   "numchild": 0,
+   "translation_key": "896bf61c-f2a0-447e-b42f-8a9ffb5ca1f1",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T16:38:17.046Z",
+   "last_published_at": "2026-09-12T16:38:17.046Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Loops and accumulators",
+   "draft_title": "Loops and accumulators",
+   "slug": "loops-and-accumulators",
+   "content_type": [
+    "lms",
+    "lessonpage"
+   ],
+   "url_path": "/home/pyverse/learn/python-basics/python-foundations/loops-and-accumulators/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-12T16:38:17.019Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100010001",
+   "depth": 5,
+   "numchild": 1,
+   "translation_key": "2c7cfa70-d460-4114-9457-cc904b2cb955",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T16:38:17.429Z",
+   "last_published_at": "2026-09-12T16:38:17.429Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Notes",
+   "draft_title": "Notes",
+   "slug": "notes",
+   "content_type": [
+    "puput",
+    "blogpage"
+   ],
+   "url_path": "/home/pyverse/python/notes/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-12T16:38:17.401Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000100010001",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "767f3df8-849c-4cee-bb1c-190ccf94c96b",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-12T16:38:17.557Z",
+   "last_published_at": "2026-09-12T16:38:17.557Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Why return matters more than print",
+   "draft_title": "Why return matters more than print",
+   "slug": "why-return-matters",
+   "content_type": [
+    "puput",
+    "entrypage"
+   ],
+   "url_path": "/home/pyverse/python/notes/why-return-matters/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-12T16:38:17.524Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "0001000100010006",
+   "depth": 4,
+   "numchild": 3,
+   "translation_key": "0936294d-87f5-474f-8c8b-27ad504c9872",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-17T15:03:28.180Z",
+   "last_published_at": "2026-09-17T15:03:28.180Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Labs",
+   "draft_title": "Labs",
+   "slug": "labs",
+   "content_type": [
+    "labs",
+    "labsindexpage"
+   ],
+   "url_path": "/home/pyverse/labs/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-17T15:03:28.152Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100060001",
+   "depth": 5,
+   "numchild": 0,
+   "translation_key": "300389a0-d339-45e3-a2c0-2f3c2607ceb8",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-17T15:03:52.723Z",
+   "last_published_at": "2026-09-17T15:03:52.723Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Two Sum, one pass",
+   "draft_title": "Two Sum, one pass",
+   "slug": "two-sum-one-pass",
+   "content_type": [
+    "labs",
+    "labpage"
+   ],
+   "url_path": "/home/pyverse/labs/two-sum-one-pass/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-17T15:03:52.683Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100060002",
+   "depth": 5,
+   "numchild": 0,
+   "translation_key": "42496e86-6266-4d8a-b4a3-cce1f810439e",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-09-17T15:03:52.842Z",
+   "last_published_at": "2026-09-17T15:03:52.842Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Two names, one list",
+   "draft_title": "Two names, one list",
+   "slug": "two-names-one-list",
+   "content_type": [
+    "labs",
+    "labpage"
+   ],
+   "url_path": "/home/pyverse/labs/two-names-one-list/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "",
+   "latest_revision_created_at": "2026-09-17T15:03:52.813Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "00010001000100060003",
+   "depth": 5,
+   "numchild": 7,
+   "translation_key": "64cbfe49-370a-44fc-8294-15b280dc125a",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": null,
+   "last_published_at": null,
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Gym",
+   "draft_title": "Gym",
+   "slug": "gym",
+   "content_type": [
+    "labs",
+    "gymhubpage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Short, runnable Python, NumPy, pandas and Matplotlib exercises checked in your browser. Write the code, run the checks, see what failed.",
+   "latest_revision_created_at": null,
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030001",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "9dd8be24-5e48-4a5a-852f-64e8aaa67ccc",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.195Z",
+   "last_published_at": "2026-11-21T10:35:25.195Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Word frequencies",
+   "draft_title": "Word frequencies",
+   "slug": "py-word-freq",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/py-word-freq/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Core Python exercise (Easy): write word_freq(text), a dict of lowercase word to count.",
+   "latest_revision_created_at": "2026-11-21T10:35:25.166Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030002",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "a45697b6-5485-41d7-9436-07dea13984e5",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.310Z",
+   "last_published_at": "2026-11-21T10:35:25.310Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Flatten nested lists",
+   "draft_title": "Flatten nested lists",
+   "slug": "py-flatten",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/py-flatten/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "Core Python exercise (Medium): Write flatten(xs) that flattens arbitrarily nested lists into one list, keeping order.",
+   "latest_revision_created_at": "2026-11-21T10:35:25.281Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030003",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "258a6050-f0be-4966-b700-56cf82889c6a",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.422Z",
+   "last_published_at": "2026-11-21T10:35:25.422Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Standardise columns",
+   "draft_title": "Standardise columns",
+   "slug": "np-zscore",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/np-zscore/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "NumPy exercise (Medium): standardise each column of a 100×4 array to mean 0 and standard deviation 1.",
+   "latest_revision_created_at": "2026-11-21T10:35:25.395Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030004",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "c6a3efc9-486c-4f43-8303-4fea3ccf8114",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.537Z",
+   "last_published_at": "2026-11-21T10:35:25.537Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Zero out negatives",
+   "draft_title": "Zero out negatives",
+   "slug": "np-mask",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/np-mask/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "NumPy exercise (Easy): Make clipped : a copy of a with every negative replaced by 0.",
+   "latest_revision_created_at": "2026-11-21T10:35:25.510Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030005",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "724e4845-da14-480c-8ad9-239ee1dad966",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.649Z",
+   "last_published_at": "2026-11-21T10:35:25.649Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Top two spenders",
+   "draft_title": "Top two spenders",
+   "slug": "pd-top-spenders",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/pd-top-spenders/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "pandas exercise (Easy): find the 2 customers with the highest total amount, largest first.",
+   "latest_revision_created_at": "2026-11-21T10:35:25.621Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030006",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "4d12aef0-de93-4e76-8cf2-f585ecced5fd",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.761Z",
+   "last_published_at": "2026-11-21T10:35:25.761Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Fill gaps with the group mean",
+   "draft_title": "Fill gaps with the group mean",
+   "slug": "pd-fill-group-mean",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/pd-fill-group-mean/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "pandas exercise (Medium): Fill each missing score with the mean score of that row’s team .",
+   "latest_revision_created_at": "2026-11-21T10:35:25.731Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "wagtailcore.page",
+  "fields": {
+   "path": "000100010001000600030007",
+   "depth": 6,
+   "numchild": 0,
+   "translation_key": "c1a127c8-c2d5-4347-bf0f-662dc3a0bbb7",
+   "locale": 1,
+   "latest_revision": null,
+   "live": true,
+   "has_unpublished_changes": false,
+   "first_published_at": "2026-11-21T10:35:25.881Z",
+   "last_published_at": "2026-11-21T10:35:25.881Z",
+   "live_revision": null,
+   "go_live_at": null,
+   "expire_at": null,
+   "expired": false,
+   "locked": false,
+   "locked_at": null,
+   "locked_by": null,
+   "title": "Titled histogram",
+   "draft_title": "Titled histogram",
+   "slug": "sns-histogram",
+   "content_type": [
+    "labs",
+    "gymexercisepage"
+   ],
+   "url_path": "/home/pyverse/labs/gym/sns-histogram/",
+   "owner": null,
+   "seo_title": "",
+   "show_in_menus": false,
+   "search_description": "seaborn exercise (Easy): Draw a histogram of df['height'] with exactly 12 bins and the title Heights .",
+   "latest_revision_created_at": "2026-11-21T10:35:25.846Z",
+   "alias_of": null
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "GameBoy",
+   "slug": "gameboy"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "boy",
+   "slug": "boy"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "game",
+   "slug": "game"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "japan",
+   "slug": "japan"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Google",
+   "slug": "google"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Amazon",
+   "slug": "amazon"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Hash Map",
+   "slug": "hash-map"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Enumeration",
+   "slug": "enumeration"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Startup",
+   "slug": "startup"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Prefix Sum",
+   "slug": "prefix-sum"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Accumulator",
+   "slug": "accumulator"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Iteration",
+   "slug": "iteration"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Builtins",
+   "slug": "builtins"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "String Formatting",
+   "slug": "string-formatting"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Sets",
+   "slug": "sets"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Return values",
+   "slug": "return-values"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Graders",
+   "slug": "graders"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Basics",
+   "slug": "basics"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Syntax",
+   "slug": "syntax"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Extra",
+   "slug": "extra"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Alpha",
+   "slug": "alpha"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Beta",
+   "slug": "beta"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Gamma",
+   "slug": "gamma"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Delta",
+   "slug": "delta"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Epsilon",
+   "slug": "epsilon"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Zeta",
+   "slug": "zeta"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "One",
+   "slug": "one"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Two",
+   "slug": "two"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Three",
+   "slug": "three"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "Four",
+   "slug": "four"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "ClusterOne",
+   "slug": "clusterone"
+  }
+ },
+ {
+  "model": "taggit.tag",
+  "fields": {
+   "name": "ClusterTwo",
+   "slug": "clustertwo"
+  }
+ },
+ {
+  "model": "taggit.taggeditem",
+  "fields": {
+   "tag": [
+    "GameBoy"
+   ],
+   "content_type": [
+    "wagtailimages",
+    "image"
+   ],
+   "object_id": 1
+  }
+ },
+ {
+  "model": "taggit.taggeditem",
+  "fields": {
+   "tag": [
+    "boy"
+   ],
+   "content_type": [
+    "wagtailimages",
+    "image"
+   ],
+   "object_id": 1
+  }
+ },
+ {
+  "model": "taggit.taggeditem",
+  "fields": {
+   "tag": [
+    "game"
+   ],
+   "content_type": [
+    "wagtailimages",
+    "image"
+   ],
+   "object_id": 1
+  }
+ },
+ {
+  "model": "taggit.taggeditem",
+  "fields": {
+   "tag": [
+    "japan"
+   ],
+   "content_type": [
+    "wagtailimages",
+    "image"
+   ],
+   "object_id": 2
+  }
+ },
+ {
+  "model": "puput.blogfolderpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/python/"
+   ]
+  }
+ },
+ {
+  "model": "puput.blogpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/python/notes/"
+   ],
+   "description": "Longer-form Python notes: the concepts people trip over, with runnable snippets.",
+   "header_image": null,
+   "main_color": "#4D6AE0",
+   "display_comments": false,
+   "display_categories": true,
+   "display_tags": true,
+   "display_popular_entries": true,
+   "display_last_entries": true,
+   "display_archive": false,
+   "disqus_api_secret": "",
+   "disqus_shortname": "",
+   "num_entries_page": 5,
+   "num_last_entries": 3,
+   "num_popular_entries": 3,
+   "num_tags_entry_header": 5,
+   "short_feed_description": true
+  }
+ },
+ {
+  "model": "puput.entrypage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/python/notes/why-return-matters/"
+   ],
+   "body": "<p>When you learn Python from a tutorial, every example ends with <code>print</code>. When you solve practice problems, almost none of them should.</p><h2>What the grader sees</h2><p>A test case calls your function and compares the value that comes back. If your function prints the answer instead of returning it, the comparison sees <code>None</code>.</p><h2>The fix is small</h2><p>Replace the print with a return, and keep the print for your own debugging:</p><pre><code>def double(n):\n    return n * 2       # what the grader checks\n\nprint(double(21))      # what you look at\n</code></pre><p>That is the whole idea. Try it on the <a href=\"/practice/problem/print-hello-world/\">first warm-up problem</a>.</p>",
+   "markdown_body": null,
+   "date": "2026-09-12T16:38:17.477Z",
+   "header_image": null,
+   "excerpt": "<p>The single habit that separates code that passes a grader from code that only looks right.</p>",
+   "num_comments": 0
+  }
+ },
+ {
+  "model": "lms.lmsindexpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/learn/"
+   ],
+   "og_image": null,
+   "intro": "Short, ordered courses that build on each other. Each lesson is a few minutes of reading plus something to run yourself.",
+   "featured_courses_heading": "Featured Courses"
+  }
+ },
+ {
+  "model": "lms.topicpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/learn/python-basics/"
+   ],
+   "icon": "code",
+   "color": "#2D5F5D",
+   "description": "The smallest useful subset of Python: values, names, functions and strings.",
+   "display_order": 0
+  }
+ },
+ {
+  "model": "lms.coursepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/learn/python-basics/python-foundations/"
+   ],
+   "og_image": null,
+   "course_type": "course",
+   "difficulty": "beginner",
+   "language": "Python",
+   "summary": "Write, run and reason about small Python programs: values and names, functions, strings, and your first taste of lists.",
+   "is_free": true,
+   "is_featured": true,
+   "display_order": 0,
+   "estimated_hours": 2,
+   "hero_image": null,
+   "what_you_learn": "[{\"type\": \"item\", \"value\": \"Read and write functions with arguments and return values\", \"id\": \"f99c42b4-dddc-463c-becd-1fd7c72f7863\"}, {\"type\": \"item\", \"value\": \"Use strings, numbers and booleans without surprises\", \"id\": \"a88a355b-f11b-478e-a47c-23335fe18976\"}, {\"type\": \"item\", \"value\": \"Iterate over a list and accumulate a result\", \"id\": \"31848ba6-6f72-42b2-bf22-d25c5cc93057\"}]",
+   "prerequisites": "[{\"type\": \"item\", \"value\": \"No prior programming experience needed\", \"id\": \"50f12887-b251-4a1c-a72c-633db8e49685\"}]"
+  }
+ },
+ {
+  "model": "lms.lessonpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/learn/python-basics/python-foundations/functions-that-return/"
+   ],
+   "body": "[{\"type\": \"text\", \"value\": \"<h2>Everything is a value</h2><p>A function takes values in, does something, and hands a value back with <code>return</code>. That returned value is what the grader checks \\u2014 not what the function prints.</p>\", \"id\": \"fc622c4c-29e1-4f00-ada1-41a1265c18b3\"}, {\"type\": \"code_example\", \"value\": {\"language\": \"python\", \"filename\": \"greet.py\", \"show_line_numbers\": true, \"code\": \"def greet(name):\\n    return \\\"Hello, \\\" + name + \\\"!\\\"\\n\\nprint(greet(\\\"Ada\\\"))  # Hello, Ada!\\n\"}, \"id\": \"7d5e04ea-0103-4afc-aa3d-4f76cc1059b1\"}, {\"type\": \"callout\", \"value\": {\"style\": \"tip\", \"title\": \"print is not return\", \"body\": \"<p><code>print</code> shows a value to you. <code>return</code> gives it back to whoever called the function. Every practice problem here grades the returned value.</p>\"}, \"id\": \"05ad00ff-b466-4dc7-a900-9c9c92818de6\"}, {\"type\": \"text\", \"value\": \"<p>Try it: change the greeting, add a second argument, or return a number instead.</p>\", \"id\": \"8ebf805e-5ed5-42f8-84f5-fc7c0360f13c\"}]",
+   "estimated_minutes": 6
+  }
+ },
+ {
+  "model": "lms.lessonpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/learn/python-basics/python-foundations/loops-and-accumulators/"
+   ],
+   "body": "[{\"type\": \"text\", \"value\": \"<h2>Carry a value through the loop</h2><p>Most list problems are one loop plus one variable you keep updating \\u2014 the accumulator. Summing a list, building a string, counting matches: same shape every time.</p>\", \"id\": \"49256a06-87d1-4365-b29c-4bc7a92cf13e\"}, {\"type\": \"code_example\", \"value\": {\"language\": \"python\", \"filename\": \"total.py\", \"show_line_numbers\": true, \"code\": \"def total(numbers):\\n    running = 0\\n    for number in numbers:\\n        running += number\\n    return running\\n\\nprint(total([1, 2, 3]))  # 6\\n\"}, \"id\": \"bda817cc-ef7b-4527-a196-c3ea6a378470\"}, {\"type\": \"callout\", \"value\": {\"style\": \"warning\", \"title\": \"Watch the indentation\", \"body\": \"<p>The accumulator update must sit <em>inside</em> the loop. If it is outside, only the last value counts \\u2014 the most common first bug in this lesson's exercise.</p>\"}, \"id\": \"736bb5d4-0179-4a82-ab11-f250b3dc2dbd\"}, {\"type\": \"text\", \"value\": \"<p>Ready for the graded version? The <a href=\\\"/practice/problem/running-sum/\\\">Running Sum challenge</a> is exactly this pattern.</p>\", \"id\": \"9600d77c-f663-4d58-95e7-9c3b04612608\"}]",
+   "estimated_minutes": 8
+  }
+ },
+ {
+  "model": "quiz.quiztechnique",
+  "pk": 1,
+  "fields": {
+   "tag": [
+    "Hash Map"
+   ],
+   "content_object": 2
+  }
+ },
+ {
+  "model": "quiz.quiztechnique",
+  "pk": 2,
+  "fields": {
+   "tag": [
+    "Sets"
+   ],
+   "content_object": 2
+  }
+ },
+ {
+  "model": "quiz.question",
+  "pk": 3,
+  "fields": {
+   "sort_order": null,
+   "quiz": 2,
+   "question_type": "mcq",
+   "text": "What is the average time complexity of a dictionary lookup in Python?",
+   "code_snippet": "",
+   "explanation": "Dicts are hash tables: one hash, one probe, so O(1) on average.",
+   "points": 1,
+   "correct_bool": null
+  }
+ },
+ {
+  "model": "quiz.question",
+  "pk": 4,
+  "fields": {
+   "sort_order": null,
+   "quiz": 2,
+   "question_type": "mcq",
+   "text": "Which approach finds two values summing to a target in a single pass?",
+   "code_snippet": "",
+   "explanation": "Storing value -> index lets each element's complement be looked up in O(1), so one pass suffices.",
+   "points": 1,
+   "correct_bool": null
+  }
+ },
+ {
+  "model": "quiz.question",
+  "pk": 5,
+  "fields": {
+   "sort_order": null,
+   "quiz": 2,
+   "question_type": "true_false",
+   "text": "A Python set can contain duplicate values.",
+   "code_snippet": "",
+   "explanation": "False: a set holds unique elements; adding a duplicate leaves it unchanged.",
+   "points": 1,
+   "correct_bool": false
+  }
+ },
+ {
+  "model": "quiz.question",
+  "pk": 6,
+  "fields": {
+   "sort_order": null,
+   "quiz": 1,
+   "question_type": "mcq",
+   "text": "What does a function hand back to its caller?",
+   "code_snippet": "",
+   "explanation": "Whatever `return` is given. `print` only writes to the console, so a graded test sees None.",
+   "points": 1,
+   "correct_bool": null
+  }
+ },
+ {
+  "model": "quiz.question",
+  "pk": 7,
+  "fields": {
+   "sort_order": null,
+   "quiz": 1,
+   "question_type": "mcq",
+   "text": "Which literal is a string?",
+   "code_snippet": "",
+   "explanation": "Quotes make a string; 42 is an int, 4.2 a float and True a bool.",
+   "points": 1,
+   "correct_bool": null
+  }
+ },
+ {
+  "model": "quiz.question",
+  "pk": 8,
+  "fields": {
+   "sort_order": null,
+   "quiz": 1,
+   "question_type": "true_false",
+   "text": "`print(1 + 1)` and `return 1 + 1` have the same effect inside a function.",
+   "code_snippet": "",
+   "explanation": "False: print shows 2 on the console, return hands 2 back to the caller — only the second can be graded.",
+   "points": 1,
+   "correct_bool": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 4,
+  "fields": {
+   "sort_order": null,
+   "question": 3,
+   "text": "O(1)",
+   "is_correct": true
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 5,
+  "fields": {
+   "sort_order": null,
+   "question": 3,
+   "text": "O(log n)",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 6,
+  "fields": {
+   "sort_order": null,
+   "question": 3,
+   "text": "O(n)",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 7,
+  "fields": {
+   "sort_order": null,
+   "question": 3,
+   "text": "O(n log n)",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 8,
+  "fields": {
+   "sort_order": null,
+   "question": 4,
+   "text": "A dict from value to index",
+   "is_correct": true
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 9,
+  "fields": {
+   "sort_order": null,
+   "question": 4,
+   "text": "Nested loops over every pair",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 10,
+  "fields": {
+   "sort_order": null,
+   "question": 4,
+   "text": "Sorting, then binary searching for each element",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 11,
+  "fields": {
+   "sort_order": null,
+   "question": 4,
+   "text": "Reversing the list first",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 12,
+  "fields": {
+   "sort_order": null,
+   "question": 6,
+   "text": "The value after `return`",
+   "is_correct": true
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 13,
+  "fields": {
+   "sort_order": null,
+   "question": 6,
+   "text": "Whatever it printed",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 14,
+  "fields": {
+   "sort_order": null,
+   "question": 6,
+   "text": "Nothing — functions only run code",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 15,
+  "fields": {
+   "sort_order": null,
+   "question": 6,
+   "text": "The name of the function",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 16,
+  "fields": {
+   "sort_order": null,
+   "question": 7,
+   "text": "\"42\"",
+   "is_correct": true
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 17,
+  "fields": {
+   "sort_order": null,
+   "question": 7,
+   "text": "42",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 18,
+  "fields": {
+   "sort_order": null,
+   "question": 7,
+   "text": "4.2",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "quiz.choice",
+  "pk": 19,
+  "fields": {
+   "sort_order": null,
+   "question": 7,
+   "text": "True",
+   "is_correct": false
+  }
+ },
+ {
+  "model": "home.navitem",
+  "pk": 1,
+  "fields": {
+   "sort_order": 0,
+   "link_page": [
+    "/home/pyverse/learn/"
+   ],
+   "link_external": "",
+   "open_in_new_tab": false,
+   "settings": 1,
+   "label": "Learn"
+  }
+ },
+ {
+  "model": "home.navitem",
+  "pk": 2,
+  "fields": {
+   "sort_order": 1,
+   "link_page": [
+    "/home/pyverse/practice/"
+   ],
+   "link_external": "",
+   "open_in_new_tab": false,
+   "settings": 1,
+   "label": "Practice"
+  }
+ },
+ {
+  "model": "home.navitem",
+  "pk": 3,
+  "fields": {
+   "sort_order": 2,
+   "link_page": [
+    "/home/pyverse/practice/sheets/"
+   ],
+   "link_external": "",
+   "open_in_new_tab": false,
+   "settings": 1,
+   "label": "Sheets"
+  }
+ },
+ {
+  "model": "home.navitem",
+  "pk": 4,
+  "fields": {
+   "sort_order": 3,
+   "link_page": [
+    "/home/pyverse/python/"
+   ],
+   "link_external": "",
+   "open_in_new_tab": false,
+   "settings": 1,
+   "label": "Blog"
+  }
+ },
+ {
+  "model": "home.navitem",
+  "pk": 5,
+  "fields": {
+   "sort_order": 5,
+   "link_page": [
+    "/home/pyverse/about/"
+   ],
+   "link_external": "",
+   "open_in_new_tab": false,
+   "settings": 1,
+   "label": "About"
+  }
+ },
+ {
+  "model": "home.navitem",
+  "pk": 6,
+  "fields": {
+   "sort_order": 4,
+   "link_page": [
+    "/home/pyverse/labs/"
+   ],
+   "link_external": "",
+   "open_in_new_tab": false,
+   "settings": 1,
+   "label": "Labs"
+  }
+ },
+ {
+  "model": "home.homepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/"
+   ],
+   "og_image": null,
+   "hero_text": "PY<br>VERSE<span class=\"text-red\">",
+   "hero_side_text": "READ THE STACK, NOT THE GUESS",
+   "hero_subtitle": "",
+   "hero_primary_cta_text": "START SESSION",
+   "hero_primary_cta_link": null,
+   "hero_primary_cta_external": "",
+   "hero_secondary_cta_text": "VIEW MODULES",
+   "hero_secondary_cta_link": null,
+   "hero_secondary_cta_external": "",
+   "device_code": "",
+   "device_model_label": "MODEL // PV-01",
+   "stats_heading": "By the numbers"
+  }
+ },
+ {
+  "model": "home.standardpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/about/"
+   ],
+   "og_image": null,
+   "subtitle": "What PyVerse is, and why it works this way",
+   "header_image": null,
+   "body": "<h2>Why this exists</h2><p>Most Python material asks you to watch or read. PyVerse asks you to run: every exercise is graded in your browser, and every trace shows what actually happened in memory.</p><h2>What is inside</h2><ul><li><strong>Learn</strong> — short ordered courses with runnable examples.</li><li><strong>Practice</strong> — graded challenges, curated sheets and topic tracks.</li><li><strong>Labs</strong> — execute and inspect code step by step.</li><li><strong>Blog</strong> — longer notes on the parts people get stuck on.</li></ul><h2>How it is built</h2><p>The whole site is authored in Wagtail and exported as static files; Python runs in your browser through Pyodide. There is no account to create and nothing to install.</p>"
+  }
+ },
+ {
+  "model": "topics.practicehubpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/practice/"
+   ],
+   "intro": "Problems, sheets and quizzes — filter by what you want to drill, or follow a curated sheet. Progress is stored in your browser."
+  }
+ },
+ {
+  "model": "topics.sheetsindexpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/practice/sheets/"
+   ],
+   "intro": "<p>Hand-curated orders to solve problems in, grouped by pattern. A sheet is a path; the Landing table is the whole map.</p>"
+  }
+ },
+ {
+  "model": "topics.sheetpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/practice/sheets/pyverse-fundamentals/"
+   ],
+   "description": "<p>A first pass over arrays and hashing: the warm-up problem, then order-independent and order-sensitive answers, then floating point.</p>",
+   "categories": "[{\"type\": \"category\", \"value\": {\"name\": \"Warm-up\", \"problems\": [{\"type\": \"item\", \"value\": 1, \"id\": \"2829891e-7ec4-4535-bd26-313435ee3322\"}]}, \"id\": \"12157c8a-1359-4d35-9b34-4d712870e337\"}, {\"type\": \"category\", \"value\": {\"name\": \"Arrays & Hashing\", \"problems\": [{\"type\": \"item\", \"value\": 2, \"id\": \"3c73adac-9490-4fd7-85ef-eecd80379f0f\"}, {\"type\": \"item\", \"value\": 3, \"id\": \"dba63040-d7ac-4b80-aedd-0180b5b17625\"}, {\"type\": \"item\", \"value\": 4, \"id\": \"fac4856c-b228-4823-81ae-40827c64f792\"}]}, \"id\": \"c64def3a-a697-44e8-badb-607bc2ab13dd\"}]"
+  }
+ },
+ {
+  "model": "topics.practicetopicpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/practice/syntax/"
+   ],
+   "theory_content": "<p>Before algorithms, the basics: writing a function, taking arguments, returning a value. These problems are deliberately small.</p>"
+  }
+ },
+ {
+  "model": "topics.practicetopicpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/practice/syntax/warm-up/"
+   ],
+   "theory_content": "<p>One tiny exercise: call it the smoke test for the whole practice setup.</p>"
+  }
+ },
+ {
+  "model": "topics.practicetopicpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/practice/arrays-and-hashing/"
+   ],
+   "theory_content": "<p>Indexing, counting and the hash map — the two tools behind most easy and medium interview problems.</p>"
+  }
+ },
+ {
+  "model": "coding.problemcompany",
+  "pk": 1,
+  "fields": {
+   "tag": [
+    "Google"
+   ],
+   "content_object": 2
+  }
+ },
+ {
+  "model": "coding.problemcompany",
+  "pk": 2,
+  "fields": {
+   "tag": [
+    "Amazon"
+   ],
+   "content_object": 2
+  }
+ },
+ {
+  "model": "coding.problemcompany",
+  "pk": 3,
+  "fields": {
+   "tag": [
+    "Startup"
+   ],
+   "content_object": 3
+  }
+ },
+ {
+  "model": "coding.problempattern",
+  "pk": 1,
+  "fields": {
+   "tag": [
+    "Hash Map"
+   ],
+   "content_object": 2
+  }
+ },
+ {
+  "model": "coding.problempattern",
+  "pk": 2,
+  "fields": {
+   "tag": [
+    "Prefix Sum"
+   ],
+   "content_object": 3
+  }
+ },
+ {
+  "model": "coding.problempattern",
+  "pk": 3,
+  "fields": {
+   "tag": [
+    "Iteration"
+   ],
+   "content_object": 4
+  }
+ },
+ {
+  "model": "coding.problemtechnique",
+  "pk": 1,
+  "fields": {
+   "tag": [
+    "Enumeration"
+   ],
+   "content_object": 2
+  }
+ },
+ {
+  "model": "coding.problemtechnique",
+  "pk": 2,
+  "fields": {
+   "tag": [
+    "Accumulator"
+   ],
+   "content_object": 3
+  }
+ },
+ {
+  "model": "coding.problemtechnique",
+  "pk": 3,
+  "fields": {
+   "tag": [
+    "Builtins"
+   ],
+   "content_object": 4
+  }
+ },
+ {
+  "model": "coding.problemtechnique",
+  "pk": 4,
+  "fields": {
+   "tag": [
+    "String Formatting"
+   ],
+   "content_object": 1
+  }
+ },
+ {
+  "model": "coding.codingproblem",
+  "pk": 1,
+  "fields": {
+   "topic": [
+    "/home/pyverse/practice/syntax/warm-up/"
+   ],
+   "title": "print hello world",
+   "slug": "print-hello-world",
+   "difficulty": "easy",
+   "description": "<p>Write a function <code>print_hi(name)</code> that returns the greeting string <code>\"hi \"</code> joined to <code>name</code>.</p><ul><li>Return the string — do not print it.</li><li>Use exactly one space between <code>hi</code> and the name.</li></ul>",
+   "function_name": "print_hi",
+   "function_signature": "",
+   "comparator": "exact",
+   "custom_comparator_code": "",
+   "examples": "[{\"type\": \"example\", \"value\": {\"input\": \"name = \\\"world\\\"\", \"output\": \"\\\"hi world\\\"\", \"note\": \"One space between hi and the name.\"}, \"id\": \"2227a655-c201-492b-9e19-4e454202dc6a\"}]",
+   "constraints": "[]",
+   "hint_tiers": "[]",
+   "editorial_approaches": "[]",
+   "trace_notes": "[{\"type\": \"note\", \"value\": {\"line\": 3, \"note\": \"return sends the string back to the caller. print would show it on screen and hand back nothing.\", \"every_visit\": false}, \"id\": \"d1552544-3c05-463b-9e95-793509172920\"}]",
+   "trace_predictions": "[{\"type\": \"prediction\", \"value\": {\"line\": 3, \"question\": \"What does greeting hold when this line runs?\", \"answer\": \"\\\"hi \\\" (hi plus one space)\"}, \"id\": \"ed0e9a1f-eb15-4136-977d-730400d20b5e\"}]",
+   "solution_code": "def print_hi(name):\n    greeting = \"hi \"\n    return greeting + name\n",
+   "solution_explanation": "<p>The function builds the greeting and <strong>returns</strong> it. Returning (not printing) is what lets the caller use the result.</p>",
+   "starter_code": "def print_hi(name):\n    # Return the greeting: print_hi(\"world\") -> \"hi world\"\n    pass\n",
+   "test_cases": "[{\"type\": \"test_case\", \"value\": {\"input\": \"\\\"world\\\"\", \"expected_output\": \"\\\"hi world\\\"\", \"is_hidden\": false}, \"id\": \"042d8c21-d955-4fee-8f66-9de924ab09a6\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"\\\"nice\\\"\", \"expected_output\": \"\\\"hi nice\\\"\", \"is_hidden\": true}, \"id\": \"a611c47b-b0a8-49de-ab6d-f082a1d901e6\"}]",
+   "trace_case": 1
+  }
+ },
+ {
+  "model": "coding.codingproblem",
+  "pk": 2,
+  "fields": {
+   "topic": [
+    "/home/pyverse/practice/arrays-and-hashing/"
+   ],
+   "title": "Two Sum",
+   "slug": "two-sum",
+   "difficulty": "easy",
+   "description": "<p>Given an array of integers <code>nums</code> and an integer <code>target</code>, return the indices of the two numbers that add up to <code>target</code>.</p><p>Each input has <strong>exactly one solution</strong>, and you may not use the same element twice. The answer may be returned in any order.</p>",
+   "function_name": "two_sum",
+   "function_signature": "(nums: list[int], target: int) -> list[int]",
+   "comparator": "sorted_list",
+   "custom_comparator_code": "",
+   "examples": "[{\"type\": \"example\", \"value\": {\"input\": \"nums = [2,7,11,15], target = 9\", \"output\": \"[0,1]\", \"note\": \"nums[0] + nums[1] == 9\"}, \"id\": \"3c15164c-855c-4645-a7e5-93dad47cf7bc\"}, {\"type\": \"example\", \"value\": {\"input\": \"nums = [3,2,4], target = 6\", \"output\": \"[1,2]\", \"note\": \"nums[1] + nums[2] == 6\"}, \"id\": \"601233bb-0a5c-4916-9efa-d89999f27c82\"}]",
+   "constraints": "[{\"type\": \"item\", \"value\": \"2 <= nums.length <= 10^4\", \"id\": \"b87281aa-32fb-4081-b995-f21f63a81d14\"}, {\"type\": \"item\", \"value\": \"-10^9 <= nums[i] <= 10^9\", \"id\": \"f599d1ed-0b10-4c95-8153-644b291de7ca\"}, {\"type\": \"item\", \"value\": \"Exactly one valid answer exists.\", \"id\": \"b84d8bbc-b599-4c51-9e5f-f4d4f2402451\"}]",
+   "hint_tiers": "[{\"type\": \"hint\", \"value\": {\"tier\": \"nudge\", \"text\": \"<p>Checking every pair works, but it costs O(n\\u00b2). Is there something you could remember as you scan once?</p>\"}, \"id\": \"0e033dff-c5e5-4ba7-a618-ae0b74593e14\"}, {\"type\": \"hint\", \"value\": {\"tier\": \"approach\", \"text\": \"<p>Walk the list once, keeping a <code>dict</code> from value \\u2192 index. For each number, ask whether <code>target - number</code> is already in it.</p>\"}, \"id\": \"62bc72ae-2870-4d4a-a8cc-09009fed3d94\"}, {\"type\": \"hint\", \"value\": {\"tier\": \"solution\", \"text\": \"<p>Before storing the current value, look up its complement and return early: <code>[seen[target - value], index]</code>.</p>\"}, \"id\": \"7d12135a-d435-478f-8b1c-d26ee8cd233e\"}]",
+   "editorial_approaches": "[{\"type\": \"approach\", \"value\": {\"name\": \"Brute force\", \"description\": \"<p>Try every pair and return the first that sums to the target.</p>\", \"time_complexity\": \"O(n\\u00b2)\", \"space_complexity\": \"O(1)\", \"is_optimal\": false}, \"id\": \"fb739b48-08ff-4886-b186-4d38b821405a\"}, {\"type\": \"approach\", \"value\": {\"name\": \"Hash map, one pass\", \"description\": \"<p>Trade memory for speed: store each value's index as you go, and check for the complement before storing.</p>\", \"time_complexity\": \"O(n)\", \"space_complexity\": \"O(n)\", \"is_optimal\": true}, \"id\": \"486be7f6-a8ed-4fd9-8d80-7cecae7bd70b\"}]",
+   "trace_notes": "[{\"type\": \"note\", \"value\": {\"line\": 2, \"note\": \"seen remembers every number we have passed and where it was. That memory replaces a second loop.\", \"every_visit\": false}, \"id\": \"acbfa8ef-dd11-48c3-80d1-87c2637d09f2\"}, {\"type\": \"note\", \"value\": {\"line\": 4, \"note\": \"Instead of searching for a pair, work out the one partner that would finish the sum.\", \"every_visit\": true}, \"id\": \"e7222d1f-7c6c-4bf4-a5d7-945c859ce3ff\"}, {\"type\": \"note\", \"value\": {\"line\": 5, \"note\": \"A dict lookup is a single step, so one pass over the list is enough.\", \"every_visit\": false}, \"id\": \"eb5e9ed4-5209-4829-997b-c1d8f8de2e75\"}, {\"type\": \"note\", \"value\": {\"line\": 7, \"note\": \"The value is stored only after the check, so a number is never paired with itself.\", \"every_visit\": false}, \"id\": \"09cae5d4-be80-4898-8a99-10f8ca9c7c14\"}]",
+   "trace_predictions": "[{\"type\": \"prediction\", \"value\": {\"line\": 5, \"question\": \"On the first pass, is needed already in seen?\", \"answer\": \"No. seen is still empty, so the loop keeps going.\"}, \"id\": \"964c50f5-0ca7-4f4e-8544-a4fdf536c335\"}, {\"type\": \"prediction\", \"value\": {\"line\": 7, \"question\": \"What will seen hold after this line runs the first time?\", \"answer\": \"{3: 0}\"}, \"id\": \"e182759b-a6a3-4ed3-ab2f-eedefad4ed34\"}]",
+   "solution_code": "def two_sum(nums: list[int], target: int) -> list[int]:\n    seen: dict[int, int] = {}\n    for index, value in enumerate(nums):\n        needed = target - value\n        if needed in seen:\n            return [seen[needed], index]\n        seen[value] = index\n    return []\n",
+   "solution_explanation": "",
+   "starter_code": "def two_sum(nums: list[int], target: int) -> list[int]:\n    # Return the two indices whose values add up to target.\n    pass\n",
+   "test_cases": "[{\"type\": \"test_case\", \"value\": {\"input\": \"[2, 7, 11, 15], 9\", \"expected_output\": \"[0, 1]\", \"is_hidden\": false}, \"id\": \"1df211bf-af33-4b66-8a6c-084be6a582c1\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[3, 2, 4], 6\", \"expected_output\": \"[1, 2]\", \"is_hidden\": false}, \"id\": \"e6aa0895-dd66-4a92-939f-49488a3433e0\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[3, 3], 6\", \"expected_output\": \"[0, 1]\", \"is_hidden\": true}, \"id\": \"edf1b43b-a2cb-444d-a484-3861346cfc03\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[2, 5, 5, 11], 10\", \"expected_output\": \"[1, 2]\", \"is_hidden\": true}, \"id\": \"4eff16cf-d35d-4b2b-b6a9-716c96ca0695\"}]",
+   "trace_case": 2
+  }
+ },
+ {
+  "model": "coding.codingproblem",
+  "pk": 3,
+  "fields": {
+   "topic": [
+    "/home/pyverse/practice/arrays-and-hashing/"
+   ],
+   "title": "Running Sum of 1d Array",
+   "slug": "running-sum",
+   "difficulty": "easy",
+   "description": "<p>Return the running sum of <code>nums</code>, where <code>result[i]</code> is the sum of the first <code>i + 1</code> elements. Order matters.</p>",
+   "function_name": "running_sum",
+   "function_signature": "(nums: list[int]) -> list[int]",
+   "comparator": "exact",
+   "custom_comparator_code": "",
+   "examples": "[{\"type\": \"example\", \"value\": {\"input\": \"nums = [1,2,3,4]\", \"output\": \"[1,3,6,10]\", \"note\": \"Each element adds the previous total.\"}, \"id\": \"f79f31bf-64e6-475d-8fe3-f635b4420df0\"}]",
+   "constraints": "[{\"type\": \"item\", \"value\": \"1 <= nums.length <= 1000\", \"id\": \"14338550-9dba-4807-98a5-f94cf18673c5\"}]",
+   "hint_tiers": "[{\"type\": \"hint\", \"value\": {\"tier\": \"nudge\", \"text\": \"<p>You never need to look at the whole list again \\u2014 only at the total so far.</p>\"}, \"id\": \"1f7b7928-a1bf-41f6-aab1-8892ed3695a7\"}, {\"type\": \"hint\", \"value\": {\"tier\": \"approach\", \"text\": \"<p>Carry a running total in a variable and append it after each step.</p>\"}, \"id\": \"b8bf1d58-ecb8-46b0-8b75-e2b905bcbb79\"}]",
+   "editorial_approaches": "[{\"type\": \"approach\", \"value\": {\"name\": \"Accumulate\", \"description\": \"<p>Keep a <code>total</code> and append it after adding each element.</p>\", \"time_complexity\": \"O(n)\", \"space_complexity\": \"O(n)\", \"is_optimal\": true}, \"id\": \"1289dac0-f9e1-4a58-a7f1-8c0b1ccd6a04\"}]",
+   "trace_notes": "[{\"type\": \"note\", \"value\": {\"line\": 2, \"note\": \"total is the only memory the loop needs: each answer builds on the last one, not on the whole prefix.\", \"every_visit\": false}, \"id\": \"d477ddad-b5f2-41f8-bce6-84a549cc81ec\"}, {\"type\": \"note\", \"value\": {\"line\": 5, \"note\": \"Add first, then record, so the output at position i already includes element i.\", \"every_visit\": true}, \"id\": \"4e433276-466c-404f-bf47-4f1a5e3bdf48\"}, {\"type\": \"note\", \"value\": {\"line\": 7, \"note\": \"Returning out hands back the finished list; printing it would leave the caller with nothing.\", \"every_visit\": false}, \"id\": \"fd453a6e-f132-403a-9c5e-b123cd988c82\"}]",
+   "trace_predictions": "[{\"type\": \"prediction\", \"value\": {\"line\": 5, \"question\": \"What is total after this line runs the first time?\", \"answer\": \"1\"}, \"id\": \"b514f87a-6e3d-4034-9f9f-ffaf8471de93\"}, {\"type\": \"prediction\", \"value\": {\"line\": 6, \"question\": \"What does out hold after this line runs the first time?\", \"answer\": \"[1]\"}, \"id\": \"00a82c3f-cc5b-4d45-87c2-27e3a087730d\"}]",
+   "solution_code": "def running_sum(nums: list[int]) -> list[int]:\n    total = 0\n    out = []\n    for value in nums:\n        total += value\n        out.append(total)\n    return out\n",
+   "solution_explanation": "",
+   "starter_code": "def running_sum(nums: list[int]) -> list[int]:\n    # Return the cumulative totals, in order.\n    pass\n",
+   "test_cases": "[{\"type\": \"test_case\", \"value\": {\"input\": \"[1, 2, 3, 4]\", \"expected_output\": \"[1, 3, 6, 10]\", \"is_hidden\": false}, \"id\": \"064aedf4-abb1-490b-bd07-74e9340ed1e8\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[1, 1, 1, 1, 1]\", \"expected_output\": \"[1, 2, 3, 4, 5]\", \"is_hidden\": true}, \"id\": \"6b04f08f-5b3d-4f98-9a06-bfcf7ed58d15\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[3, 1, 2, 10, 1]\", \"expected_output\": \"[3, 4, 6, 16, 17]\", \"is_hidden\": true}, \"id\": \"0f6350b5-5de5-4bd5-a778-8f79ac7d79e9\"}]",
+   "trace_case": 1
+  }
+ },
+ {
+  "model": "coding.codingproblem",
+  "pk": 4,
+  "fields": {
+   "topic": [
+    "/home/pyverse/practice/arrays-and-hashing/"
+   ],
+   "title": "Average of Numbers",
+   "slug": "average-of-numbers",
+   "difficulty": "easy",
+   "description": "<p>Return the arithmetic mean of <code>nums</code>. Floating-point noise is tolerated, so <code>2.5</code> and <code>2.5000000001</code> both pass.</p>",
+   "function_name": "average",
+   "function_signature": "(nums: list[float]) -> float",
+   "comparator": "float_tolerance",
+   "custom_comparator_code": "",
+   "examples": "[{\"type\": \"example\", \"value\": {\"input\": \"nums = [1,2,3,4]\", \"output\": \"2.5\", \"note\": \"Sum is 10, count is 4.\"}, \"id\": \"6cee07d9-8e7e-4b90-bee2-755f8c762402\"}]",
+   "constraints": "[{\"type\": \"item\", \"value\": \"1 <= nums.length <= 10^5\", \"id\": \"9311e029-3e62-431c-927d-b5a6fc3bdaef\"}]",
+   "hint_tiers": "[{\"type\": \"hint\", \"value\": {\"tier\": \"nudge\", \"text\": \"<p>Two built-ins are enough: one for the sum, one for the count.</p>\"}, \"id\": \"29106b60-8c5c-4e57-b55d-65af22459ed8\"}]",
+   "editorial_approaches": "[{\"type\": \"approach\", \"value\": {\"name\": \"sum / len\", \"description\": \"<p>Divide the total by how many numbers there are.</p>\", \"time_complexity\": \"O(n)\", \"space_complexity\": \"O(1)\", \"is_optimal\": true}, \"id\": \"85645b8c-8948-49bd-ab0a-00caa3e36e83\"}]",
+   "trace_notes": "[{\"type\": \"note\", \"value\": {\"line\": 2, \"note\": \"Two accumulators, because a mean needs both how much and how many.\", \"every_visit\": false}, \"id\": \"d462d2f6-a1d1-48ac-839e-bffab4bdb59e\"}, {\"type\": \"note\", \"value\": {\"line\": 5, \"note\": \"Every element adds to the total and to the count, in lockstep.\", \"every_visit\": true}, \"id\": \"ffd9c284-f255-4416-9a93-0c12cc44e833\"}, {\"type\": \"note\", \"value\": {\"line\": 7, \"note\": \"Divide once, after the loop. Dividing inside it would average partial totals.\", \"every_visit\": false}, \"id\": \"30906ccc-7890-4921-b8e7-ddd4d8e2fe48\"}]",
+   "trace_predictions": "[{\"type\": \"prediction\", \"value\": {\"line\": 7, \"question\": \"What are total and count when this line runs?\", \"answer\": \"total is 10 and count is 4, so the result is 2.5.\"}, \"id\": \"04d6fb3c-d91c-4d5e-84ab-aafc15bda33b\"}]",
+   "solution_code": "def average(nums: list[float]) -> float:\n    total = 0\n    count = 0\n    for value in nums:\n        total += value\n        count += 1\n    return total / count\n",
+   "solution_explanation": "<p>Keep a running <code>total</code> and a <code>count</code> in one pass, then divide once at the end. <code>sum(nums) / len(nums)</code> does the same thing in one line.</p>",
+   "starter_code": "def average(nums: list[float]) -> float:\n    # Return the mean of nums.\n    pass\n",
+   "test_cases": "[{\"type\": \"test_case\", \"value\": {\"input\": \"[1, 2, 3, 4]\", \"expected_output\": \"2.5\", \"is_hidden\": false}, \"id\": \"50cadbb0-939c-4b67-801e-094ae9da428f\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[2, 2, 2]\", \"expected_output\": \"2.0\", \"is_hidden\": true}, \"id\": \"77c96737-8c92-45e9-b9a7-931cd5a11a48\"}, {\"type\": \"test_case\", \"value\": {\"input\": \"[1, 2]\", \"expected_output\": \"1.5\", \"is_hidden\": true}, \"id\": \"6a960db3-cebb-4a47-8824-4aa9c87a709a\"}]",
+   "trace_case": 1
+  }
+ },
+ {
+  "model": "labs.labsindexpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/"
+   ],
+   "og_image": null,
+   "intro": "<p>Step through a program one line at a time and watch what Python actually does — which lines run, what each name points at, and what the memory behind it looks like. Everything executes in your browser; edit any lab and re-trace it.</p>"
+  }
+ },
+ {
+  "model": "labs.labpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/two-sum-one-pass/"
+   ],
+   "og_image": null,
+   "summary": "The hash-map solution to Two Sum, traced line by line: `seen` fills up one entry per element, and the difference between a nested loop and a single pass is one dictionary lookup.",
+   "code": "def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []\n\nresult = two_sum([2, 7, 11, 15], 9)\nprint(result)\n",
+   "what_to_watch": "[{\"type\": \"item\", \"value\": \"`seen` starts empty and gains exactly one entry per loop iteration \\u2014 every element is looked at once.\", \"id\": \"c3231f1d-324b-44a1-b696-a53dbdc5409b\"}, {\"type\": \"item\", \"value\": \"`complement in seen` is a dictionary lookup, not a scan: that is the whole O(n\\u00b2) \\u2192 O(n) change.\", \"id\": \"5262214c-6db1-4d34-a748-712ba731a162\"}, {\"type\": \"item\", \"value\": \"The function returns from inside the loop; `return []` only runs when no pair matches.\", \"id\": \"2196c683-52e3-4d22-97e2-7a0d34f4ee3e\"}]",
+   "default_mode": "line",
+   "difficulty": "medium",
+   "estimated_minutes": 6
+  }
+ },
+ {
+  "model": "labs.labpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/two-names-one-list/"
+   ],
+   "og_image": null,
+   "summary": "`b = a` creates no second list. Step through the alias, shallow copy and deep copy side by side, and see which names stay tied to the same object after a mutation.",
+   "code": "import copy\n\na = [[1, 2], [3, 4]]\nb = a                 # alias: no new object\nc = a.copy()          # shallow copy\nd = copy.deepcopy(a)  # deep copy\n\na[0].append(99)\nprint(a, b, c, d)\n",
+   "what_to_watch": "[{\"type\": \"item\", \"value\": \"In the memory graph `a` and `b` point at one box: assignment never copies.\", \"id\": \"0ee13adb-140a-4d2e-b3df-79a677171d4d\"}, {\"type\": \"item\", \"value\": \"`a.copy()` copies the outer list only \\u2014 `c[0]` is still the object `a[0]` pointed at, so the append shows up in `c` too.\", \"id\": \"b61a531a-45ff-429e-9f14-dedb1f93fe01\"}, {\"type\": \"item\", \"value\": \"`copy.deepcopy` is the only line that walks inside and builds fresh inner lists.\", \"id\": \"ade67efa-c3ba-407f-80d1-81e35b33cc1a\"}, {\"type\": \"item\", \"value\": \"That is why `d` is unaffected by `a[0].append(99)` and `c` is not.\", \"id\": \"297bf322-ee0d-412a-8369-d745889b4ac1\"}]",
+   "default_mode": "memory",
+   "difficulty": "medium",
+   "estimated_minutes": 7
+  }
+ },
+ {
+  "model": "labs.gymhubpage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/"
+   ],
+   "intro": "<p>Free practice. Runs in your browser; nothing is saved.</p>"
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/py-word-freq/"
+   ],
+   "library": "python",
+   "difficulty": 1,
+   "prompt": "<p>Write <code>word_freq(text)</code>: a dict of lowercase word &rarr; count. Split on whitespace, ignore case.</p>",
+   "setup_code": "",
+   "starter_code": "def word_freq(text):\n    ...\n\n\nword_freq(\"the cat the hat\")\n",
+   "check_code": "assert word_freq(\"the cat the hat\") == {\"the\": 2, \"cat\": 1, \"hat\": 1}, \"basic counts\"\nassert word_freq(\"A a  A\") == {\"a\": 3}, \"ignore case and extra spaces\"\nassert word_freq(\"\") == {}, \"empty string\"\n",
+   "solution_code": "from collections import Counter\n\n\ndef word_freq(text):\n    return dict(Counter(text.lower().split()))\n",
+   "hints": "Normalise first: lower() then split().\ncollections.Counter does the counting."
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/py-flatten/"
+   ],
+   "library": "python",
+   "difficulty": 2,
+   "prompt": "<p>Write <code>flatten(xs)</code> that flattens arbitrarily nested <em>lists</em> into one list, keeping order. Other types (strings, tuples) are left whole.</p>",
+   "setup_code": "",
+   "starter_code": "def flatten(xs):\n    ...\n",
+   "check_code": "assert flatten([1, [2, [3, 4]], 5]) == [1, 2, 3, 4, 5], 'nested'\nassert flatten([]) == [], 'empty'\nassert flatten([[[]], 1]) == [1], 'empty inner lists'\nassert flatten(['ab', [('c',)]]) == ['ab', ('c',)], 'only lists are flattened'\n",
+   "solution_code": "def flatten(xs):\n    out = []\n    for x in xs:\n        out.extend(flatten(x) if isinstance(x, list) else [x])\n    return out\n",
+   "hints": "Recursion: a list element is a smaller instance of the same problem."
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/np-zscore/"
+   ],
+   "library": "numpy",
+   "difficulty": 2,
+   "prompt": "<p><code>X</code> is a 100&times;4 array. Build <code>Z</code>: each column shifted to mean 0 and scaled to std 1. No loops.</p>",
+   "setup_code": "import numpy as np\nrng = np.random.default_rng(0)\nX = rng.normal(5, 3, (100, 4))\n",
+   "starter_code": "Z = ...\n",
+   "check_code": "assert Z.shape == X.shape, 'same shape as X'\nassert np.allclose(Z.mean(axis=0), 0), 'column means should be 0'\nassert np.allclose(Z.std(axis=0), 1), 'column stds should be 1'\n",
+   "solution_code": "Z = (X - X.mean(axis=0)) / X.std(axis=0)\n",
+   "hints": "axis=0 reduces down the rows, leaving one value per column.\nBroadcasting lines a (4,) vector up against (100, 4)."
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/np-mask/"
+   ],
+   "library": "numpy",
+   "difficulty": 1,
+   "prompt": "<p>Make <code>clipped</code>: a copy of <code>a</code> with every negative replaced by 0. Leave <code>a</code> unchanged.</p>",
+   "setup_code": "import numpy as np\na = np.array([3, -1, 4, -1, 5, -9])\n",
+   "starter_code": "clipped = ...\n",
+   "check_code": "assert np.array_equal(clipped, [3, 0, 4, 0, 5, 0]), 'values wrong'\nassert a[1] == -1, 'do not modify a in place'\n",
+   "solution_code": "clipped = np.where(a < 0, 0, a)\n",
+   "hints": "A boolean mask a < 0 selects the negatives.\nnp.where(cond, x, y) builds a new array."
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/pd-top-spenders/"
+   ],
+   "library": "pandas",
+   "difficulty": 1,
+   "prompt": "<p>Using <code>df</code>, build <code>top</code>: a Series of the 2 customers with the highest <em>total</em> amount, largest first.</p>",
+   "setup_code": "import pandas as pd\ndf = pd.DataFrame({\"customer\": list(\"ABCABCDA\"), \"amount\": [10, 20, 5, 30, 15, 25, 40, 5]})\ndf\n",
+   "starter_code": "top = ...\ntop\n",
+   "check_code": "assert top.to_dict() == {\"A\": 45, \"D\": 40}, \"expected totals A=45, D=40\"\nassert list(top.index) == [\"A\", \"D\"], \"largest first\"\n",
+   "solution_code": "top = df.groupby(\"customer\")[\"amount\"].sum().nlargest(2)\ntop\n",
+   "hints": "groupby + sum gives totals per customer.\nSeries.nlargest(n) sorts for you."
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/pd-fill-group-mean/"
+   ],
+   "library": "pandas",
+   "difficulty": 2,
+   "prompt": "<p>Fill each missing <code>score</code> with the mean score of that row&rsquo;s <code>team</code>. Modify <code>df</code> in place.</p>",
+   "setup_code": "import numpy as np, pandas as pd\ndf = pd.DataFrame({\"team\": [\"x\", \"x\", \"y\", \"y\", \"y\"], \"score\": [1.0, np.nan, 4.0, np.nan, 8.0]})\n",
+   "starter_code": "df\n",
+   "check_code": "assert df[\"score\"].tolist() == [1.0, 1.0, 4.0, 6.0, 8.0], \"x gap -> 1.0, y gap -> 6.0\"\n",
+   "solution_code": "df[\"score\"] = df.groupby(\"team\")[\"score\"].transform(lambda s: s.fillna(s.mean()))\ndf\n",
+   "hints": "transform returns a result aligned to the original rows."
+  }
+ },
+ {
+  "model": "labs.gymexercisepage",
+  "fields": {
+   "page_ptr": [
+    "/home/pyverse/labs/gym/sns-histogram/"
+   ],
+   "library": "seaborn",
+   "difficulty": 1,
+   "prompt": "<p>Draw a histogram of <code>df['height']</code> with exactly 12 bins and the title <code>Heights</code>.</p>",
+   "setup_code": "import numpy as np, pandas as pd, seaborn as sns, matplotlib.pyplot as plt\nrng = np.random.default_rng(1)\ndf = pd.DataFrame({'height': rng.normal(170, 8, 300)})\n",
+   "starter_code": "# your plot here\n",
+   "check_code": "ax = plt.gca()\nassert ax.get_title() == 'Heights', 'title should be Heights'\nassert len(ax.patches) == 12, 'expected 12 bars, got %d' % len(ax.patches)\n",
+   "solution_code": "ax = sns.histplot(df, x='height', bins=12)\nax.set_title('Heights')\n",
+   "hints": "sns.histplot returns the Axes it drew on.\nbins=12, then ax.set_title(...)."
+  }
+ },
+ {
+  "model": "quiz.quiz",
+  "pk": 1,
+  "fields": {
+   "title": "Print, Strings and Basic Types",
+   "slug": "print-strings-basic-types",
+   "instructions": "Three quick checks on the first things everyone gets wrong. Retry whenever you like.",
+   "pass_percentage": 70,
+   "randomize_questions": true,
+   "quiz_type": "true_false",
+   "difficulty": "easy",
+   "topic": [
+    "/home/pyverse/practice/syntax/warm-up/"
+   ]
+  }
+ },
+ {
+  "model": "quiz.quiz",
+  "pk": 2,
+  "fields": {
+   "title": "Arrays & Hashing Basics",
+   "slug": "arrays-and-hashing-basics",
+   "instructions": "Three quick checks on lists, dicts and sets. Retry whenever you like.",
+   "pass_percentage": 70,
+   "randomize_questions": false,
+   "quiz_type": "true_false",
+   "difficulty": "easy",
+   "topic": [
+    "/home/pyverse/practice/arrays-and-hashing/"
+   ]
+  }
+ },
+ {
+  "model": "wagtailcore.site",
+  "fields": {
+   "hostname": "localhost",
+   "port": 80,
+   "site_name": "",
+   "root_page": [
+    "/home/pyverse/"
+   ],
+   "is_default_site": true
+  }
+ },
+ {
+  "model": "wagtailredirects.redirect",
+  "pk": 8,
+  "fields": {
+   "old_path": "/practice/syntax/warm-up/print-hello-world",
+   "site": [
+    "localhost",
+    80
+   ],
+   "is_permanent": true,
+   "redirect_page": null,
+   "redirect_page_route_path": "",
+   "redirect_link": "/practice/problem/print-hello-world/",
+   "automatically_created": false,
+   "created_at": "2026-09-12T11:30:51.287Z"
+  }
+ },
+ {
+  "model": "wagtailredirects.redirect",
+  "pk": 9,
+  "fields": {
+   "old_path": "/practice/arrays-and-hashing/two-sum",
+   "site": [
+    "localhost",
+    80
+   ],
+   "is_permanent": true,
+   "redirect_page": null,
+   "redirect_page_route_path": "",
+   "redirect_link": "/practice/problem/two-sum/",
+   "automatically_created": false,
+   "created_at": "2026-09-12T11:30:51.289Z"
+  }
+ },
+ {
+  "model": "wagtailredirects.redirect",
+  "pk": 10,
+  "fields": {
+   "old_path": "/practice/arrays-and-hashing/running-sum",
+   "site": [
+    "localhost",
+    80
+   ],
+   "is_permanent": true,
+   "redirect_page": null,
+   "redirect_page_route_path": "",
+   "redirect_link": "/practice/problem/running-sum/",
+   "automatically_created": false,
+   "created_at": "2026-09-12T11:30:51.291Z"
+  }
+ },
+ {
+  "model": "wagtailredirects.redirect",
+  "pk": 11,
+  "fields": {
+   "old_path": "/practice/arrays-and-hashing/average-of-numbers",
+   "site": [
+    "localhost",
+    80
+   ],
+   "is_permanent": true,
+   "redirect_page": null,
+   "redirect_page_route_path": "",
+   "redirect_link": "/practice/problem/average-of-numbers/",
+   "automatically_created": false,
+   "created_at": "2026-09-12T11:30:51.293Z"
+  }
+ },
+ {
+  "model": "home.sitesettings",
+  "pk": 1,
+  "fields": {
+   "site": [
+    "localhost",
+    80
+   ],
+   "logo": null,
+   "logo_text": "PYVERSE.",
+   "nav_cta_text": "START SESSION",
+   "nav_cta_link": [
+    "/home/pyverse/practice/"
+   ],
+   "nav_cta_external": "",
+   "footer_tagline": "PYVERSE · ALL EXERCISES RUN IN YOUR BROWSER",
+   "footer_subline": "NO SERVER, NO WAIT",
+   "social_github": "https://github.com/uditbaliyan/pyverse",
+   "social_twitter": "",
+   "social_discord": "",
+   "default_og_image": null
+  }
+ },
+ {
+  "model": "wagtailredirects.redirect",
+  "pk": 12,
+  "fields": {
+   "old_path": "/practice/syntax/nice-app",
+   "site": [
+    "localhost",
+    80
+   ],
+   "is_permanent": true,
+   "redirect_page": null,
+   "redirect_page_route_path": "",
+   "redirect_link": "/practice/syntax/warm-up/",
+   "automatically_created": false,
+   "created_at": "2026-09-12T11:30:51.287Z"
+  }
+ }
+]
