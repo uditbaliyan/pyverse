@@ -109,4 +109,5 @@ class LabPage(SEOFields, Page):
             "mode": self.default_mode,
         }
         return context
-from .gym_models import GymExercisePage, GymHubPage  # noqa: F401
+from .gym_models import GymExercisePage  # noqa: E402, F401
+from .gym_models import GymHubPage  # noqa: E402, F401

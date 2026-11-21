@@ -1,14 +1,15 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 
 from pyverse.labs.gym import verify
 from pyverse.labs.gym_models import GymExercisePage
 
 
 class Command(BaseCommand):
-    help = "Quality gate: each live exercise's solution must pass its check; the starter must not."
+    help = "Quality gate: each live exercise's solution must pass its check; the starter must not."  # noqa: E501
 
     def add_arguments(self, parser):
-        parser.add_argument("--slug", action="append", help="limit to a slug (repeatable)")
+        parser.add_argument("--slug", action="append", help="limit to a slug (repeatable)")  # noqa: E501
         parser.add_argument("--strict", action="store_true", help="warnings fail too")
 
     def handle(self, *args, **opts):
@@ -25,9 +26,9 @@ class Command(BaseCommand):
                 if not ok:
                     errors += 1
                     self.stdout.write(f"ERROR {ex.slug}: solution fails: {msg}")
-            if ex.starter_code.strip() and verify(ex.setup_code, ex.starter_code, ex.check_code)[0]:
+            if ex.starter_code.strip() and verify(ex.setup_code, ex.starter_code, ex.check_code)[0]:  # noqa: E501
                 warnings += 1
                 self.stdout.write(f"WARN  {ex.slug}: starter already passes the check")
-        self.stdout.write(f"{qs.count()} exercises, {errors} errors, {warnings} warnings")
+        self.stdout.write(f"{qs.count()} exercises, {errors} errors, {warnings} warnings")  # noqa: E501
         if errors or (opts["strict"] and warnings):
-            raise CommandError("check_gym failed")
+            raise CommandError("check_gym failed")  # noqa: EM101, TRY003

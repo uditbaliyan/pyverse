@@ -105,7 +105,7 @@ class QuizGenerator(Generator):
     style_file: ClassVar[str] = "quiz.md"
     schema: ClassVar[str] = _SCHEMA
     review_notes: ClassVar[tuple[str, ...]] = (
-        "Read the answer key closely — nothing can run a factual answer, so a "
+        "Read the answer key closely — nothing can run a factual answer, so a "  # noqa: ISC004
         "wrong key here is invisible to every other check.",
         "Assign a topic to publish it: learners only see quizzes that have one.",
     )

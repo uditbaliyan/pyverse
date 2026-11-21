@@ -1,6 +1,7 @@
 import pytest
 
-from pyverse.labs.gym import PACKAGES, verify
+from pyverse.labs.gym import PACKAGES
+from pyverse.labs.gym import verify
 from pyverse.labs.gym_seed import SEED
 
 

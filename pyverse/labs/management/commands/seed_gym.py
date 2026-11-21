@@ -1,6 +1,8 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 
-from pyverse.labs.gym_models import GymExercisePage, GymHubPage
+from pyverse.labs.gym_models import GymExercisePage
+from pyverse.labs.gym_models import GymHubPage
 from pyverse.labs.gym_seed import SEED
 from pyverse.labs.models import LabsIndexPage
 
@@ -11,9 +13,9 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         index = LabsIndexPage.objects.first()
         if index is None:
-            raise CommandError("Create a LabsIndexPage first.")
+            raise CommandError("Create a LabsIndexPage first.")  # noqa: EM101, TRY003
         hub = GymHubPage.objects.first() or index.add_child(
-            instance=GymHubPage(title="Gym", slug="gym", intro="<p>Free practice. Runs in your browser; nothing is saved.</p>")
+            instance=GymHubPage(title="Gym", slug="gym", intro="<p>Free practice. Runs in your browser; nothing is saved.</p>"),  # noqa: E501
         )
         made = 0
         for ex in SEED:

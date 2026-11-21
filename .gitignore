@@ -289,3 +289,9 @@ export.sqlite3
 # Fetched by utility/vendor_assets.py (pinned versions)
 /pyverse/static/vendor/*
 !/pyverse/static/vendor/README.md
+
+# generated / binary artifacts (never commit)
+*.sqlite3
+*.whl
+staticfiles/
+_site/

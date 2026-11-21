@@ -118,7 +118,7 @@ class DsaGenerator(Generator):
     label: ClassVar[str] = "CodingProblem"
     style_file: ClassVar[str] = "dsa.md"
     review_notes: ClassVar[tuple[str, ...]] = (
-        "Confirm function_name, function_signature and comparator — they wire "
+        "Confirm function_name, function_signature and comparator — they wire "  # noqa: ISC004
         "the grading harness.",
         "Assign a topic to publish it: learners only see problems that have one.",
     )
