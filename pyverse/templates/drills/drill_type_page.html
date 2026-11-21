@@ -1,0 +1,23 @@
+{% extends "home/base_.html" %}
+
+{% comment %}`/drills/<type>/` — the topic groups, with how many items each holds.{% endcomment %}
+{% block content %}
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
+    {% if page.intro %}<p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ page.intro }}</p>{% endif %}
+    <ul class="mt-9 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[14px] list-none p-0">
+      {% for topic in topics %}
+        <li>
+          <a href="{{ topic.page.url }}"
+             class="bg-bg-2 border-[3px] border-ink p-[16px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink flex justify-between items-baseline gap-3">
+            <span class="font-black text-[17px] tracking-tight">{{ topic.page.title }}</span>
+            <span class="font-mono text-[11px] text-muted whitespace-nowrap" data-drill-topic="{{ topic.page.pk }}" data-total="{{ topic.count }}">{{ topic.count }} puzzle{{ topic.count|pluralize }}</span>
+          </a>
+        </li>
+      {% empty %}
+        <li class="font-mono text-[12px] text-muted">No topics published yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock content %}

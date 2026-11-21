@@ -34,6 +34,7 @@ from pyverse.crawl import CrawlResult
 from pyverse.crawl import crawl
 from pyverse.crawl import page_key
 from pyverse.seo import SITEMAPS
+from pyverse.seo import live_drill_pages
 from pyverse.seo import live_pages
 from pyverse.seo import live_problems
 from pyverse.seo import live_quizzes
@@ -99,9 +100,28 @@ def content_paths():
     Reversing `<path:path>` needs at least one character, so the home page is
     served by the empty-route entry below rather than by an empty kwarg.
     """
+<<<<<<< HEAD
     for key in sorted(discovered().pages):
         if key:
             yield {"path": key}
+=======
+    for page in live_pages():
+        relative = (page.url or "").lstrip("/")
+        if relative:
+            yield {"path": relative}
+    for url in live_drill_pages():
+        relative = url.lstrip("/")
+        if relative:
+            yield {"path": relative}
+    for problem in live_problems():
+        relative = problem.get_absolute_url().lstrip("/")
+        if relative:
+            yield {"path": relative}
+    for quiz in live_quizzes():
+        relative = quiz.get_absolute_url().lstrip("/")
+        if relative:
+            yield {"path": relative}
+>>>>>>> Drills: separate section (hub > type > paginated topic) with Parsons puzzles, check_parsons gate, export wiring
 
 
 def render_sitemap(request):

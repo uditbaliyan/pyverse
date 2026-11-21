@@ -130,6 +130,7 @@ jobs:
         run: |
           uv run python manage.py migrate
           uv run python manage.py load_content
+          uv run python manage.py seed_drills
           uv run python manage.py distill-local _site --collectstatic --force
           uv run python -m pyverse.relativize _site
 
@@ -137,6 +138,7 @@ jobs:
         run: |
           uv run python manage.py check_gym
           uv run python manage.py check_problem_traces
+          uv run python manage.py check_parsons
 
       - name: Check export (placeholders, dead refs, duplicate ids, page floor)
         run: python3 utility/check_export.py _site --min-pages 38
@@ -185,6 +187,7 @@ jobs:
         run: |
           uv run python manage.py migrate
           uv run python manage.py load_content
+          uv run python manage.py seed_drills
           nohup uv run python manage.py runserver 127.0.0.1:8000 --noreload > server.log 2>&1 &
           for i in $(seq 1 30); do curl -sf "$PYVERSE_E2E_URL/practice/problem/two-sum/" -o /dev/null && break; sleep 2; done
 

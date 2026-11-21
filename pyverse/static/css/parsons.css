@@ -1,0 +1,30 @@
+/* Parsons puzzles: plain CSS (no Tailwind build dependency), theme-neutral. */
+.pv-parsons{margin-top:28px;border:3px solid #111;background:#fffdf5;padding:18px;box-shadow:5px 5px 0 #111}
+.pv-parsons__head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+.pv-parsons__num{font:600 11px ui-monospace,monospace;background:#111;color:#fff;padding:3px 7px}
+.pv-parsons__title{font-weight:900;font-size:20px;margin:0;letter-spacing:-.01em}
+.pv-parsons__meta{font:11px ui-monospace,monospace;color:#555;margin-left:auto}
+.pv-parsons__desc{margin:10px 0 0;line-height:1.55;max-width:70ch}
+.pv-parsons__label{margin:12px 0 4px;font:11px ui-monospace,monospace;text-transform:uppercase;color:#555}
+.pv-parsons__out{margin:0;padding:8px 10px;background:#111;color:#e8ffe8;font:13px ui-monospace,monospace;overflow-x:auto}
+.pv-parsons__mount{margin-top:14px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.pv-col h3{margin:0 0 6px;font:600 11px ui-monospace,monospace;text-transform:uppercase;color:#555}
+.pv-list{list-style:none;margin:0;padding:8px;min-height:64px;border:2px dashed #888;display:grid;gap:6px;align-content:start}
+.pv-line{display:flex;align-items:center;gap:6px;background:#fff;border:2px solid #111;padding:4px 6px;font:13px ui-monospace,monospace}
+.pv-line code{flex:1;white-space:pre-wrap;word-break:break-word}
+.pv-line button{font:12px ui-monospace,monospace;background:#fff;border:1.5px solid #111;min-width:28px;min-height:28px;cursor:pointer}
+.pv-line button:hover,.pv-line button:focus-visible{background:#111;color:#fff}
+.pv-line[data-state=ok]{border-color:#15803d;background:#f0fdf4}
+.pv-line[data-state=bad]{border-color:#b91c1c;background:#fef2f2}
+.pv-fb{display:block;flex-basis:100%;font:12px system-ui,sans-serif;color:#7f1d1d}
+.pv-line[data-state=ok] .pv-fb{color:#14532d}
+.pv-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pv-actions button{font-weight:700;border:2px solid #111;background:#fff;padding:6px 14px;cursor:pointer;min-height:36px}
+.pv-actions button.primary{background:#111;color:#fff}
+.pv-status{font-weight:700}
+.pv-status[data-kind=ok]{color:#15803d}
+.pv-status[data-kind=bad]{color:#b91c1c}
+.pv-pager{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px;align-items:center}
+.pv-pager a{border:2px solid #111;padding:5px 11px;color:#111;text-decoration:none;font-weight:700}
+.pv-pager a.is-current{background:#111;color:#fff}
+@media (prefers-reduced-motion:reduce){.pv-line,.pv-actions button{transition:none}}

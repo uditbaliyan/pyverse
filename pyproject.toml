@@ -146,6 +146,9 @@ lint.per-file-ignores."neetcode/pyscript/*.py" = ["INP001"]
 lint.per-file-ignores."pyverse/labs/gym_seed.py" = ["E501", "C408"]
 lint.per-file-ignores."pyverse/labs/gym_models.py" = ["E501", "RUF005"]
 lint.per-file-ignores."pyverse/labs/gym.py" = ["E501"]
+lint.per-file-ignores."pyverse/drills/**" = ["E501"]
+lint.per-file-ignores."pyverse/drills/seed_data.py" = ["RUF001", "ISC004"]
+lint.per-file-ignores."pyverse/drills/tests.py" = ["PLR2004", "FBT002", "FBT003"]
 lint.isort.force-single-line = true
 
 # ==== pyproject-fmt ====

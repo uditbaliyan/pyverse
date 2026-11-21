@@ -1,0 +1,25 @@
+{% extends "home/base_.html" %}
+
+{% load wagtailcore_tags %}
+
+{% comment %}`/drills/` — one card per question type.{% endcomment %}
+{% block content %}
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(30px,5vw,56px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
+    {% if page.intro %}<p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ page.intro }}</p>{% endif %}
+    <div class="mt-9 grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[18px]">
+      {% for type in types %}
+        <a href="{{ type.url }}"
+           class="pv-tile bg-bg-2 border-[3px] border-ink p-[18px] shadow-card hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-card-h transition-all duration-100 no-underline text-ink block">
+          <h2 class="font-black text-[19px] mb-2 tracking-tight">{{ type.title }}</h2>
+          {% if type.specific.intro %}<p class="text-[13.5px] text-body-txt">{{ type.specific.intro }}</p>{% endif %}
+        </a>
+      {% empty %}
+        <div class="bg-bg-2 border-[3px] border-ink p-[18px] shadow-card">
+          <p class="font-mono text-[12px] text-muted">No drills published yet.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock content %}

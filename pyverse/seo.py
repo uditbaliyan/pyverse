@@ -411,6 +411,16 @@ def live_pages():
     return queryset.order_by("path")
 
 
+def live_drill_pages():
+    """URLs of drill topic pages 2..N (page 1 is the page itself, already in
+    ``live_pages``). Routable sub-pages are not Wagtail pages, so the static
+    export has to be told about them."""
+    from pyverse.drills.models import DrillTopicPage  # noqa: PLC0415
+
+    for topic in DrillTopicPage.objects.live().public().specific():
+        yield from topic.paged_urls()[1:]
+
+
 def live_problems():
     """Coding problems reachable at a canonical challenge URL."""
     from pyverse.coding.models import CodingProblem  # noqa: PLC0415

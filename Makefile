@@ -22,6 +22,10 @@ build-site: vendor tailwind
 	DJANGO_SETTINGS_MODULE=config.settings.distill \
 	DATABASE_URL=sqlite:///$(CURDIR)/$(DB) \
 	PYVERSE_CANONICAL_BASE_URL=$${PYVERSE_CANONICAL_BASE_URL:-https://pyverse.com} \
+<<<<<<< HEAD
 	sh -c 'uv run python manage.py migrate && uv run python manage.py load_content && uv run python manage.py distill-local _site --collectstatic --force'
 	uv run python -m pyverse.relativize _site
+=======
+	sh -c 'uv run python manage.py migrate && uv run python manage.py load_content && uv run python manage.py seed_drills && uv run python manage.py distill-local _site --collectstatic --force'
+>>>>>>> Drills: separate section (hub > type > paginated topic) with Parsons puzzles, check_parsons gate, export wiring
 	python3 utility/check_export.py _site --min-pages 38

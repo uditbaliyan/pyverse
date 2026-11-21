@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class DrillsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "pyverse.drills"
+    verbose_name = "Drills"

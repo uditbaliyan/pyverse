@@ -122,6 +122,7 @@ LOCAL_APPS = [
     "pyverse.topics",
     "pyverse.coding",
     "pyverse.labs",
+    "pyverse.drills",
     # Drafts content with a language model; nothing here runs at request time.
     "pyverse.ai_content",
     # Your stuff: custom apps go here

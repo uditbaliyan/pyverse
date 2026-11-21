@@ -1,0 +1,57 @@
+{% extends "home/base_.html" %}
+
+{% load static %}
+
+{% comment %}
+`/drills/<type>/<topic>/` and `.../page/<n>/` — a page of Parsons puzzles.
+Everything is static HTML plus `parsons.js`; progress lives in localStorage.
+Puzzle text is placed with textContent in the script, never as markup.
+{% endcomment %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/parsons.css' %}" />
+  {% if prev_url %}<link rel="prev" href="{{ prev_url }}" />{% endif %}
+  {% if next_url %}<link rel="next" href="{{ next_url }}" />{% endif %}
+{% endblock extra_head %}
+{% block content %}
+  <div class="page-container pt-7 pb-[90px]">
+    {% include "components/breadcrumb.html" with page=page %}
+    <h1 class="mt-2 font-black text-[clamp(28px,4.5vw,48px)] leading-[0.98] tracking-tighter">{{ page.title }}</h1>
+    {% if page.intro and current == 1 %}<p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ page.intro }}</p>{% endif %}
+    <p class="mt-4 font-mono text-[12px] text-muted">
+      {{ total }} puzzle{{ total|pluralize }} · page {{ current }} of {{ page_links|length }}
+      · <span data-parsons-progress data-slugs="{% for p in problems %}{{ p.slug }}{% if not forloop.last %},{% endif %}{% endfor %}">0 solved on this page</span>
+    </p>
+    {% for problem in problems %}
+      {% with payload_id="parsons-"|add:problem.slug %}
+        <article id="{{ problem.slug }}" class="pv-parsons" data-parsons data-payload="{{ payload_id }}">
+          <header class="pv-parsons__head">
+            <span class="pv-parsons__num">{{ forloop.counter|add:offset }}</span>
+            <h2 class="pv-parsons__title">{{ problem.title }}</h2>
+            <span class="pv-parsons__meta">{{ problem.get_difficulty_display }}{% if problem.concept %} · {{ problem.concept }}{% endif %}</span>
+          </header>
+          <p class="pv-parsons__desc">{{ problem.description }}</p>
+          {% if problem.expected_output %}
+            <p class="pv-parsons__label">Expected output</p>
+            <pre class="pv-parsons__out">{{ problem.expected_output }}</pre>
+          {% endif %}
+          <div class="pv-parsons__mount"><noscript>This puzzle needs JavaScript.</noscript></div>
+          {{ problem.payload|json_script:payload_id }}
+        </article>
+      {% endwith %}
+    {% empty %}
+      <p class="mt-9 font-mono text-[12px] text-muted">No puzzles in this topic yet.</p>
+    {% endfor %}
+    {% if page_links|length > 1 %}
+      <nav class="pv-pager" aria-label="Puzzle pages">
+        {% if prev_url %}<a href="{{ prev_url }}" rel="prev">← Previous</a>{% endif %}
+        {% for link in page_links %}
+          <a href="{{ link.url }}"{% if link.current %} aria-current="page" class="is-current"{% endif %}>{{ link.number }}</a>
+        {% endfor %}
+        {% if next_url %}<a href="{{ next_url }}" rel="next">Next →</a>{% endif %}
+      </nav>
+    {% endif %}
+  </div>
+{% endblock content %}
+{% block extra_js %}
+  <script src="{% static 'js/parsons.js' %}" defer></script>
+{% endblock extra_js %}
