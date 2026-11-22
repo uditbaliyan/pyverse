@@ -1,0 +1,579 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index 307dceb..3bd1791 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -27,7 +27,9 @@ dependencies = [
+   "django-tailwind[cookiecutter,honcho,reload]>=4.5.0",
+   "gunicorn==26.0.0",
+   "hiredis==3.5.0",
++  "markdown>=3.7",
+   "pillow==12.3.0",
++  "pygments>=2.18",
+   "python-slugify==8.0.4",
+   "redis==8.1.0",
+   "wagtail==7.4.3",
+diff --git a/pyverse/common/highlight.py b/pyverse/common/highlight.py
+new file mode 100644
+index 0000000..afc5ddd
+--- /dev/null
++++ b/pyverse/common/highlight.py
+@@ -0,0 +1,87 @@
++"""Build-time syntax highlighting, shared by lesson code blocks and blog posts.
++
++Pygments runs on the server while the site is frozen, so the exported HTML
++already carries the colours: no highlighter ships to the browser and there is no
++flash of unstyled code. Token classes are prefixed ``tok-`` and styled once in
++``static/css/code-highlight.css`` (generate it with
++``python utility/build_highlight_css.py``).
++"""
++
++import re
++
++import markdown
++from django.utils.html import format_html_join
++from django.utils.safestring import mark_safe
++from pygments import highlight
++from pygments.formatters import HtmlFormatter
++from pygments.lexers import TextLexer
++from pygments.lexers import get_lexer_by_name
++from pygments.util import ClassNotFound
++
++CLASS_PREFIX = "tok-"
++
++# `nowrap`: we supply our own <pre><code>. Pygments closes every span at a line
++# end (a multi-line string becomes one span per line), so splitting the output
++# on newlines never cuts a tag in half.
++_FORMATTER = HtmlFormatter(nowrap=True, classprefix=CLASS_PREFIX)
++
++_NEWLINES = re.compile(r"\r\n|\r|\n")
++
++
++def _lexer(language: str):
++    try:
++        # stripnl=False keeps leading/trailing blank lines exactly as authored.
++        return get_lexer_by_name(language or "text", stripnl=False)
++    except ClassNotFound:
++        return TextLexer(stripnl=False)
++
++
++def highlight_lines(code: str, language: str = "text") -> list[str]:
++    """Return one already-escaped HTML string per source line.
++
++    The visible text of the joined lines equals ``code`` (what the Copy button
++    reads), and an unknown ``language`` falls back to plain, escaped text.
++    """
++    code = _NEWLINES.sub("\n", code)
++    html = highlight(code, _lexer(language), _FORMATTER)
++    lines = html.split("\n")
++    # Pygments always ends its output with a newline, so the split leaves one
++    # empty tail: a trailing newline in the source is not a numbered empty line.
++    if lines and lines[-1] == "":
++        lines.pop()
++    return lines
++
++
++def highlight_block(code: str, language: str = "text"):
++    """Escaped, highlighted code with no per-line wrappers (safe to put in <code>)."""
++    return mark_safe("\n".join(highlight_lines(code, language)))  # noqa: S308
++
++
++def highlight_numbered_block(code: str, language: str = "text"):
++    """Same, with each line in ``<span class="code-line">`` for CSS line numbers."""
++    return format_html_join(
++        "\n",
++        '<span class="code-line">{}</span>',
++        ((mark_safe(line),) for line in highlight_lines(code, language)),  # noqa: S308
++    )
++
++
++# `guess_lang` is off: Python-Markdown's guesser mis-lexes short snippets, so a
++# fence with no language tag is shown as plain text rather than with wrong colours.
++MARKDOWN_EXTENSIONS = ["extra", "codehilite"]
++MARKDOWN_EXTENSION_CONFIGS = {
++    "codehilite": {
++        "guess_lang": False,
++        "classprefix": CLASS_PREFIX,
++        "css_class": "codehilite",
++    },
++}
++
++
++def render_markdown(source: str) -> str:
++    """The one place blog Markdown becomes HTML (save and admin preview)."""
++    return markdown.markdown(
++        source,
++        extensions=MARKDOWN_EXTENSIONS,
++        extension_configs=MARKDOWN_EXTENSION_CONFIGS,
++    )
+diff --git a/pyverse/common/highlight_style.py b/pyverse/common/highlight_style.py
+new file mode 100644
+index 0000000..d6cd89f
+--- /dev/null
++++ b/pyverse/common/highlight_style.py
+@@ -0,0 +1,44 @@
++"""Pygments colours for code on PyVerse's ink (#1a1a1a) code surfaces.
++
++Every colour here clears WCAG AA (4.5:1) against ``CODE_BACKGROUND``; a test
++enforces it. Edit the palette, then regenerate the stylesheet with
++``uv run python utility/build_highlight_css.py``.
++"""
++
++from pygments.style import Style
++from pygments.token import Comment
++from pygments.token import Error
++from pygments.token import Generic
++from pygments.token import Keyword
++from pygments.token import Name
++from pygments.token import Number
++from pygments.token import Operator
++from pygments.token import String
++
++CODE_BACKGROUND = "#1a1a1a"
++CODE_FOREGROUND = "#f5eeda"
++
++
++class PyVerseStyle(Style):
++    background_color = CODE_BACKGROUND
++    styles = {
++        Comment: "italic #a39a85",
++        Keyword: "bold #ff8a7a",
++        Keyword.Constant: "bold #f2b560",
++        Operator: "#f5eeda",
++        Operator.Word: "bold #ff8a7a",
++        Name.Builtin: "#7fd8d0",
++        Name.Function: "bold #86bcff",
++        Name.Class: "bold #86bcff",
++        Name.Decorator: "#d9a8ff",
++        Name.Exception: "bold #86bcff",
++        String: "#a9d67c",
++        String.Doc: "italic #a9d67c",
++        Number: "#f2b560",
++        Generic.Deleted: "#ff8a7a",
++        Generic.Inserted: "#a9d67c",
++        Generic.Heading: "bold #86bcff",
++        Generic.Emph: "italic",
++        Generic.Strong: "bold",
++        Error: "#ff8a7a",
++    }
+diff --git a/pyverse/lms/models.py b/pyverse/lms/models.py
+index c6c997e..a478ee2 100644
+--- a/pyverse/lms/models.py
++++ b/pyverse/lms/models.py
+@@ -4,8 +4,6 @@ from functools import cached_property
+ from django.core.exceptions import ValidationError
+ from django.core.validators import RegexValidator
+ from django.db import models
+-from django.utils.html import conditional_escape
+-from django.utils.html import format_html_join
+ from wagtail import blocks
+ from wagtail.admin.panels import FieldPanel
+ from wagtail.admin.panels import MultiFieldPanel
+@@ -18,6 +16,8 @@ from wagtail_ai.panels import AIDescriptionFieldPanel
+ from wagtail_ai.panels import AITitleFieldPanel
+ 
+ # ── Import shared mixins from home app ──────────────────────────────────
++from pyverse.common.highlight import highlight_block
++from pyverse.common.highlight import highlight_numbered_block
+ from pyverse.home.models import SEOFields
+ from pyverse.taxonomy import Difficulty as SiteDifficulty
+ 
+@@ -82,22 +82,17 @@ class CodeExampleBlock(blocks.StructBlock):
+     def get_context(self, value, parent_context=None):
+         context = super().get_context(value, parent_context=parent_context)
+         # The <code> contents are built here, not in the template, because
+-        # whitespace inside <pre> is rendered and must be exact. With line numbers
+-        # every line is its own <span> and CSS (`.code-lines`) draws the digits
+-        # from a counter, so they are not text: selecting or copying never picks
+-        # them up. `format_html_join` / `conditional_escape` escape the code.
++        # whitespace inside <pre> is rendered and must be exact. Pygments
++        # tokenises and escapes the code at render time (so the frozen HTML is
++        # already coloured). With line numbers every line is its own <span> and
++        # CSS (`.code-lines`) draws the digits from a counter, so they are not
++        # text: selecting or copying never picks them up.
++        language = value["language"]
+         if value["show_line_numbers"]:
+-            lines = re.split(r"\r\n|\r|\n", value["code"])
+-            if lines and lines[-1] == "":
+-                lines.pop()  # a trailing newline is not a numbered empty line
+-            context["code_html"] = format_html_join(
+-                "\n",
+-                '<span class="code-line">{}</span>',
+-                ((line,) for line in lines),
+-            )
++            context["code_html"] = highlight_numbered_block(value["code"], language)
+             context["code_lines_class"] = "code-lines"
+         else:
+-            context["code_html"] = conditional_escape(value["code"])
++            context["code_html"] = highlight_block(value["code"], language)
+             context["code_lines_class"] = ""
+         return context
+ 
+diff --git a/pyverse/lms/tests/test_blocks.py b/pyverse/lms/tests/test_blocks.py
+index 4903832..a64a826 100644
+--- a/pyverse/lms/tests/test_blocks.py
++++ b/pyverse/lms/tests/test_blocks.py
+@@ -180,3 +180,18 @@ def test_code_without_line_numbers_is_left_exactly_as_written():
+ 
+     assert "code-line" not in html
+     assert copied_text(html) == SAMPLE
++
++
++def test_python_code_in_a_lesson_is_syntax_highlighted_and_still_copies_exactly():
++    html = render_code(SAMPLE, numbers=True)
++
++    assert 'class="tok-k"' in html  # `if`
++    assert 'class="tok-nb"' in html  # `print`
++    assert copied_text(html) == SAMPLE
++
++
++def test_highlighting_without_line_numbers_also_copies_exactly():
++    html = render_code(SAMPLE, numbers=False)
++
++    assert 'class="tok-k"' in html
++    assert copied_text(html) == SAMPLE
+diff --git a/pyverse/puput/abstracts.py b/pyverse/puput/abstracts.py
+index 8c59309..f9c9bdb 100644
+--- a/pyverse/puput/abstracts.py
++++ b/pyverse/puput/abstracts.py
+@@ -1,6 +1,5 @@
+ import datetime  # noqa: ICN001
+ 
+-import markdown
+ from django.core.exceptions import ValidationError
+ from django.db import models
+ from django.utils.translation import gettext_lazy as _
+@@ -12,6 +11,8 @@ from wagtail.fields import RichTextField
+ from wagtail_ai.panels import AITitleFieldPanel
+ from wagtailmarkdown.fields import MarkdownField
+ 
++from pyverse.common.highlight import render_markdown
++
+ from .fields import ColorField
+ from .utils import get_image_model_path
+ 
+@@ -188,10 +189,7 @@ class EntryAbstract(models.Model):
+ 
+     def save(self, *args, **kwargs):
+         if self.markdown_body:
+-            self.body = markdown.markdown(
+-                self.markdown_body,
+-                extensions=["extra", "codehilite"],
+-            )
++            self.body = render_markdown(self.markdown_body)
+         super().save(*args, **kwargs)
+ 
+     def clean(self):
+diff --git a/pyverse/puput/models.py b/pyverse/puput/models.py
+index a5f29c7..0331dd5 100644
+--- a/pyverse/puput/models.py
++++ b/pyverse/puput/models.py
+@@ -1,4 +1,3 @@
+-import markdown
+ from django.conf import settings
+ from django.core.exceptions import ValidationError
+ from django.db import models
+@@ -12,6 +11,8 @@ from wagtail.models import Page
+ from wagtail.search import index
+ from wagtail.snippets.models import register_snippet
+ 
++from pyverse.common.highlight import render_markdown
++
+ from .abstracts import BlogAbstract
+ from .abstracts import EntryAbstract
+ from .managers import BlogManager
+@@ -223,10 +224,7 @@ class EntryPage(Entry, Page):
+         preview_context = super().get_preview_context(request, mode_name)
+ 
+         if self.markdown_body:
+-            preview_context["page"].body = markdown.markdown(
+-                self.markdown_body,
+-                extensions=["extra", "codehilite"],
+-            )
++            preview_context["page"].body = render_markdown(self.markdown_body)
+ 
+         return preview_context
+ 
+diff --git a/pyverse/static/css/code-highlight.css b/pyverse/static/css/code-highlight.css
+new file mode 100644
+index 0000000..3622629
+--- /dev/null
++++ b/pyverse/static/css/code-highlight.css
+@@ -0,0 +1,51 @@
++/* GENERATED by utility/build_highlight_css.py from pyverse/common/highlight_style.py. Do not edit by hand. */
++.code-block .tok-bp, .codehilite .tok-bp { color: #7fd8d0; }
++.code-block .tok-c, .codehilite .tok-c { color: #a39a85; font-style: italic; }
++.code-block .tok-c1, .codehilite .tok-c1 { color: #a39a85; font-style: italic; }
++.code-block .tok-ch, .codehilite .tok-ch { color: #a39a85; font-style: italic; }
++.code-block .tok-cm, .codehilite .tok-cm { color: #a39a85; font-style: italic; }
++.code-block .tok-cp, .codehilite .tok-cp { color: #a39a85; font-style: italic; }
++.code-block .tok-cpf, .codehilite .tok-cpf { color: #a39a85; font-style: italic; }
++.code-block .tok-cs, .codehilite .tok-cs { color: #a39a85; font-style: italic; }
++.code-block .tok-dl, .codehilite .tok-dl { color: #a9d67c; }
++.code-block .tok-err, .codehilite .tok-err { color: #ff8a7a; }
++.code-block .tok-fm, .codehilite .tok-fm { color: #86bcff; font-weight: bold; }
++.code-block .tok-gd, .codehilite .tok-gd { color: #ff8a7a; }
++.code-block .tok-ge, .codehilite .tok-ge { font-style: italic; }
++.code-block .tok-gh, .codehilite .tok-gh { color: #86bcff; font-weight: bold; }
++.code-block .tok-gi, .codehilite .tok-gi { color: #a9d67c; }
++.code-block .tok-gs, .codehilite .tok-gs { font-weight: bold; }
++.code-block .tok-il, .codehilite .tok-il { color: #f2b560; }
++.code-block .tok-k, .codehilite .tok-k { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-kc, .codehilite .tok-kc { color: #f2b560; font-weight: bold; }
++.code-block .tok-kd, .codehilite .tok-kd { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-kn, .codehilite .tok-kn { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-kp, .codehilite .tok-kp { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-kr, .codehilite .tok-kr { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-kt, .codehilite .tok-kt { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-m, .codehilite .tok-m { color: #f2b560; }
++.code-block .tok-mb, .codehilite .tok-mb { color: #f2b560; }
++.code-block .tok-mf, .codehilite .tok-mf { color: #f2b560; }
++.code-block .tok-mh, .codehilite .tok-mh { color: #f2b560; }
++.code-block .tok-mi, .codehilite .tok-mi { color: #f2b560; }
++.code-block .tok-mo, .codehilite .tok-mo { color: #f2b560; }
++.code-block .tok-nb, .codehilite .tok-nb { color: #7fd8d0; }
++.code-block .tok-nc, .codehilite .tok-nc { color: #86bcff; font-weight: bold; }
++.code-block .tok-nd, .codehilite .tok-nd { color: #d9a8ff; }
++.code-block .tok-ne, .codehilite .tok-ne { color: #86bcff; font-weight: bold; }
++.code-block .tok-nf, .codehilite .tok-nf { color: #86bcff; font-weight: bold; }
++.code-block .tok-o, .codehilite .tok-o { color: #f5eeda; }
++.code-block .tok-ow, .codehilite .tok-ow { color: #ff8a7a; font-weight: bold; }
++.code-block .tok-s, .codehilite .tok-s { color: #a9d67c; }
++.code-block .tok-s1, .codehilite .tok-s1 { color: #a9d67c; }
++.code-block .tok-s2, .codehilite .tok-s2 { color: #a9d67c; }
++.code-block .tok-sa, .codehilite .tok-sa { color: #a9d67c; }
++.code-block .tok-sb, .codehilite .tok-sb { color: #a9d67c; }
++.code-block .tok-sc, .codehilite .tok-sc { color: #a9d67c; }
++.code-block .tok-sd, .codehilite .tok-sd { color: #a9d67c; font-style: italic; }
++.code-block .tok-se, .codehilite .tok-se { color: #a9d67c; }
++.code-block .tok-sh, .codehilite .tok-sh { color: #a9d67c; }
++.code-block .tok-si, .codehilite .tok-si { color: #a9d67c; }
++.code-block .tok-sr, .codehilite .tok-sr { color: #a9d67c; }
++.code-block .tok-ss, .codehilite .tok-ss { color: #a9d67c; }
++.code-block .tok-sx, .codehilite .tok-sx { color: #a9d67c; }
+diff --git a/pyverse/templates/base.html b/pyverse/templates/base.html
+index 045bf9d..127c4ad 100644
+--- a/pyverse/templates/base.html
++++ b/pyverse/templates/base.html
+@@ -45,6 +45,7 @@ Blocks children may override:
+       {% tailwind_css %}
+       <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+       <link href="{% static 'css/pyverse-pop.css' %}" rel="stylesheet" />
++      <link href="{% static 'css/code-highlight.css' %}" rel="stylesheet" />
+     {% endblock css %}
+     {% block extra_head %}
+     {% endblock extra_head %}
+diff --git a/pyverse/tests/test_highlight.py b/pyverse/tests/test_highlight.py
+new file mode 100644
+index 0000000..d20ea5e
+--- /dev/null
++++ b/pyverse/tests/test_highlight.py
+@@ -0,0 +1,125 @@
++"""Build-time syntax highlighting: lesson code blocks and blog Markdown."""
++
++import importlib.util
++import re
++from html import unescape
++from pathlib import Path
++
++import pytest
++
++from pyverse.common.highlight import highlight_block
++from pyverse.common.highlight import highlight_lines
++from pyverse.common.highlight import highlight_numbered_block
++from pyverse.common.highlight import render_markdown
++from pyverse.common.highlight_style import CODE_BACKGROUND
++from pyverse.common.highlight_style import CODE_FOREGROUND
++from pyverse.common.highlight_style import PyVerseStyle
++
++WCAG_AA = 4.5
++SRGB_LINEAR_CUTOFF = 0.03928
++THREE = 3
++TWO = 2
++
++SOURCE = 'def f(x):\n    """a\n    b"""\n    return x < 1  # <ok>\n'
++
++
++def text_of(html: str) -> str:
++    return unescape(re.sub(r"<[^>]+>", "", html))
++
++
++def test_python_is_tokenised_and_escaped():
++    html = highlight_block(SOURCE, "python")
++
++    assert 'class="tok-k"' in html  # keyword
++    assert 'class="tok-nf"' in html  # function name
++    assert "&lt;" in html
++    assert "x < 1" not in html
++
++
++def test_visible_text_is_exactly_the_source():
++    # The Copy button reads textContent, so highlighting must not change it.
++    assert text_of(highlight_block(SOURCE.rstrip("\n"), "python")) == SOURCE.rstrip(
++        "\n",
++    )
++
++
++def test_a_multiline_string_never_leaves_a_span_open_across_lines():
++    for line in highlight_lines(SOURCE, "python"):
++        assert line.count("<span") == line.count("</span>")
++
++
++def test_one_line_per_source_line_and_a_trailing_newline_adds_none():
++    assert len(highlight_lines("a\nb\nc", "python")) == THREE
++    assert len(highlight_lines("a\nb\nc\n", "python")) == THREE
++    assert len(highlight_lines("a\r\nb\rc", "python")) == THREE
++
++
++def test_numbered_lines_keep_the_wrapper_the_css_counter_needs():
++    html = highlight_numbered_block("a = 1\nb = 2", "python")
++
++    assert html.count('<span class="code-line">') == TWO
++
++
++@pytest.mark.parametrize("language", ["", "no-such-language", "TEXT"])
++def test_unknown_language_falls_back_to_plain_escaped_text(language):
++    html = highlight_block("<script>alert(1)</script>", language)
++
++    assert "<script>" not in html
++    assert text_of(html) == "<script>alert(1)</script>"
++
++
++def test_markdown_fence_with_a_language_is_highlighted():
++    html = render_markdown("```python\nprint('<b>')\n```")
++
++    assert '<div class="codehilite">' in html
++    assert 'class="tok-nb"' in html  # builtin: print
++    assert "&lt;b&gt;" in html
++
++
++def test_markdown_fence_without_a_language_is_not_guessed():
++    # Guessing mis-lexed short Python snippets; an untagged fence stays plain.
++    html = render_markdown("```\ndef f(x):\n    return x+1\n```")
++
++    assert "tok-" not in html
++    assert text_of(html).strip() == "def f(x):\n    return x+1"
++
++
++def _luminance(hex_colour: str) -> float:
++    def channel(value: int) -> float:
++        c = value / 255
++        return c / 12.92 if c <= SRGB_LINEAR_CUTOFF else ((c + 0.055) / 1.055) ** 2.4
++
++    r, g, b = (int(hex_colour.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
++    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
++
++
++def _contrast(foreground: str, background: str) -> float:
++    lighter, darker = sorted(
++        (_luminance(foreground), _luminance(background)),
++        reverse=True,
++    )
++    return (lighter + 0.05) / (darker + 0.05)
++
++
++def test_every_token_colour_is_readable_on_the_code_background():
++    colours = {CODE_FOREGROUND.lstrip("#")}
++    colours.update(style["color"] for _, style in PyVerseStyle if style["color"])
++    for colour in colours:
++        assert _contrast(colour, CODE_BACKGROUND) >= WCAG_AA, colour
++
++
++def test_the_committed_stylesheet_matches_the_style():
++    root = Path(__file__).resolve().parents[2]
++    spec = importlib.util.spec_from_file_location(
++        "build_highlight_css",
++        root / "utility" / "build_highlight_css.py",
++    )
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++
++    committed = (root / "pyverse" / "static" / "css" / "code-highlight.css").read_text(
++        encoding="utf-8",
++    )
++    assert committed == module.build(), (
++        "run `uv run python utility/build_highlight_css.py`"
++    )
+diff --git a/utility/build_highlight_css.py b/utility/build_highlight_css.py
+new file mode 100644
+index 0000000..5504159
+--- /dev/null
++++ b/utility/build_highlight_css.py
+@@ -0,0 +1,54 @@
++# ruff: noqa: INP001
++"""Write ``pyverse/static/css/code-highlight.css`` from ``PyVerseStyle``.
++
++Run after editing ``pyverse/common/highlight_style.py``::
++
++    uv run python utility/build_highlight_css.py
++
++Only foreground colour and font style are emitted: the code surface itself
++(background, padding, scrolling) belongs to the block and blog styles.
++"""
++
++import sys
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parent.parent
++sys.path.insert(0, str(ROOT))
++
++from pygments.token import STANDARD_TYPES  # noqa: E402
++
++from pyverse.common.highlight import CLASS_PREFIX  # noqa: E402
++from pyverse.common.highlight_style import PyVerseStyle  # noqa: E402
++
++SELECTORS = (".code-block", ".codehilite")
++OUT = ROOT / "pyverse" / "static" / "css" / "code-highlight.css"
++
++
++def build() -> str:
++    rules = []
++    for ttype, short in sorted(STANDARD_TYPES.items(), key=lambda item: item[1]):
++        if not short:
++            continue
++        style = PyVerseStyle.style_for_token(ttype)
++        declarations = []
++        if style["color"]:
++            declarations.append(f"color: #{style['color']}")
++        if style["bold"]:
++            declarations.append("font-weight: bold")
++        if style["italic"]:
++            declarations.append("font-style: italic")
++        if style["underline"]:
++            declarations.append("text-decoration: underline")
++        if declarations:
++            selector = ", ".join(f"{s} .{CLASS_PREFIX}{short}" for s in SELECTORS)
++            rules.append(f"{selector} {{ {'; '.join(declarations)}; }}")
++    header = (
++        "/* GENERATED by utility/build_highlight_css.py from "
++        "pyverse/common/highlight_style.py. Do not edit by hand. */\n"
++    )
++    return header + "\n".join(rules) + "\n"
++
++
++if __name__ == "__main__":
++    OUT.write_text(build(), encoding="utf-8")
++    print(f"wrote {OUT.relative_to(ROOT)}")  # noqa: T201
+diff --git a/uv.lock b/uv.lock
+index 1661da9..d3394d4 100644
+--- a/uv.lock
++++ b/uv.lock
+@@ -2385,7 +2385,9 @@ dependencies = [
+     { name = "djangorestframework" },
+     { name = "gunicorn" },
+     { name = "hiredis" },
++    { name = "markdown" },
+     { name = "pillow" },
++    { name = "pygments" },
+     { name = "python-slugify" },
+     { name = "redis" },
+     { name = "wagtail" },
+@@ -2439,7 +2441,9 @@ requires-dist = [
+     { name = "djangorestframework", specifier = ">=3.18.3" },
+     { name = "gunicorn", specifier = "==26.0.0" },
+     { name = "hiredis", specifier = "==3.5.0" },
++    { name = "markdown", specifier = ">=3.7" },
+     { name = "pillow", specifier = "==12.3.0" },
++    { name = "pygments", specifier = ">=2.18" },
+     { name = "python-slugify", specifier = "==8.0.4" },
+     { name = "redis", specifier = "==8.1.0" },
+     { name = "wagtail", specifier = "==7.4.3" },

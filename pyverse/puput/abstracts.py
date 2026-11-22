@@ -1,6 +1,5 @@
 import datetime  # noqa: ICN001
 
-import markdown
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +10,8 @@ from wagtail.admin.panels import MultiFieldPanel
 from wagtail.fields import RichTextField
 from wagtail_ai.panels import AITitleFieldPanel
 from wagtailmarkdown.fields import MarkdownField
+
+from pyverse.common.highlight import render_markdown
 
 from .fields import ColorField
 from .utils import get_image_model_path
@@ -188,10 +189,7 @@ class EntryAbstract(models.Model):
 
     def save(self, *args, **kwargs):
         if self.markdown_body:
-            self.body = markdown.markdown(
-                self.markdown_body,
-                extensions=["extra", "codehilite"],
-            )
+            self.body = render_markdown(self.markdown_body)
         super().save(*args, **kwargs)
 
     def clean(self):

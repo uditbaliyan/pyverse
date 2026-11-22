@@ -4,8 +4,6 @@ from functools import cached_property
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
-from django.utils.html import conditional_escape
-from django.utils.html import format_html_join
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel
 from wagtail.admin.panels import MultiFieldPanel
@@ -18,6 +16,8 @@ from wagtail_ai.panels import AIDescriptionFieldPanel
 from wagtail_ai.panels import AITitleFieldPanel
 
 # ── Import shared mixins from home app ──────────────────────────────────
+from pyverse.common.highlight import highlight_block
+from pyverse.common.highlight import highlight_numbered_block
 from pyverse.home.models import SEOFields
 from pyverse.taxonomy import Difficulty as SiteDifficulty
 
@@ -82,22 +82,17 @@ class CodeExampleBlock(blocks.StructBlock):
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
         # The <code> contents are built here, not in the template, because
-        # whitespace inside <pre> is rendered and must be exact. With line numbers
-        # every line is its own <span> and CSS (`.code-lines`) draws the digits
-        # from a counter, so they are not text: selecting or copying never picks
-        # them up. `format_html_join` / `conditional_escape` escape the code.
+        # whitespace inside <pre> is rendered and must be exact. Pygments
+        # tokenises and escapes the code at render time (so the frozen HTML is
+        # already coloured). With line numbers every line is its own <span> and
+        # CSS (`.code-lines`) draws the digits from a counter, so they are not
+        # text: selecting or copying never picks them up.
+        language = value["language"]
         if value["show_line_numbers"]:
-            lines = re.split(r"\r\n|\r|\n", value["code"])
-            if lines and lines[-1] == "":
-                lines.pop()  # a trailing newline is not a numbered empty line
-            context["code_html"] = format_html_join(
-                "\n",
-                '<span class="code-line">{}</span>',
-                ((line,) for line in lines),
-            )
+            context["code_html"] = highlight_numbered_block(value["code"], language)
             context["code_lines_class"] = "code-lines"
         else:
-            context["code_html"] = conditional_escape(value["code"])
+            context["code_html"] = highlight_block(value["code"], language)
             context["code_lines_class"] = ""
         return context
 

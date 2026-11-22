@@ -180,3 +180,18 @@ def test_code_without_line_numbers_is_left_exactly_as_written():
 
     assert "code-line" not in html
     assert copied_text(html) == SAMPLE
+
+
+def test_python_code_in_a_lesson_is_syntax_highlighted_and_still_copies_exactly():
+    html = render_code(SAMPLE, numbers=True)
+
+    assert 'class="tok-k"' in html  # `if`
+    assert 'class="tok-nb"' in html  # `print`
+    assert copied_text(html) == SAMPLE
+
+
+def test_highlighting_without_line_numbers_also_copies_exactly():
+    html = render_code(SAMPLE, numbers=False)
+
+    assert 'class="tok-k"' in html
+    assert copied_text(html) == SAMPLE

@@ -1,4 +1,3 @@
-import markdown
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -11,6 +10,8 @@ from wagtail.admin.panels import FieldPanel
 from wagtail.models import Page
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
+
+from pyverse.common.highlight import render_markdown
 
 from .abstracts import BlogAbstract
 from .abstracts import EntryAbstract
@@ -223,10 +224,7 @@ class EntryPage(Entry, Page):
         preview_context = super().get_preview_context(request, mode_name)
 
         if self.markdown_body:
-            preview_context["page"].body = markdown.markdown(
-                self.markdown_body,
-                extensions=["extra", "codehilite"],
-            )
+            preview_context["page"].body = render_markdown(self.markdown_body)
 
         return preview_context
 
