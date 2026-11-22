@@ -15,17 +15,25 @@ tailwind:
 test: vendor
 	uv run pytest
 
-# Static export. Uses a scratch DB so the committed db.sqlite3 is never migrated.
-# To export your real content instead: make build-site DB=db.sqlite3 (after backup)
+# Static export.
+#
+# Default: a scratch DB (build.sqlite3) that is deleted and rebuilt from
+# content/site.json on every run, so no state survives between builds. The
+# Drills section is seeded on top, exactly as CI does.
+#
+# make build-site DB=db.sqlite3 exports *your own* database as-is: it is
+# migrated but never wiped or seeded, because load_content replaces the page tree.
 DB ?= build.sqlite3
+ifeq ($(DB),build.sqlite3)
+PREPARE_DB = rm -f $(DB) && uv run python manage.py migrate && uv run python manage.py load_content && uv run python manage.py seed_drills
+else
+PREPARE_DB = uv run python manage.py migrate
+endif
+
 build-site: vendor tailwind
 	DJANGO_SETTINGS_MODULE=config.settings.distill \
 	DATABASE_URL=sqlite:///$(CURDIR)/$(DB) \
 	PYVERSE_CANONICAL_BASE_URL=$${PYVERSE_CANONICAL_BASE_URL:-https://pyverse.com} \
-
-	sh -c 'uv run python manage.py migrate && uv run python manage.py load_content && uv run python manage.py distill-local _site --collectstatic --force'
+	sh -c '$(PREPARE_DB) && uv run python manage.py distill-local _site --collectstatic --force'
 	uv run python -m pyverse.relativize _site
-
-	sh -c 'uv run python manage.py migrate && uv run python manage.py load_content && uv run python manage.py seed_drills && uv run python manage.py distill-local _site --collectstatic --force'
-# Drills: separate section (hub > type > paginated topic) with Parsons puzzles, check_parsons gate, export wiring
 	python3 utility/check_export.py _site --min-pages 38
