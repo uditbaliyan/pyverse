@@ -32,7 +32,7 @@ dependencies = [
   "pygments>=2.18",
   "python-slugify==8.0.4",
   "redis==8.1.0",
-  "wagtail==7.4.3",
+  "wagtail==8.1",
   "wagtail-ai>=3.1.1",
   "wagtail-markdown>=0.15.0",
   "whitenoise==6.12.0",
