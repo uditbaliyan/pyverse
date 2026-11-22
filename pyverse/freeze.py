@@ -34,7 +34,6 @@ from pyverse.crawl import CrawlResult
 from pyverse.crawl import crawl
 from pyverse.crawl import page_key
 from pyverse.seo import SITEMAPS
-from pyverse.seo import live_drill_pages
 from pyverse.seo import live_pages
 from pyverse.seo import live_problems
 from pyverse.seo import live_quizzes

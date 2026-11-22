@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A Python learning site where every line of code can be stepped through."
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Udit Baliyan", email = "udit-baliyan@pyverse.com" }]
+authors = [ { name = "Udit Baliyan", email = "udit-baliyan@pyverse.com" } ]
 requires-python = "==3.14.*"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
@@ -18,17 +18,17 @@ dependencies = [
   "django-anymail==15.2",
   "django-crispy-forms==2.7",
   "django-distill>=3.2.7",
-  "djangorestframework>=3.18.3",
   "django-el-pagination>=4.1.2",
   "django-environ==0.14.0",
   "django-model-utils==5.0.0",
   "django-redis==7.0.0",
   "django-taggit>=6.1.0",
   "django-tailwind[cookiecutter,honcho,reload]>=4.5.0",
+  "djangorestframework>=3.18.3",
   "gunicorn==26.0.0",
   "hiredis==3.5.0",
   "markdown>=3.7",
-  "pillow==12.3.0",
+  "pillow==13.0.0",
   "pygments>=2.18",
   "python-slugify==8.0.4",
   "redis==8.1.0",
@@ -83,7 +83,7 @@ js.indent_size = 2
 # ==== ruff ====
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
-extend-exclude = ["*/migrations/*.py", "staticfiles/*"]
+extend-exclude = [ "*/migrations/*.py", "staticfiles/*" ]
 lint.select = [
   "A",
   "ASYNC",
@@ -143,14 +143,14 @@ lint.ignore = [
   # https://github.com/astral-sh/ruff/issues/7871
 ]
 # PyScript entry scripts run in the browser, not as an importable package.
-lint.per-file-ignores."neetcode/pyscript/*.py" = ["INP001"]
+lint.per-file-ignores."neetcode/pyscript/*.py" = [ "INP001" ]
+lint.per-file-ignores."pyverse/drills/**" = [ "E501" ]
+lint.per-file-ignores."pyverse/drills/seed_data.py" = [ "ISC004", "RUF001" ]
+lint.per-file-ignores."pyverse/drills/tests.py" = [ "FBT002", "FBT003", "PLR2004" ]
+lint.per-file-ignores."pyverse/labs/gym.py" = [ "E501" ]
+lint.per-file-ignores."pyverse/labs/gym_models.py" = [ "E501", "RUF005" ]
 # Gym exercise data files and long docstrings: pre-existing, not worth wrapping.
-lint.per-file-ignores."pyverse/labs/gym_seed.py" = ["E501", "C408"]
-lint.per-file-ignores."pyverse/labs/gym_models.py" = ["E501", "RUF005"]
-lint.per-file-ignores."pyverse/labs/gym.py" = ["E501"]
-lint.per-file-ignores."pyverse/drills/**" = ["E501"]
-lint.per-file-ignores."pyverse/drills/seed_data.py" = ["RUF001", "ISC004"]
-lint.per-file-ignores."pyverse/drills/tests.py" = ["PLR2004", "FBT002", "FBT003"]
+lint.per-file-ignores."pyverse/labs/gym_seed.py" = [ "C408", "E501" ]
 lint.isort.force-single-line = true
 
 # ==== pyproject-fmt ====
@@ -164,7 +164,7 @@ python_version = "3.14"
 check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-plugins = ["mypy_django_plugin.main"]
+plugins = [ "mypy_django_plugin.main" ]
 warn_unused_configs = true
 overrides = [
   # Django migrations should not produce any errors:
@@ -187,10 +187,10 @@ markers = [
   "e2e: headless-browser tests; need a running site, run with `pytest -m e2e`",
 ]
 minversion = "9.0"
-python_files = ["tests.py", "test_*.py"]
+python_files = [ "tests.py", "test_*.py" ]
 
 [tool.coverage]
 # ==== Coverage ====
-run.include = ["pyverse/**"]
-run.omit = ["*/migrations/*", "*/tests/*"]
-run.plugins = ["django_coverage_plugin"]
+run.include = [ "pyverse/**" ]
+run.omit = [ "*/migrations/*", "*/tests/*" ]
+run.plugins = [ "django_coverage_plugin" ]
