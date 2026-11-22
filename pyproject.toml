@@ -30,7 +30,7 @@ dependencies = [
   "markdown>=3.7",
   "pillow==13.0.0",
   "pygments>=2.18",
-  "python-slugify==8.0.4",
+  "python-slugify==9.2.0",
   "redis==8.1.0",
   "wagtail==7.4.3",
   "wagtail-ai>=3.1.1",
