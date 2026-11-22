@@ -115,9 +115,11 @@ window.PyverseBrowse = (function () {
       );
     });
 
+    // `*=` not `^=`: the export rewrites links to relative paths, so the href
+    // no longer starts with "/practice/".
     // Quizzes are progress too (Quiz Suite): counted separately, because the
     // challenge breakdown above is per-difficulty.
-    const quizCards = Array.from(document.querySelectorAll('a.pe-card[href^="/practice/quiz/"]'));
+    const quizCards = Array.from(document.querySelectorAll('a.pe-card[href*="practice/quiz/"]'));
     if (document.getElementById("stat-quizzes")) {
       set("stat-quizzes", quizCards.filter((card) => card.dataset.status === "solved").length);
       set("stat-quiz-total", quizCards.length);

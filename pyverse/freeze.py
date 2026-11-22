@@ -4,23 +4,35 @@ Only importable while `DISTILL_ENABLED` is set — see `config/urls.py`. The
 `<path:path>` catch-all below would otherwise shadow normal serving, so it must
 not exist at runtime.
 
-Every URL comes from `pyverse.seo.live_pages()` / `live_problems()`, the same
-enumerations `sitemap.xml` uses, so the sitemap and the frozen file tree cannot
-drift apart.
+The URL set is *discovered*, not enumerated (see `pyverse.crawl`): the sitemap's
+own querysets (`live_pages()` / `live_problems()` / `live_quizzes()`) are only
+the **seeds**, and every internal link found in the rendered HTML is followed.
+That is what exports routable sub-paths no tree walk can see — blog archives,
+dated entry URLs, feeds, challenge pages — and what makes a broken stylesheet,
+a missing navbar image or a dead link fail the build instead of shipping.
 
-Challenge pages need no special casing here: they are routed sub-paths served by
-`PracticeTopicPage.route()`, so handing the whole path to Wagtail's own serve
-view resolves them exactly as a live request would.
+Pages are rendered by handing the whole path to Wagtail's own serve view, which
+resolves routed sub-paths exactly as a live request would.
+
+Static files and uploads are copied by `distill-local` itself (`--collectstatic`
+and MEDIA_ROOT); the crawl's part is to prove that every one a page references
+exists, so a missing stylesheet or navbar image stops the build.
 """
 
+from functools import lru_cache
 from html import escape
 
 from django.contrib.sitemaps import views as sitemap_views
+from django.core.management.base import CommandError
 from django.http import HttpResponse
+from django.urls import resolve
 from django.views.defaults import page_not_found
 from django_distill import distill_path
 from wagtail.views import serve as wagtail_serve
 
+from pyverse.crawl import CrawlResult
+from pyverse.crawl import crawl
+from pyverse.crawl import page_key
 from pyverse.seo import SITEMAPS
 from pyverse.seo import live_pages
 from pyverse.seo import live_problems
@@ -29,33 +41,67 @@ from pyverse.seo import robots_txt
 
 
 def serve_exported_page(request, path=""):
-    """Render one exported URL through Wagtail's page router.
+    """Render one exported URL exactly as a live request would be dispatched.
 
-    `path` is what Django's `<path:path>` converter captured — the site-relative
-    URL without a leading slash, exactly what `wagtail.views.serve` expects.
-    The home page arrives as ``""`` from its own route.
+    The URL is resolved against the real URLconf, so whatever serves it live
+    serves it in the export: Wagtail pages and their routed sub-paths, but also
+    plain Django routes such as puput's dated entry URLs and feeds, which
+    `wagtail.views.serve` knows nothing about.
+
+    Hard-coding `wagtail_serve` here is what made the blog's archive and entry
+    URLs un-exportable.
     """
-    return wagtail_serve(request, path)
+    match = resolve(request.path_info)
+    if match.url_name and match.url_name.startswith("freeze-"):
+        # Nothing but this catch-all claims the path (resolving it again would
+        # recurse), so let Wagtail produce the canonical 404.
+        return wagtail_serve(request, path)
+    # Django's handler sets this before calling a view; views such as puput's
+    # EntryPageServe branch on `request.resolver_match.url_name`.
+    request.resolver_match = match
+    return match.func(request, *match.args, **match.kwargs)
+
+
+def seed_paths():
+    """Every page, challenge and quiz the CMS says is live (the sitemap's set).
+
+    Seeds, not the final list: they guarantee that a page nothing links to is
+    still exported. Everything *linked* from them is found by the crawl.
+    """
+    for page in live_pages():
+        yield page_key(page.url or "")
+    for problem in live_problems():
+        yield page_key(problem.get_absolute_url())
+    for quiz in live_quizzes():
+        yield page_key(quiz.get_absolute_url())
+
+
+@lru_cache(maxsize=1)
+def discovered() -> CrawlResult:
+    """Crawl the site once per export; every URL set below reads this result.
+
+    A broken link or asset is a build failure: a static host cannot fix it up
+    later, and shipping it is how an unstyled page or a dead navbar image gets
+    to production.
+    """
+    result = crawl(seed_paths())
+    if result.errors:
+        problems = "\n  ".join(sorted(set(result.errors)))
+        count = len(result.errors)
+        msg = f"Static export would ship {count} broken reference(s):\n  {problems}"
+        raise CommandError(msg)
+    return result
 
 
 def content_paths():
-    """One entry per page, challenge and quiz, minus the home page.
+    """One entry per exported page: seeds plus everything reachable by links.
 
     Reversing `<path:path>` needs at least one character, so the home page is
     served by the empty-route entry below rather than by an empty kwarg.
     """
-    for page in live_pages():
-        relative = (page.url or "").lstrip("/")
-        if relative:
-            yield {"path": relative}
-    for problem in live_problems():
-        relative = problem.get_absolute_url().lstrip("/")
-        if relative:
-            yield {"path": relative}
-    for quiz in live_quizzes():
-        relative = quiz.get_absolute_url().lstrip("/")
-        if relative:
-            yield {"path": relative}
+    for key in sorted(discovered().pages):
+        if key:
+            yield {"path": key}
 
 
 def render_sitemap(request):
@@ -86,16 +132,9 @@ def _live_redirects():
     return [row for row in Redirect.objects.all().order_by("old_path") if row.link]
 
 
-def _exported_page_paths():
-    paths = {(page.url or "").lstrip("/") for page in live_pages()}
-    paths |= {problem.get_absolute_url().lstrip("/") for problem in live_problems()}
-    paths |= {quiz.get_absolute_url().lstrip("/") for quiz in live_quizzes()}
-    return paths
-
-
 def legacy_redirect_paths():
     """Old paths that must not collide with a real page in the export."""
-    taken = _exported_page_paths()
+    taken = set(discovered().pages)
     for row in _live_redirects():
         path = row.old_path.lstrip("/") + "/"
         if path not in taken:
@@ -145,7 +184,7 @@ freeze_urlpatterns = [
         distill_func=lambda: None,
         distill_file="index.html",
     ),
-    # Every other page, and every challenge page.
+    # Every other page, discovered by following links from the seeds.
     distill_path(
         "<path:path>",
         serve_exported_page,

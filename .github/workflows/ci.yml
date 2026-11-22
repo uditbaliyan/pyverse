@@ -131,6 +131,7 @@ jobs:
           uv run python manage.py migrate
           uv run python manage.py load_content
           uv run python manage.py distill-local _site --collectstatic --force
+          uv run python -m pyverse.relativize _site
 
       - name: Content gates
         run: |

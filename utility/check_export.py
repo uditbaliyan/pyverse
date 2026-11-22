@@ -1,7 +1,10 @@
 # ruff: noqa: INP001
 """Sanity-check a frozen site: every local <script src>/<link href>/<img src> must
 resolve to a file in the export, every local <a href> must lead to an exported
-page, and the sitemap must match the pages.
+page, the sitemap must match the pages, and no reference may be root-absolute
+(`/static/x.css`): that only works at a domain root, and breaks under a
+sub-path such as user.github.io/pyverse/ or from file://. References are
+resolved the way a browser would, from the page they appear on.
 
     python utility/check_export.py _site [--min-pages N]
 
@@ -24,6 +27,9 @@ REF = re.compile(
     r"""<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["']""",
     re.I,
 )
+# An /static/ or /media/ URL in any attribute (data-worker, data-pyodide, ...):
+# JavaScript reads these, so they break under a sub-path just like a <link>.
+ASSET_ATTR = re.compile(r"""\s[\w:-]+\s*=\s*["'](/(?:static|media)/[^"']*)["']""", re.I)
 ANCHOR = re.compile(r"""<a\b[^>]*?\bhref=["']([^"']*)["']""", re.I)
 LOC = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>")
 ID_ATTR = re.compile(r"""<[a-z][^>]*?\sid=["']([^"']+)["']""", re.I)
@@ -47,8 +53,16 @@ def exported(target: Path) -> bool:
     return target.is_file() or (target / "index.html").is_file()
 
 
-def resolve(root: Path, path: str) -> bool:
-    return exported(root / unquote(path).lstrip("/"))
+def resolve(root: Path, path: str, page: Path | None = None) -> bool:
+    """Does `path` point at an exported file, as seen from `page` (None: root)?"""
+    if page is None or path.startswith("/"):
+        return exported(root / unquote(path).lstrip("/"))
+    target = Path(os.path.normpath(page.parent / unquote(path)))
+    return (target == root or root in target.parents) and exported(target)
+
+
+def root_absolute(ref: str) -> bool:
+    return ref.startswith("/") and not ref.startswith("//")
 
 
 def check_anchor(root: Path, page: Path, href: str) -> str | None:
@@ -63,10 +77,12 @@ def check_anchor(root: Path, page: Path, href: str) -> str | None:
         return None  # leaves the site, or stays on this page
     if not url.path:
         return f"query-only link {href} (a static host ignores the query)"
-    base = root if url.path.startswith("/") else page.parent
-    target = Path(os.path.normpath(base / unquote(url.path).lstrip("/")))
-    inside = target == root or root in target.parents
-    return None if inside and exported(target) else f"dead link {href}"
+    if root_absolute(href):
+        return (
+            f"root-absolute link {href} "
+            "(breaks under a sub-path; run pyverse.relativize)"
+        )
+    return None if resolve(root, url.path, page) else f"dead link {href}"
 
 
 def placeholder_problems(html: str) -> list[str]:
@@ -95,6 +111,30 @@ def structure_problems(html: str, name: Path) -> list[str]:
     return problems
 
 
+def reference_problems(root: Path, page: Path, html: str) -> list[str]:
+    """Every asset reference that is dead or root-absolute.
+
+    Covers <script src>/<link href>/<img src>, plus /static/ and /media/ URLs in
+    any other attribute (data-worker, data-pyodide, ...), which scripts read.
+    """
+    problems: list[str] = []
+    absolute: set[str] = set()
+    for ref in REF.findall(html):
+        url = urlparse(ref)
+        if url.scheme or url.netloc or ref.startswith(("#", "data:")):
+            continue
+        if root_absolute(ref):
+            absolute.add(ref)
+        elif not resolve(root, url.path, page):
+            problems.append(f"dead reference {ref}")
+    absolute.update(ASSET_ATTR.findall(html))
+    problems.extend(
+        f"root-absolute reference {ref} (breaks under a sub-path)"
+        for ref in sorted(absolute)
+    )
+    return problems
+
+
 def main(site: str, min_pages: int = 0, *, content_checks: bool = False) -> int:
     root = Path(site).resolve()
     if not root.is_dir():
@@ -113,12 +153,7 @@ def main(site: str, min_pages: int = 0, *, content_checks: bool = False) -> int:
         if content_checks:
             errors.extend(f"{name}: {p}" for p in placeholder_problems(html))
             errors.extend(f"{name}: {p}" for p in structure_problems(html, name))
-        for ref in REF.findall(html):
-            url = urlparse(ref)
-            if url.scheme or url.netloc or ref.startswith(("#", "data:")):
-                continue
-            if not resolve(root, url.path):
-                errors.append(f"{name}: dead reference {ref}")
+        errors.extend(f"{name}: {p}" for p in reference_problems(root, page, html))
         errors.extend(
             f"{name}: {problem}"
             for href in ANCHOR.findall(html)

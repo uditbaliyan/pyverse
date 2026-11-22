@@ -20,6 +20,23 @@ Django notes` get overwritten in place. `README.md` (deploy notes) and `docs/`
 
 ## Session log
 
+### 2026-11-22 — Static export: discover URLs by crawling, fail on broken references
+
+- **Symptoms:** unstyled pages, dead navbar image, blog archive/entry/feed links 404.
+  Causes: `make build-site` never ran `tailwind build` (CI did); `live_pages()` only
+  sees tree nodes, but puput serves archives, dated entries and feeds via plain
+  Django routes that `wagtail_serve` cannot render.
+- `pyverse/crawl.py`: BFS over the real URLconf, seeded from the sitemap querysets.
+  Errors on non-200 links, missing static/media files, links into unexported areas.
+  `freeze.serve_exported_page` now dispatches through `resolve()` (and sets
+  `request.resolver_match`), so anything served live is exportable.
+- Unbroke the build itself: DRF 3.17.1 -> 3.18.3 (Django 6.1 removed `cc_delim_re`),
+  deduped the `dev` dependency group (bad merge), and repointed `labs.0002` at
+  `wagtailcore.0097` (no released Wagtail ships `0098_query_...`; same as puput/0010).
+- Tests: `pyverse/tests/test_crawl.py` (fake-site logic tests + blog regression).
+- Known: distill copies all of `MEDIA_ROOT` into `_site`; entries export at both
+  the tree URL and the dated URL with no canonical between them.
+
 ### 2026-11-19 — LMS follow-ups: arranging courses, line numbers, a stricter export check
 
 - **`show_line_numbers` is honoured.** The checkbox existed but no template read

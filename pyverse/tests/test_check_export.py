@@ -32,16 +32,16 @@ def problems(site: Path, capsys: pytest.CaptureFixture[str]) -> list[str]:
 
 
 def test_a_link_to_an_exported_page_is_fine(site, capsys):
-    write(site, "index.html", '<a href="/learn/">Learn</a><a href="/learn">Learn</a>')
+    write(site, "index.html", '<a href="learn/">Learn</a><a href="learn">Learn</a>')
 
     assert problems(site, capsys) == []
 
 
 def test_a_link_to_a_page_that_was_not_exported_is_reported(site, capsys):
-    write(site, "index.html", '<a href="/practice/problem/gone/">Try it</a>')
+    write(site, "index.html", '<a href="practice/problem/gone/">Try it</a>')
 
     assert problems(site, capsys) == [
-        "index.html: dead link /practice/problem/gone/",
+        "index.html: dead link practice/problem/gone/",
     ]
 
 
@@ -49,10 +49,10 @@ def test_fragments_and_query_strings_do_not_hide_a_dead_link(site, capsys):
     write(
         site,
         "index.html",
-        '<a href="/learn/#top">ok</a><a href="/nope/?a=1#x">no</a>',
+        '<a href="learn/#top">ok</a><a href="nope/?a=1#x">no</a>',
     )
 
-    assert problems(site, capsys) == ["index.html: dead link /nope/?a=1#x"]
+    assert problems(site, capsys) == ["index.html: dead link nope/?a=1#x"]
 
 
 def test_links_that_leave_the_site_or_need_no_file_are_skipped(site, capsys):
@@ -98,12 +98,42 @@ def test_missing_assets_are_still_reported_as_before(site, capsys):
     write(
         site,
         "index.html",
-        '<img src="/media/x.png"><script src="/static/a.js"></script>',
+        '<img src="media/x.png"><script src="static/a.js"></script>',
     )
 
     assert problems(site, capsys) == [
-        "index.html: dead reference /media/x.png",
-        "index.html: dead reference /static/a.js",
+        "index.html: dead reference media/x.png",
+        "index.html: dead reference static/a.js",
+    ]
+
+
+def test_root_absolute_references_are_errors_even_when_the_file_exists(site, capsys):
+    # /learn/ exists, but "/..." only resolves at a domain root: under
+    # user.github.io/pyverse/ it points at the host's root and 404s.
+    write(site, "static/a.css", "b{}")
+    write(
+        site,
+        "learn/topic/index.html",
+        '<link rel="stylesheet" href="/static/a.css"><a href="/learn/">Learn</a>',
+    )
+
+    found = problems(site, capsys)
+
+    assert len(found) == 2  # noqa: PLR2004
+    assert all("root-absolute" in line for line in found)
+
+
+def test_relative_references_resolve_from_the_page_not_the_site_root(site, capsys):
+    write(site, "static/a.css", "b{}")
+    write(
+        site,
+        "learn/topic/index.html",
+        '<link rel="stylesheet" href="../../static/a.css">'
+        '<link rel="stylesheet" href="static/a.css">',
+    )
+
+    assert problems(site, capsys) == [
+        "learn/topic/index.html: dead reference static/a.css",
     ]
 
 
@@ -182,3 +212,19 @@ def test_page_count_floor_catches_an_empty_export(site, capsys):
     found = content_problems(site, capsys, floor=38)
 
     assert any("expected at least 38" in line for line in found)
+
+
+def test_asset_urls_in_data_attributes_are_caught(site, capsys):
+    # Scripts read these (the Python runtime starts its worker from data-worker),
+    # so a root-absolute one breaks the page under a sub-path just like a <link>.
+    write(site, "static/js/w.js", "")
+    write(
+        site,
+        "learn/topic/index.html",
+        '<script src="../../static/js/w.js" data-worker="/static/js/w.js"></script>',
+    )
+
+    found = problems(site, capsys)
+
+    assert len(found) == 1
+    assert "root-absolute reference /static/js/w.js" in found[0]

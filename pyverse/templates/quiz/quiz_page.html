@@ -151,7 +151,7 @@ shows up on the Landing, Sheets and Tracks.
     }
   </style>
 {% endblock extra_head %}
-{% block body_attrs %} data-quiz-slug="{{ quiz.slug }}" data-quiz-title="{{ quiz.title }}"{% endblock body_attrs %}
+{% block body_attrs %} data-quiz-slug="{{ quiz.slug }}" data-quiz-title="{{ quiz.title }}" data-back-href="/practice/"{% endblock body_attrs %}
 {% block content %}
   <div class="page-container pt-7 pb-[90px]">
     {# ── breadcrumb + title ──────────────────────────────────────── #}
@@ -260,7 +260,9 @@ shows up on the Landing, Sheets and Tracks.
         });
         actions.appendChild(retry);
         const back = el("a", "pe-btn", "Back to problems");
-        back.href = "/practice/";
+        // Read from the page, not hard-coded: the static export rewrites
+        // data-*-href attributes to be relative, so this works under any sub-path.
+        back.href = document.body.dataset.backHref;
         actions.appendChild(back);
         card.appendChild(actions);
         stage.appendChild(card);

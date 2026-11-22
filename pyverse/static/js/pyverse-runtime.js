@@ -21,10 +21,17 @@
 (function () {
   "use strict";
 
+  function absolute(url) {
+    return url ? new URL(url, document.baseURI).href : "";
+  }
+
   var script = document.currentScript;
   var WORKER_URL = script ? script.getAttribute("data-worker") : "";
   // Optional: where pyodide.js lives (self-hosting). The worker defaults to the CDN.
-  var PYODIDE_URL = (script && script.getAttribute("data-pyodide")) || "";
+  // Absolute on purpose. The static export writes page-relative URLs so the site
+  // works under any sub-path, but importScripts() inside the worker resolves a
+  // relative URL against the *worker script's* location, not the page's.
+  var PYODIDE_URL = absolute((script && script.getAttribute("data-pyodide")) || "");
   var BUDGET = { run: 5000, submit: 10000, trace: 8000, lab: 8000, notebook: 10000 }; // ms per call, after ready
 
   var worker = null;

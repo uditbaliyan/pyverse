@@ -158,7 +158,9 @@ PYVERSE_CANONICAL_BASE_URL=https://your-domain.example \
 uv run python manage.py distill-local _site --collectstatic --force
 ```
 
-`_site/` is the whole product: upload it to Netlify, Cloudflare Pages, GitHub Pages, or any bucket. It contains `sitemap.xml`, `robots.txt`, `404.html`, `_redirects`, and one `index.html` per live page.
+`_site/` is the whole product: upload it to Netlify, Cloudflare Pages, GitHub Pages, or any bucket. It contains `sitemap.xml`, `robots.txt`, `404.html`, `_redirects`, and one `index.html` per reachable page.
+
+The URL set is *discovered*, not listed: the CMS's live pages are only the starting points, and every internal link in the rendered HTML is followed (`pyverse/crawl.py`). That is how blog archives, dated entry URLs and feeds get exported. The build **fails, naming the page**, if a link returns non-200, a `/static/` or `/media/` file a page references does not exist (a missing Tailwind build, a missing navbar image), or a page links into `/cms/` or `/accounts/`.
 
 Quick sanity checks before you upload:
 
