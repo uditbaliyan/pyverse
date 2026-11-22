@@ -19,7 +19,9 @@ Puzzle text is placed with textContent in the script, never as markup.
     {% if page.intro and current == 1 %}<p class="mt-5 max-w-[65ch] text-body-txt leading-relaxed">{{ page.intro }}</p>{% endif %}
     <p class="mt-4 font-mono text-[12px] text-muted">
       {{ total }} {% if kind == "quiz" %}question{% else %}puzzle{% endif %}{{ total|pluralize }} · page {{ current }} of {{ page_links|length }}
-      · <span data-page-progress data-store="{{ store }}" data-slugs="{% if kind == "quiz" %}{% for q in items %}q{{ q.pk }}{% if not forloop.last %},{% endif %}{% endfor %}{% else %}{% for p in items %}{{ p.slug }}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">0 solved on this page</span>
+      · <span data-page-progress
+       data-store="{{ store }}"
+       data-slugs="{% if kind == "quiz" %}{% for q in items %}q{{ q.pk }}{% if not forloop.last %},{% endif %}{% endfor %}{% else %}{% for p in items %}{{ p.slug }}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">0 solved on this page</span>
     </p>
     {% for item in items %}
       {% if kind == "quiz" %}
@@ -34,7 +36,8 @@ Puzzle text is placed with textContent in the script, never as markup.
       <nav class="pv-pager" aria-label="Puzzle pages">
         {% if prev_url %}<a href="{{ prev_url }}" rel="prev">← Previous</a>{% endif %}
         {% for link in page_links %}
-          <a href="{{ link.url }}"{% if link.current %} aria-current="page" class="is-current"{% endif %}>{{ link.number }}</a>
+          <a href="{{ link.url }}"
+             {% if link.current %}aria-current="page" class="is-current"{% endif %}>{{ link.number }}</a>
         {% endfor %}
         {% if next_url %}<a href="{{ next_url }}" rel="next">Next →</a>{% endif %}
       </nav>

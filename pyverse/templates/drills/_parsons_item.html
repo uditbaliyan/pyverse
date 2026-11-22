@@ -1,16 +1,21 @@
-      {% with payload_id="parsons-"|add:problem.slug %}
-        <article id="{{ problem.slug }}" class="pv-parsons" data-parsons data-payload="{{ payload_id }}">
-          <header class="pv-parsons__head">
-            <span class="pv-parsons__num">{{ number }}</span>
-            <h2 class="pv-parsons__title">{{ problem.title }}</h2>
-            <span class="pv-parsons__meta">{{ problem.get_difficulty_display }}{% if problem.concept %} · {{ problem.concept }}{% endif %}</span>
-          </header>
-          <p class="pv-parsons__desc">{{ problem.description }}</p>
-          {% if problem.expected_output %}
-            <p class="pv-parsons__label">Expected output</p>
-            <pre class="pv-parsons__out">{{ problem.expected_output }}</pre>
-          {% endif %}
-          <div class="pv-parsons__mount"><noscript>This puzzle needs JavaScript.</noscript></div>
-          {{ problem.payload|json_script:payload_id }}
-        </article>
-      {% endwith %}
+{% with payload_id="parsons-"|add:problem.slug %}
+  <article id="{{ problem.slug }}"
+           class="pv-parsons"
+           data-parsons
+           data-payload="{{ payload_id }}">
+    <header class="pv-parsons__head">
+      <span class="pv-parsons__num">{{ number }}</span>
+      <h2 class="pv-parsons__title">{{ problem.title }}</h2>
+      <span class="pv-parsons__meta">{{ problem.get_difficulty_display }}{% if problem.concept %} · {{ problem.concept }}{% endif %}</span>
+    </header>
+    <p class="pv-parsons__desc">{{ problem.description }}</p>
+    {% if problem.expected_output %}
+      <p class="pv-parsons__label">Expected output</p>
+      <pre class="pv-parsons__out">{{ problem.expected_output }}</pre>
+    {% endif %}
+    <div class="pv-parsons__mount">
+      <noscript>This puzzle needs JavaScript.</noscript>
+    </div>
+    {{ problem.payload|json_script:payload_id }}
+  </article>
+{% endwith %}

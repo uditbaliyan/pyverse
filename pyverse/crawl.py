@@ -227,7 +227,11 @@ class _Crawler:
             self.read_page(key, label, response)
 
     def follow_redirect(
-        self, response, label: str, origin: str | None, who: str,
+        self,
+        response,
+        label: str,
+        origin: str | None,
+        who: str,
     ) -> None:
         target = _local_path(response["Location"], label)
         if target is None:

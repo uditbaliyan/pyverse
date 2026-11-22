@@ -1,15 +1,23 @@
 {% load drills_tags %}
+
 {# One quiz question. The answer is baked in as data-correct, like the Practice quiz page. #}
-<article id="q{{ question.pk }}" class="pv-q" data-qitem data-slug="q{{ question.pk }}">
+<article id="q{{ question.pk }}"
+         class="pv-q"
+         data-qitem
+         data-slug="q{{ question.pk }}">
   <header class="pv-parsons__head">
     <span class="pv-parsons__num">{{ number }}</span>
     <span class="pv-parsons__meta">{{ question.quiz.title }}</span>
   </header>
   <p class="pv-q__text">{{ question.text }}</p>
   {% if question.code_snippet %}<pre class="pv-parsons__out"><code>{{ question.code_snippet }}</code></pre>{% endif %}
-  <div class="pv-q__opts" role="group" aria-label="Answer options for question {{ number }}">
+  <div class="pv-q__opts"
+       role="group"
+       aria-label="Answer options for question {{ number }}">
     {% for option in question|drill_options %}
-      <button type="button" class="pv-q__opt" data-correct="{% if option.correct %}1{% else %}0{% endif %}">{{ option.text }}</button>
+      <button type="button"
+              class="pv-q__opt"
+              data-correct="{% if option.correct %}1{% else %}0{% endif %}">{{ option.text }}</button>
     {% endfor %}
   </div>
   <div class="pv-q__result" role="status" aria-live="polite" hidden>
@@ -17,5 +25,7 @@
     {% if question.explanation %}<p class="pv-q__why">{{ question.explanation }}</p>{% endif %}
     <button type="button" class="pv-q__retry">Try again</button>
   </div>
-  <noscript><p class="pv-q__why">This question needs JavaScript.</p></noscript>
+  <noscript>
+    <p class="pv-q__why">This question needs JavaScript.</p>
+  </noscript>
 </article>

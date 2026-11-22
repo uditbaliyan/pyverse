@@ -2,7 +2,10 @@
 
 SEED = [
     dict(
-        slug="py-word-freq", title="Word frequencies", library="python", difficulty=1,
+        slug="py-word-freq",
+        title="Word frequencies",
+        library="python",
+        difficulty=1,
         prompt="<p>Write <code>word_freq(text)</code>: a dict of lowercase word &rarr; count. Split on whitespace, ignore case.</p>",
         setup_code="",
         starter_code='def word_freq(text):\n    ...\n\n\nword_freq("the cat the hat")\n',
@@ -18,7 +21,10 @@ SEED = [
         hints="Normalise first: lower() then split().\ncollections.Counter does the counting.",
     ),
     dict(
-        slug="py-flatten", title="Flatten nested lists", library="python", difficulty=2,
+        slug="py-flatten",
+        title="Flatten nested lists",
+        library="python",
+        difficulty=2,
         prompt="<p>Write <code>flatten(xs)</code> that flattens arbitrarily nested <em>lists</em> into one list, keeping order. Other types (strings, tuples) are left whole.</p>",
         setup_code="",
         starter_code="def flatten(xs):\n    ...\n",
@@ -35,7 +41,10 @@ SEED = [
         hints="Recursion: a list element is a smaller instance of the same problem.",
     ),
     dict(
-        slug="np-zscore", title="Standardise columns", library="numpy", difficulty=2,
+        slug="np-zscore",
+        title="Standardise columns",
+        library="numpy",
+        difficulty=2,
         prompt="<p><code>X</code> is a 100&times;4 array. Build <code>Z</code>: each column shifted to mean 0 and scaled to std 1. No loops.</p>",
         setup_code="import numpy as np\nrng = np.random.default_rng(0)\nX = rng.normal(5, 3, (100, 4))\n",
         starter_code="Z = ...\n",
@@ -48,7 +57,10 @@ SEED = [
         hints="axis=0 reduces down the rows, leaving one value per column.\nBroadcasting lines a (4,) vector up against (100, 4).",
     ),
     dict(
-        slug="np-mask", title="Zero out negatives", library="numpy", difficulty=1,
+        slug="np-mask",
+        title="Zero out negatives",
+        library="numpy",
+        difficulty=1,
         prompt="<p>Make <code>clipped</code>: a copy of <code>a</code> with every negative replaced by 0. Leave <code>a</code> unchanged.</p>",
         setup_code="import numpy as np\na = np.array([3, -1, 4, -1, 5, -9])\n",
         starter_code="clipped = ...\n",
@@ -60,7 +72,10 @@ SEED = [
         hints="A boolean mask a < 0 selects the negatives.\nnp.where(cond, x, y) builds a new array.",
     ),
     dict(
-        slug="pd-top-spenders", title="Top two spenders", library="pandas", difficulty=1,
+        slug="pd-top-spenders",
+        title="Top two spenders",
+        library="pandas",
+        difficulty=1,
         prompt="<p>Using <code>df</code>, build <code>top</code>: a Series of the 2 customers with the highest <em>total</em> amount, largest first.</p>",
         setup_code='import pandas as pd\ndf = pd.DataFrame({"customer": list("ABCABCDA"), "amount": [10, 20, 5, 30, 15, 25, 40, 5]})\ndf\n',
         starter_code="top = ...\ntop\n",
@@ -72,7 +87,10 @@ SEED = [
         hints="groupby + sum gives totals per customer.\nSeries.nlargest(n) sorts for you.",
     ),
     dict(
-        slug="pd-fill-group-mean", title="Fill gaps with the group mean", library="pandas", difficulty=2,
+        slug="pd-fill-group-mean",
+        title="Fill gaps with the group mean",
+        library="pandas",
+        difficulty=2,
         prompt="<p>Fill each missing <code>score</code> with the mean score of that row&rsquo;s <code>team</code>. Modify <code>df</code> in place.</p>",
         setup_code='import numpy as np, pandas as pd\ndf = pd.DataFrame({"team": ["x", "x", "y", "y", "y"], "score": [1.0, np.nan, 4.0, np.nan, 8.0]})\n',
         starter_code="df\n",
@@ -81,7 +99,10 @@ SEED = [
         hints="transform returns a result aligned to the original rows.",
     ),
     dict(
-        slug="sns-histogram", title="Titled histogram", library="seaborn", difficulty=1,
+        slug="sns-histogram",
+        title="Titled histogram",
+        library="seaborn",
+        difficulty=1,
         prompt="<p>Draw a histogram of <code>df['height']</code> with exactly 12 bins and the title <code>Heights</code>.</p>",
         setup_code=(
             "import numpy as np, pandas as pd, seaborn as sns, matplotlib.pyplot as plt\n"

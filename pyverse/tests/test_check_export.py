@@ -197,7 +197,7 @@ def test_duplicate_ids_are_reported_but_scripts_are_ignored(site, capsys):
         site,
         "index.html",
         "<main id='main'><div id='a'></div><div id='a'></div>"
-        "<script>var s = '<div id=\"z\"></div><div id=\"z\"></div>';</script></main>",
+        '<script>var s = \'<div id="z"></div><div id="z"></div>\';</script></main>',
     )
 
     found = content_problems(site, capsys)

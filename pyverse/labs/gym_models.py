@@ -50,7 +50,8 @@ class GymExercisePage(Page):
     difficulty = models.PositiveSmallIntegerField(choices=DIFFICULTY_CHOICES, default=1)
     prompt = RichTextField(features=_RT)
     setup_code = models.TextField(
-        blank=True, help_text="Hidden. Runs first in the same namespace: build data here.",
+        blank=True,
+        help_text="Hidden. Runs first in the same namespace: build data here.",
     )
     starter_code = models.TextField(blank=True)
     check_code = models.TextField(
@@ -58,9 +59,13 @@ class GymExercisePage(Page):
         "Give every assert a message. Visible in page source (client-side by design).",
     )
     solution_code = models.TextField(
-        blank=True, help_text="Reference answer; also verified by `manage.py check_gym`.",
+        blank=True,
+        help_text="Reference answer; also verified by `manage.py check_gym`.",
     )
-    hints = models.TextField(blank=True, help_text="One hint per line, revealed in order.")
+    hints = models.TextField(
+        blank=True,
+        help_text="One hint per line, revealed in order.",
+    )
 
     parent_page_types = ["labs.GymHubPage"]
     subpage_types: list[str] = []
@@ -68,7 +73,8 @@ class GymExercisePage(Page):
 
     content_panels = Page.content_panels + [
         MultiFieldPanel(
-            [FieldPanel("library"), FieldPanel("difficulty")], heading="Classification",
+            [FieldPanel("library"), FieldPanel("difficulty")],
+            heading="Classification",
         ),
         FieldPanel("prompt"),
         MultiFieldPanel(

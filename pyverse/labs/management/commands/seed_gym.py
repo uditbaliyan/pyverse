@@ -15,7 +15,11 @@ class Command(BaseCommand):
         if index is None:
             raise CommandError("Create a LabsIndexPage first.")  # noqa: EM101, TRY003
         hub = GymHubPage.objects.first() or index.add_child(
-            instance=GymHubPage(title="Gym", slug="gym", intro="<p>Free practice. Runs in your browser; nothing is saved.</p>"),  # noqa: E501
+            instance=GymHubPage(
+                title="Gym",
+                slug="gym",
+                intro="<p>Free practice. Runs in your browser; nothing is saved.</p>",
+            ),
         )
         made = 0
         for ex in SEED:
