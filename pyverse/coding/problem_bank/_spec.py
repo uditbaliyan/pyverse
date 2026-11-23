@@ -23,6 +23,8 @@ TOPICS: dict[str, str] = {
     "sliding-window": "Sliding Window",
     "stack": "Stack",
     "binary-search": "Binary Search",
+    "pattern-printing": "Pattern Printing",
+    "matrix-patterns": "Matrix Patterns",
 }
 
 

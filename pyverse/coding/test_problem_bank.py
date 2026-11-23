@@ -26,8 +26,8 @@ COMPARATORS = {"exact", "sorted_list", "float_tolerance", "custom"}
 # ── the data ────────────────────────────────────────────────────────────
 
 
-def test_bank_has_twenty_to_thirty_problems_with_unique_slugs():
-    assert 20 <= len(PROBLEMS) <= 30
+def test_bank_has_at_least_twenty_problems_with_unique_slugs():
+    assert len(PROBLEMS) >= 20
     assert len(BY_SLUG) == len(PROBLEMS)
 
 

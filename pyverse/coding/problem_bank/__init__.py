@@ -7,6 +7,8 @@ with `manage.py seed_problems`; verify them with `manage.py check_problem_traces
 """
 
 from . import arrays
+from . import matrix_patterns
+from . import pattern_printing
 from . import pointers
 from . import stack_search
 from . import warmup
@@ -19,6 +21,8 @@ PROBLEMS: list[dict] = [
     *pointers.PROBLEMS,
     *window.PROBLEMS,
     *stack_search.PROBLEMS,
+    *pattern_printing.PROBLEMS,
+    *matrix_patterns.PROBLEMS,
 ]
 
 __all__ = ["PROBLEMS", "TOPICS"]
