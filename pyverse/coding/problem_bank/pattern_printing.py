@@ -990,4 +990,545 @@ PROBLEMS = [
         patterns=["Iteration", "Math"],
         techniques=["Character Codes", "String Repetition"],
     ),
+    problem(
+        slug="alternating-letter-grid",
+        title="Alternating Letter Grid",
+        topic="pattern-printing",
+        difficulty="easy",
+        fn="letter_grid",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Build an <code>n</code> by <code>n</code> grid of the letters <code>A</code> and <code>B</code>. The top-left letter is <code>A</code>, and every letter differs from its neighbours to the left, right, above and below.",
+            "<pre>ABAB\nBABA\nABAB\nBABA</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[
+            (
+                "n = 4",
+                '["ABAB", "BABA", "ABAB", "BABA"]',
+                "Rows alternate between ABAB and BABA.",
+            ),
+        ],
+        constraints=["1 <= n <= 30"],
+        todo="Choose A or B for each cell from the parity of its row and column.",
+        solution="""
+            def letter_grid(n: int) -> list[str]:
+                rows = []
+                for row in range(n):
+                    line = ""
+                    for col in range(n):
+                        line += "AB"[(row + col) % 2]
+                    rows.append(line)
+                return rows
+        """,
+        trace=1,
+        cases=[
+            ("4", "['ABAB', 'BABA', 'ABAB', 'BABA']", False),
+            ("3", "['ABA', 'BAB', 'ABA']", False),
+            ("1", "['A']", True),
+            ("2", "['AB', 'BA']", True),
+            (
+                "7",
+                "['ABABABA', 'BABABAB', 'ABABABA', 'BABABAB', 'ABABABA', 'BABABAB', 'ABABABA']",
+                True,
+            ),
+        ],
+        hints=(
+            "Neighbouring cells always differ. What number is different for neighbours?",
+            "The parity of <code>row + col</code> flips with every step right or down.",
+            'A string can be indexed: <code>"AB"[0]</code> is "A" and <code>"AB"[1]</code> is "B". Use <code>(row + col) % 2</code> as the index.',
+        ),
+        approaches=[
+            ("If / else", "Test the parity and add A or B.", "O(n^2)", "O(n^2)", False),
+            (
+                "Index a string",
+                'Use the parity (0 or 1) directly as an index into <code>"AB"</code>.',
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                6,
+                "The parity is always 0 or 1, so it doubles as an index into the string. That replaces an if/else.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                7,
+                "For n = 4, when row is 1 and this line is reached, what is line?",
+                '"BABA"',
+            ),
+        ],
+        patterns=["Iteration", "Matrix"],
+        techniques=["Modulo", "Nested Loops"],
+    ),
+    problem(
+        slug="letter-pyramid",
+        title="Letter Pyramid",
+        topic="pattern-printing",
+        difficulty="medium",
+        fn="letter_pyramid",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Build a centred pyramid whose rows are filled with the alphabet in order. Row <code>k</code> has <code>2k - 1</code> letters, and each row continues from the letter after the previous row's last letter.",
+            "<pre>  A\n BCD\nEFGHI</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[
+            (
+                "n = 3",
+                '["  A", " BCD", "EFGHI"]',
+                "A | BCD | EFGHI: 1, 3 and 5 letters.",
+            ),
+        ],
+        constraints=["1 <= n <= 5 (the pyramid uses n * n letters, at most 26)"],
+        todo="Slice the alphabet: each row takes the next 2 * row - 1 letters.",
+        solution="""
+            def letter_pyramid(n: int) -> list[str]:
+                alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                rows = []
+                start = 0
+                for row in range(1, n + 1):
+                    count = 2 * row - 1
+                    rows.append(" " * (n - row) + alphabet[start:start + count])
+                    start += count
+                return rows
+        """,
+        trace=1,
+        cases=[
+            ("3", "['  A', ' BCD', 'EFGHI']", False),
+            ("4", "['   A', '  BCD', ' EFGHI', 'JKLMNOP']", False),
+            ("1", "['A']", True),
+            ("2", "[' A', 'BCD']", True),
+            ("5", "['    A', '   BCD', '  EFGHI', ' JKLMNOP', 'QRSTUVWXY']", True),
+        ],
+        hints=(
+            "Every row is a centred pyramid row, just filled with letters instead of stars.",
+            "Keep a position in the alphabet and advance it by the row's width after each row.",
+            "<code>alphabet[start:start + count]</code> takes the letters, then <code>start += count</code>.",
+        ),
+        approaches=[
+            (
+                "Character codes",
+                "Compute each letter from a running counter using chr and ord.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Slice the alphabet",
+                "Take each row as a slice and advance the start index.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                8,
+                "Moving start by the row's width means the next slice begins at the letter after this row's last one.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                8,
+                "For n = 3, when row is 3 and this line is reached, what is start?",
+                "4: A to D are used by rows 1 and 2; this row took E to I.",
+            ),
+        ],
+        patterns=["Iteration", "Math"],
+        techniques=["Slicing", "String Repetition"],
+    ),
+    problem(
+        slug="hollow-letter-triangle",
+        title="Hollow Letter Triangle",
+        topic="pattern-printing",
+        difficulty="medium",
+        fn="hollow_letter_triangle",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Build a triangle outline of letters. Row <code>k</code> uses the k-th capital letter. Row 1 is just <code>A</code>; every later row has that row's letter at both ends, with spaces between, so the two copies move apart along two diagonals.",
+            "<pre>A\nB B\nC   C\nD     D</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[
+            (
+                "n = 4",
+                '["A", "B B", "C   C", "D     D"]',
+                "The gap between the letters is 1, 3, 5 spaces in rows 2, 3, 4.",
+            ),
+        ],
+        constraints=["1 <= n <= 26"],
+        todo="Row 0 is one letter; later rows are letter + spaces + letter.",
+        solution="""
+            def hollow_letter_triangle(n: int) -> list[str]:
+                rows = []
+                for row in range(n):
+                    letter = chr(ord("A") + row)
+                    if row == 0:
+                        rows.append(letter)
+                    else:
+                        rows.append(letter + " " * (2 * row - 1) + letter)
+                return rows
+        """,
+        trace=1,
+        cases=[
+            ("4", "['A', 'B B', 'C   C', 'D     D']", False),
+            ("3", "['A', 'B B', 'C   C']", False),
+            ("1", "['A']", True),
+            ("2", "['A', 'B B']", True),
+            (
+                "8",
+                "['A', 'B B', 'C   C', 'D     D', 'E       E', 'F         F', 'G           G', 'H             H']",
+                True,
+            ),
+        ],
+        hints=(
+            "Count the spaces between the two letters in each row of the example.",
+            "The gap is 1, 3, 5, ... spaces, and the first row has no gap at all.",
+            "For row <code>r</code> (from 0), the gap is <code>2 * r - 1</code> spaces; treat row 0 separately.",
+        ),
+        approaches=[
+            (
+                "Character grid",
+                "Create a row of spaces and set the two end positions.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Letter, gap, letter",
+                "Build each row from the gap size.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                8,
+                "Row 0 would need a negative gap, so it is handled by its own branch with a single letter.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                8,
+                "For n = 4, on the last pass of the loop, how many spaces sit between the two letters?",
+                "5: 2 * 3 - 1.",
+            ),
+        ],
+        patterns=["Iteration", "Math"],
+        techniques=["Character Codes", "String Repetition"],
+    ),
+    problem(
+        slug="star-hourglass",
+        title="Star Hourglass",
+        topic="pattern-printing",
+        difficulty="medium",
+        fn="star_hourglass",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Build an hourglass of stars that are separated by single spaces. The top row has <code>n</code> stars, and each row below it has one star fewer and is indented one more space, until a single star is left. The bottom half mirrors the top, so there are <code>2 * n - 1</code> rows.",
+            "<pre>* * * * *\n * * * *\n  * * *\n   * *\n    *\n   * *\n  * * *\n * * * *\n* * * * *</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[
+            (
+                "n = 5",
+                '["* * * * *", " * * * *", "  * * *", "   * *", "    *", "   * *", "  * * *", " * * * *", "* * * * *"]',
+                "5, 4, 3, 2, 1, 2, 3, 4, 5 stars.",
+            ),
+        ],
+        constraints=["1 <= n <= 30"],
+        todo="Build the top half (n rows), then mirror it without repeating the single star.",
+        solution="""
+            def star_hourglass(n: int) -> list[str]:
+                top = []
+                for row in range(n):
+                    stars = " ".join("*" * (n - row))
+                    top.append(" " * row + stars)
+                return top + top[-2::-1]
+        """,
+        trace=1,
+        cases=[
+            (
+                "5",
+                "['* * * * *', ' * * * *', '  * * *', '   * *', '    *', '   * *', '  * * *', ' * * * *', '* * * * *']",
+                False,
+            ),
+            ("3", "['* * *', ' * *', '  *', ' * *', '* * *']", False),
+            ("1", "['*']", True),
+            ("2", "['* *', ' *', '* *']", True),
+            (
+                "6",
+                "['* * * * * *', ' * * * * *', '  * * * *', '   * * *', '    * *', '     *', '    * *', '   * * *', '  * * * *', ' * * * * *', '* * * * * *']",
+                True,
+            ),
+        ],
+        hints=(
+            "The bottom half is the top half read backwards.",
+            "A row is an indent plus stars separated by spaces. How can you put a space between characters?",
+            '<code>" ".join("***")</code> gives <code>"* * *"</code>. Mirror with <code>top[-2::-1]</code>.',
+        ),
+        approaches=[
+            (
+                "Two loops",
+                "One loop shrinking, one growing.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Mirror the top half",
+                "Build the top once; append it reversed without the middle row.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                4,
+                'join treats the string as a sequence of characters and puts one space between each pair: "***" becomes "* * *".',
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                5,
+                "For n = 5, when row is 1 and this line is reached, what is stars?",
+                '"* * * *"',
+            ),
+        ],
+        patterns=["Iteration", "Math"],
+        techniques=["Slicing", "String Methods"],
+    ),
+    problem(
+        slug="floyds-triangle",
+        title="Floyd's Triangle",
+        topic="pattern-printing",
+        difficulty="easy",
+        fn="floyds_triangle",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Fill a right-angled triangle with the numbers 1, 2, 3, ... in order, one number after another with no restart. Row <code>k</code> holds <code>k</code> numbers separated by single spaces.",
+            "<pre>1\n2 3\n4 5 6\n7 8 9 10</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[("n = 3", '["1", "2 3", "4 5 6"]', "1 | 2 3 | 4 5 6.")],
+        constraints=["1 <= n <= 30"],
+        todo="Use one running counter and join each row with spaces.",
+        solution="""
+            def floyds_triangle(n: int) -> list[str]:
+                rows = []
+                number = 1
+                for size in range(1, n + 1):
+                    cells = []
+                    for _ in range(size):
+                        cells.append(str(number))
+                        number += 1
+                    rows.append(" ".join(cells))
+                return rows
+        """,
+        trace=1,
+        cases=[
+            ("3", "['1', '2 3', '4 5 6']", False),
+            ("4", "['1', '2 3', '4 5 6', '7 8 9 10']", False),
+            ("1", "['1']", True),
+            ("2", "['1', '2 3']", True),
+            (
+                "6",
+                "['1', '2 3', '4 5 6', '7 8 9 10', '11 12 13 14 15', '16 17 18 19 20 21']",
+                True,
+            ),
+        ],
+        hints=(
+            "Numbers never restart, so the counter lives outside the row loop.",
+            "Collect each row's numbers as strings in a list.",
+            '<code>" ".join(cells)</code> turns the list into one line with single spaces.',
+        ),
+        approaches=[
+            (
+                "Triangular formula",
+                "Row k starts at <code>k * (k - 1) // 2 + 1</code>.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Running counter",
+                "One counter hands out the numbers across all rows.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                8,
+                "number is never reset, so each row continues exactly where the previous one stopped.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                9,
+                "For n = 3, when size is 3 and this line is reached, what is cells?",
+                '["4", "5", "6"]',
+            ),
+        ],
+        patterns=["Iteration", "Math"],
+        techniques=["Accumulator", "String Methods", "Nested Loops"],
+    ),
+    problem(
+        slug="spaced-letter-triangle",
+        title="Letter Triangle with Spaces",
+        topic="pattern-printing",
+        difficulty="medium",
+        fn="spaced_letter_triangle",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Fill a right-angled triangle with the letters A, B, C, ... in alphabet order. Row <code>k</code> holds <code>k</code> letters separated by single spaces, and the lettering does not restart on a new row.",
+            "<pre>A\nB C\nD E F</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[("n = 3", '["A", "B C", "D E F"]', "A | B C | D E F.")],
+        constraints=["1 <= n <= 6 (the triangle uses at most 21 letters)"],
+        todo="Keep a running letter code; join each row's letters with spaces.",
+        solution="""
+            def spaced_letter_triangle(n: int) -> list[str]:
+                rows = []
+                code = ord("A")
+                for size in range(1, n + 1):
+                    letters = []
+                    for _ in range(size):
+                        letters.append(chr(code))
+                        code += 1
+                    rows.append(" ".join(letters))
+                return rows
+        """,
+        trace=1,
+        cases=[
+            ("3", "['A', 'B C', 'D E F']", False),
+            ("4", "['A', 'B C', 'D E F', 'G H I J']", False),
+            ("1", "['A']", True),
+            ("2", "['A', 'B C']", True),
+            ("6", "['A', 'B C', 'D E F', 'G H I J', 'K L M N O', 'P Q R S T U']", True),
+        ],
+        hints=(
+            "It is the number triangle again, but the numbers are letters.",
+            "<code>ord</code> gives a letter's code, <code>chr</code> turns a code back into a letter.",
+            'Keep <code>code = ord("A")</code> outside the loops; append <code>chr(code)</code> and add 1.',
+        ),
+        approaches=[
+            (
+                "Index the alphabet",
+                "Keep a position and index into an alphabet string.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Character codes",
+                "Count codes upwards and convert with chr.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                7,
+                "chr converts the running code back to a character. Because capital letters have consecutive codes, adding 1 moves to the next letter.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                9,
+                "For n = 3, when size is 3 and this line is reached, what is letters?",
+                '["D", "E", "F"]',
+            ),
+        ],
+        patterns=["Iteration"],
+        techniques=["Character Codes", "String Methods", "Nested Loops"],
+    ),
+    problem(
+        slug="packed-letter-triangle",
+        title="Letter Triangle without Spaces",
+        topic="pattern-printing",
+        difficulty="medium",
+        fn="packed_letter_triangle",
+        signature="(n: int) -> list[str]",
+        description=html(
+            "Fill a right-angled triangle with the letters A, B, C, ... in alphabet order, with no restart. Row <code>k</code> holds <code>k</code> letters written directly next to each other.",
+            "<pre>A\nBC\nDEF</pre>",
+            "Return the rows as a list of strings; do not print them. A row has no trailing spaces, but leading spaces are part of the row.",
+        ),
+        examples=[("n = 3", '["A", "BC", "DEF"]', "A | BC | DEF.")],
+        constraints=["1 <= n <= 6 (the triangle uses at most 21 letters)"],
+        todo="Same as the spaced version, but build every row as one string.",
+        solution="""
+            def packed_letter_triangle(n: int) -> list[str]:
+                rows = []
+                code = ord("A")
+                for size in range(1, n + 1):
+                    line = ""
+                    for _ in range(size):
+                        line += chr(code)
+                        code += 1
+                    rows.append(line)
+                return rows
+        """,
+        trace=1,
+        cases=[
+            ("3", "['A', 'BC', 'DEF']", False),
+            ("4", "['A', 'BC', 'DEF', 'GHIJ']", False),
+            ("1", "['A']", True),
+            ("2", "['A', 'BC']", True),
+            ("6", "['A', 'BC', 'DEF', 'GHIJ', 'KLMNO', 'PQRSTU']", True),
+        ],
+        hints=(
+            "No separator is needed this time, so each row can be one growing string.",
+            "Keep the running letter code outside both loops.",
+            "Inner loop: <code>line += chr(code)</code> then <code>code += 1</code>; reset <code>line</code> per row.",
+        ),
+        approaches=[
+            (
+                "Slice the alphabet",
+                "Take each row as a slice of the alphabet.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Running code",
+                "Count character codes upwards, append characters to a row string.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                7,
+                "Strings are immutable, so += builds a new string each time. That is fine for rows this short.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                9,
+                "For n = 3, when size is 3 and this line is reached, which letter will chr(code) give next?",
+                '"G": rows used A to F.',
+            ),
+        ],
+        patterns=["Iteration"],
+        techniques=["Character Codes", "Accumulator", "Nested Loops"],
+    ),
 ]
