@@ -233,4 +233,215 @@ PROBLEMS = [
         patterns=["String Parsing"],
         techniques=["Accumulator", "str.isdigit"],
     ),
+    problem(
+        slug="count-a-word",
+        title="Count a Word",
+        topic="string-play",
+        difficulty="easy",
+        fn="count_word",
+        signature="(text: str, word: str) -> int",
+        description=html(
+            'Count how many times <code>word</code> appears in <code>text</code> as a whole word. Words are separated by whitespace and matching is case-sensitive, so <code>"concat"</code> does not contain the word <code>"cat"</code>.',
+        ),
+        examples=[
+            (
+                'text = "hello world hello", word = "hello"',
+                "2",
+                "The word appears at positions 1 and 3",
+            ),
+        ],
+        constraints=["0 <= len(text) <= 10^5", "word has no spaces"],
+        todo="Split the text into words and count the ones equal to word.",
+        solution="""
+            def count_word(text: str, word: str) -> int:
+                count = 0
+                for token in text.split():
+                    if token == word:
+                        count += 1
+                return count
+        """,
+        trace=1,
+        cases=[
+            ('"hello world hello", "hello"', "2", False),
+            ('"to be or not to be", "be"', "2", False),
+            ('"", "a"', "0", True),
+            ('"cat concat cat", "cat"', "2", True),
+            ('"Go go GO", "go"', "1", True),
+            ('"one", "one"', "1", True),
+        ],
+        hints=(
+            "What would <code>text.count(word)</code> get wrong for 'cat' in 'concat'?",
+            "Split the text into whole words first.",
+            "Loop over <code>text.split()</code> and add 1 whenever <code>token == word</code>.",
+        ),
+        approaches=[
+            (
+                "Substring count",
+                "<code>text.count(word)</code> also matches inside longer words.",
+                "O(n)",
+                "O(1)",
+                False,
+            ),
+            ("Split and compare", "Whole-word comparison.", "O(n)", "O(n)", True),
+        ],
+        notes=[
+            (
+                3,
+                "split() with no argument splits on any run of whitespace, so each token is a whole word; 'concat' can no longer be mistaken for 'cat'.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                4,
+                'For ("hello world hello", "hello"), what are token and count the second time <code>if token == word</code> is reached?',
+                "token = 'world' and count = 1.",
+            ),
+        ],
+        patterns=["String Parsing", "Counting"],
+        techniques=["str.split", "Accumulator"],
+    ),
+    problem(
+        slug="repeated-block-string",
+        title="Repeated Block String",
+        topic="string-play",
+        difficulty="medium",
+        fn="is_repeated_block",
+        signature="(s: str) -> bool",
+        description=html(
+            "Return <code>True</code> if <code>s</code> can be built by writing some shorter block of characters two or more times in a row, and <code>False</code> otherwise.",
+            'For example <code>"abab"</code> is the block <code>"ab"</code> twice. A single character has no shorter block, so the answer is <code>False</code>.',
+        ),
+        examples=[
+            ('s = "abab"', "True", "The block 'ab' repeated twice"),
+        ],
+        constraints=["1 <= len(s) <= 10^4"],
+        todo="Try each block length that divides len(s) and check whether repeating that prefix rebuilds s.",
+        solution="""
+            def is_repeated_block(s: str) -> bool:
+                n = len(s)
+                for size in range(1, n // 2 + 1):
+                    if n % size == 0 and s[:size] * (n // size) == s:
+                        return True
+                return False
+        """,
+        trace=2,
+        cases=[
+            ('"abab"', "True", False),
+            ('"xyzxyz"', "True", False),
+            ('"abcab"', "False", False),
+            ('"a"', "False", True),
+            ('"aaaa"', "True", True),
+            ('"abaababaab"', "True", True),
+        ],
+        hints=(
+            "A repeated block must fit into the string a whole number of times. Which lengths allow that?",
+            "Only block lengths up to n // 2 that divide n can work. Compare the repeated prefix with s.",
+            "<code>s[:size] * (n // size) == s</code> for any size where <code>n % size == 0</code>.",
+        ),
+        approaches=[
+            (
+                "Try every block length",
+                "Rebuild the string from each possible prefix.",
+                "O(n * d(n))",
+                "O(n)",
+                True,
+            ),
+            (
+                "Search in the doubled string",
+                "s is repeated exactly when it appears inside <code>(s + s)[1:-1]</code>.",
+                "O(n)",
+                "O(n)",
+                False,
+            ),
+        ],
+        notes=[
+            (
+                4,
+                "Only block sizes that divide the length can tile the string; checking n % size first skips the string building for every other size.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                5,
+                'For "xyzxyz", what is size when <code>return True</code> is reached?',
+                "3 (the block is 'xyz').",
+            ),
+        ],
+        patterns=["String Matching"],
+        techniques=["Slicing", "String repetition"],
+    ),
+    problem(
+        slug="count-words-in-text",
+        title="Count Words in Text",
+        topic="string-play",
+        difficulty="easy",
+        fn="count_words",
+        signature="(text: str) -> int",
+        description=html(
+            "Return how many words <code>text</code> contains. A word is a maximal run of non-whitespace characters, so extra spaces, tabs and newlines never create extra words.",
+        ),
+        examples=[
+            ('text = "Hello world"', "2", "Two words"),
+        ],
+        constraints=["0 <= len(text) <= 10^5"],
+        todo="Count each place where a word starts: a non-space right after a space (or at the start).",
+        solution="""
+            def count_words(text: str) -> int:
+                count = 0
+                in_word = False
+                for ch in text:
+                    if not ch.isspace() and not in_word:
+                        count += 1
+                    in_word = not ch.isspace()
+                return count
+        """,
+        trace=1,
+        cases=[
+            ('"Hello world"', "2", False),
+            ('"  many   spaces here "', "3", False),
+            ('""', "0", True),
+            ('"   "', "0", True),
+            ('"one"', "1", True),
+            ('"a\\tb\\nc"', "3", True),
+        ],
+        hints=(
+            "What distinguishes the first letter of a word from the others?",
+            "A word starts where a non-space follows a space or the start. Remember whether the previous character was inside a word.",
+            "Add 1 when <code>not ch.isspace() and not in_word</code>, then update <code>in_word</code>.",
+        ),
+        approaches=[
+            (
+                "split()",
+                "<code>len(text.split())</code> does the job in one call.",
+                "O(n)",
+                "O(n)",
+                False,
+            ),
+            (
+                "Count word starts",
+                "One pass with a flag; no list is built.",
+                "O(n)",
+                "O(1)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                5,
+                "A word starts exactly where a non-space follows a space (or the start); in_word remembers what the previous character was.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                6,
+                'For "Hello world", which character is ch the second time <code>count += 1</code> is reached?',
+                "'w', the first letter of 'world'.",
+            ),
+        ],
+        patterns=["String Parsing"],
+        techniques=["State flag", "str.isspace"],
+    ),
 ]

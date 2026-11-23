@@ -463,4 +463,378 @@ PROBLEMS = [
         patterns=["Matrix"],
         techniques=["Indexing", "Accumulator"],
     ),
+    problem(
+        slug="pascals-triangle-rows",
+        title="Pascal's Triangle Rows",
+        topic="grid-play",
+        difficulty="medium",
+        fn="pascal_triangle",
+        signature="(n: int) -> list[list[int]]",
+        description=html(
+            "Return the first <code>n</code> rows of Pascal's triangle as a list of lists. Every row starts and ends with 1, and each other number is the sum of the two numbers above it. For <code>n = 0</code> return an empty list.",
+        ),
+        examples=[
+            ("n = 3", "[[1], [1, 1], [1, 2, 1]]", "Rows are [1], [1, 1], [1, 2, 1]"),
+        ],
+        constraints=["0 <= n <= 30"],
+        todo="Start each row filled with 1s, then overwrite the inner cells using the previous row.",
+        solution="""
+            def pascal_triangle(n: int) -> list[list[int]]:
+                rows = []
+                for i in range(n):
+                    row = [1] * (i + 1)
+                    for j in range(1, i):
+                        row[j] = rows[i - 1][j - 1] + rows[i - 1][j]
+                    rows.append(row)
+                return rows
+        """,
+        trace=2,
+        cases=[
+            ("3", "[[1], [1, 1], [1, 2, 1]]", False),
+            ("5", "[[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1]]", False),
+            ("1", "[[1]]", True),
+            ("2", "[[1], [1, 1]]", True),
+            (
+                "7",
+                "[[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1], [1, 5, 10, 10, 5, 1], [1, 6, 15, 20, 15, 6, 1]]",
+                True,
+            ),
+            ("0", "[]", True),
+        ],
+        hints=(
+            "Row i has i + 1 numbers. Which of them are always 1?",
+            "Fill the row with 1s first; only the inner cells (columns 1 to i - 1) need a formula.",
+            "<code>row[j] = rows[i - 1][j - 1] + rows[i - 1][j]</code>.",
+        ),
+        approaches=[
+            (
+                "Binomial coefficients",
+                "Cell (i, j) is C(i, j); compute each directly.",
+                "O(n^2)",
+                "O(n^2)",
+                False,
+            ),
+            (
+                "Build from the previous row",
+                "Each cell sums two cells above it.",
+                "O(n^2)",
+                "O(n^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                6,
+                "Each inner cell is the sum of the two cells above it; the edge cells keep the 1 from the initial fill.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                7,
+                "For n = 5, what is row the fourth time <code>rows.append(row)</code> is reached?",
+                "[1, 3, 3, 1].",
+            ),
+        ],
+        patterns=["Dynamic Programming", "Matrix"],
+        techniques=["List multiplication", "Nested loops"],
+    ),
+    problem(
+        slug="checkerboard-matrix",
+        title="Checkerboard Matrix",
+        topic="grid-play",
+        difficulty="easy",
+        fn="alternating_matrix",
+        signature="(size: int) -> list[list[int]]",
+        description=html(
+            "Return a <code>size x size</code> matrix of 0s and 1s that alternates like a checkerboard. The top-left cell is 0.",
+        ),
+        examples=[
+            (
+                "size = 3",
+                "[[0, 1, 0], [1, 0, 1], [0, 1, 0]]",
+                "Rows: [0, 1, 0], [1, 0, 1], [0, 1, 0]",
+            ),
+        ],
+        constraints=["1 <= size <= 50"],
+        todo="A cell is 0 when row + column is even and 1 when it is odd.",
+        solution="""
+            def alternating_matrix(size: int) -> list[list[int]]:
+                matrix = []
+                for i in range(size):
+                    row = []
+                    for j in range(size):
+                        row.append((i + j) % 2)
+                    matrix.append(row)
+                return matrix
+        """,
+        trace=1,
+        cases=[
+            ("3", "[[0, 1, 0], [1, 0, 1], [0, 1, 0]]", False),
+            ("4", "[[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]]", False),
+            ("1", "[[0]]", True),
+            ("2", "[[0, 1], [1, 0]]", True),
+            (
+                "5",
+                "[[0, 1, 0, 1, 0], [1, 0, 1, 0, 1], [0, 1, 0, 1, 0], [1, 0, 1, 0, 1], [0, 1, 0, 1, 0]]",
+                True,
+            ),
+        ],
+        hints=(
+            "Compare the cell (0, 0) with its neighbours. What changes by one step right or down?",
+            "The value flips each step right and each step down, so it depends on <code>i + j</code>.",
+            "<code>row.append((i + j) % 2)</code>.",
+        ),
+        approaches=[
+            (
+                "Parity of row + column",
+                "One formula per cell.",
+                "O(size^2)",
+                "O(size^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                6,
+                "Each step right or down changes i + j by one, flipping its parity, which is exactly a checkerboard.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                7,
+                "For size = 3, what is row the second time <code>matrix.append(row)</code> is reached?",
+                "[1, 0, 1].",
+            ),
+        ],
+        patterns=["Matrix"],
+        techniques=["Modulo", "Nested loops"],
+    ),
+    problem(
+        slug="number-triangle",
+        title="Number Triangle",
+        topic="grid-play",
+        difficulty="easy",
+        fn="number_triangle",
+        signature="(height: int) -> list[str]",
+        description=html(
+            'Return the lines of a right-angled triangle of digits. Line <code>r</code> (counting from 1) is the digits <code>1, 2, ..., r</code> joined without spaces: <code>"1"</code>, <code>"12"</code>, <code>"123"</code>, ...',
+        ),
+        examples=[
+            (
+                "height = 4",
+                '["1", "12", "123", "1234"]',
+                "Lines are '1', '12', '123', '1234'",
+            ),
+        ],
+        constraints=["1 <= height <= 9"],
+        todo="For each row, build the string 1, 2, ..., row one digit at a time.",
+        solution="""
+            def number_triangle(height: int) -> list[str]:
+                lines = []
+                for row in range(1, height + 1):
+                    line = ""
+                    for number in range(1, row + 1):
+                        line += str(number)
+                    lines.append(line)
+                return lines
+        """,
+        trace=1,
+        cases=[
+            ("4", '["1", "12", "123", "1234"]', False),
+            ("3", '["1", "12", "123"]', False),
+            ("1", '["1"]', True),
+            (
+                "9",
+                '["1", "12", "123", "1234", "12345", "123456", "1234567", "12345678", "123456789"]',
+                True,
+            ),
+            ("6", '["1", "12", "123", "1234", "12345", "123456"]', True),
+        ],
+        hints=(
+            "Row r is the digits from 1 up to r. What do you need for each row?",
+            "An outer loop for the row number and an inner loop that appends one digit at a time.",
+            'Reset <code>line = ""</code> for every row, add <code>str(number)</code> in the inner loop, then append the line.',
+        ),
+        approaches=[
+            (
+                "Nested loops",
+                "Build each line character by character.",
+                "O(height^2)",
+                "O(height^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                4,
+                "line restarts empty for every row, so each row is built independently from 1 up to its own row number.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                7,
+                "For height = 4, what is line the third time <code>lines.append(line)</code> is reached?",
+                "'123'.",
+            ),
+        ],
+        patterns=["Simulation"],
+        techniques=["Nested loops", "String building"],
+    ),
+    problem(
+        slug="lower-triangle-matrix",
+        title="Lower Triangle Matrix",
+        topic="grid-play",
+        difficulty="medium",
+        fn="lower_triangle",
+        signature="(size: int) -> list[list[int]]",
+        description=html(
+            "Return a <code>size x size</code> matrix with 1 on the main diagonal and everywhere below it, and 0 above the diagonal.",
+        ),
+        examples=[
+            (
+                "size = 4",
+                "[[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]",
+                "Row 1 is [1, 0, 0, 0] and row 4 is [1, 1, 1, 1]",
+            ),
+        ],
+        constraints=["1 <= size <= 50"],
+        todo="A cell (i, j) is 1 when j <= i.",
+        solution="""
+            def lower_triangle(size: int) -> list[list[int]]:
+                matrix = []
+                for i in range(size):
+                    row = []
+                    for j in range(size):
+                        row.append(1 if j <= i else 0)
+                    matrix.append(row)
+                return matrix
+        """,
+        trace=1,
+        cases=[
+            ("4", "[[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]", False),
+            ("3", "[[1, 0, 0], [1, 1, 0], [1, 1, 1]]", False),
+            ("1", "[[1]]", True),
+            ("2", "[[1, 0], [1, 1]]", True),
+            (
+                "5",
+                "[[1, 0, 0, 0, 0], [1, 1, 0, 0, 0], [1, 1, 1, 0, 0], [1, 1, 1, 1, 0], [1, 1, 1, 1, 1]]",
+                True,
+            ),
+        ],
+        hints=(
+            "Which cells are 1? Compare the column number with the row number.",
+            "A cell is on or below the diagonal when its column does not exceed its row.",
+            "<code>row.append(1 if j <= i else 0)</code>.",
+        ),
+        approaches=[
+            (
+                "Compare indices",
+                "Decide each cell from its row and column.",
+                "O(size^2)",
+                "O(size^2)",
+                False,
+            ),
+            (
+                "Row construction",
+                "Row i is <code>[1] * (i + 1) + [0] * (size - i - 1)</code>.",
+                "O(size^2)",
+                "O(size^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                6,
+                "Cell (i, j) is 1 when the column does not pass the row: that is the diagonal and everything below it.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                7,
+                "For size = 4, what is row the third time <code>matrix.append(row)</code> is reached?",
+                "[1, 1, 1, 0].",
+            ),
+        ],
+        patterns=["Matrix"],
+        techniques=["Conditional expression", "Nested loops"],
+    ),
+    problem(
+        slug="prime-number-rows",
+        title="Prime Number Rows",
+        topic="grid-play",
+        difficulty="medium",
+        fn="prime_rows",
+        signature="(rows: int) -> list[list[int]]",
+        description=html(
+            "Return a triangle with <code>rows</code> rows: row <code>k</code> (counting from 1) holds the first <code>k</code> prime numbers in increasing order.",
+        ),
+        examples=[
+            ("rows = 3", "[[2], [2, 3], [2, 3, 5]]", "Rows are [2], [2, 3], [2, 3, 5]"),
+        ],
+        constraints=["1 <= rows <= 50"],
+        todo="Find the first `rows` primes once, then slice a prefix of them for each row.",
+        solution="""
+            def prime_rows(rows: int) -> list[list[int]]:
+                primes = []
+                candidate = 2
+                while len(primes) < rows:
+                    if all(candidate % p != 0 for p in primes):
+                        primes.append(candidate)
+                    candidate += 1
+                return [primes[:size] for size in range(1, rows + 1)]
+        """,
+        trace=1,
+        cases=[
+            ("3", "[[2], [2, 3], [2, 3, 5]]", False),
+            ("5", "[[2], [2, 3], [2, 3, 5], [2, 3, 5, 7], [2, 3, 5, 7, 11]]", False),
+            ("1", "[[2]]", True),
+            ("2", "[[2], [2, 3]]", True),
+            (
+                "6",
+                "[[2], [2, 3], [2, 3, 5], [2, 3, 5, 7], [2, 3, 5, 7, 11], [2, 3, 5, 7, 11, 13]]",
+                True,
+            ),
+        ],
+        hints=(
+            "Row k is a prefix of row k + 1. What does that suggest?",
+            "Find the first <code>rows</code> primes once and reuse them.",
+            "<code>[primes[:size] for size in range(1, rows + 1)]</code> builds every row from the same list.",
+        ),
+        approaches=[
+            (
+                "Recompute primes per row",
+                "Find the first k primes again for each row.",
+                "O(rows^2 * p)",
+                "O(rows^2)",
+                False,
+            ),
+            (
+                "Find once, slice per row",
+                "One prime search, then prefixes.",
+                "O(rows * p + rows^2)",
+                "O(rows^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                8,
+                "Row k is just the first k primes, so find the primes once and slice a prefix for each row.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                8,
+                "For rows = 3, what is primes when the final <code>return</code> is reached?",
+                "[2, 3, 5].",
+            ),
+        ],
+        patterns=["Math", "Prime Numbers"],
+        techniques=["List comprehension", "Slicing"],
+    ),
 ]
