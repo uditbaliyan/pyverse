@@ -25,6 +25,10 @@ TOPICS: dict[str, str] = {
     "binary-search": "Binary Search",
     "pattern-printing": "Pattern Printing",
     "matrix-patterns": "Matrix Patterns",
+    "number-play": "Number Play",
+    "string-play": "String Play",
+    "grid-play": "Grids & Patterns",
+    "array-play": "Array Practice",
 }
 
 

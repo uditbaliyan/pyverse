@@ -13,6 +13,10 @@ from . import pointers
 from . import stack_search
 from . import warmup
 from . import window
+from . import array_drills
+from . import grid_drills
+from . import number_drills
+from . import string_drills
 from ._spec import TOPICS
 
 PROBLEMS: list[dict] = [
@@ -23,6 +27,10 @@ PROBLEMS: list[dict] = [
     *stack_search.PROBLEMS,
     *pattern_printing.PROBLEMS,
     *matrix_patterns.PROBLEMS,
+    *array_drills.PROBLEMS,
+    *grid_drills.PROBLEMS,
+    *number_drills.PROBLEMS,
+    *string_drills.PROBLEMS,
 ]
 
 __all__ = ["PROBLEMS", "TOPICS"]
