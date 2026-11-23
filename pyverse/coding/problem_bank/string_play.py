@@ -444,4 +444,228 @@ PROBLEMS = [
         patterns=["String Parsing"],
         techniques=["State flag", "str.isspace"],
     ),
+    problem(
+        slug="anagram-pairs",
+        title="Anagram Pairs",
+        topic="string-play",
+        difficulty="medium",
+        fn="anagram_pairs",
+        signature="(words: list[str]) -> list[list[str]]",
+        description=html(
+            "Two words are anagrams if they use exactly the same letters the same number of times. Return every pair <code>[words[i], words[j]]</code> with <code>i < j</code> whose words are anagrams, ordered by <code>i</code> and then <code>j</code>.",
+            "Identical words at different positions count as an anagram pair.",
+        ),
+        examples=[
+            (
+                'words = ["listen", "silent", "hello", "world"]',
+                '[["listen", "silent"]]',
+                "Only 'listen' and 'silent' share the same letters",
+            ),
+        ],
+        constraints=["0 <= len(words) <= 500", "Words are lowercase letters"],
+        todo="Give each word a key (its sorted letters) and compare keys for every pair i < j.",
+        solution="""
+            def anagram_pairs(words: list[str]) -> list[list[str]]:
+                keys = [sorted(w) for w in words]
+                pairs = []
+                for i in range(len(words)):
+                    for j in range(i + 1, len(words)):
+                        if keys[i] == keys[j]:
+                            pairs.append([words[i], words[j]])
+                return pairs
+        """,
+        trace=2,
+        cases=[
+            ('["listen", "silent", "hello", "world"]', '[["listen", "silent"]]', False),
+            (
+                '["rat", "art", "tar"]',
+                '[["rat", "art"], ["rat", "tar"], ["art", "tar"]]',
+                False,
+            ),
+            ("[]", "[]", True),
+            ('["a"]', "[]", True),
+            ('["ab", "ba", "ab"]', '[["ab", "ba"], ["ab", "ab"], ["ba", "ab"]]', True),
+            ('["abc", "abd"]', "[]", True),
+        ],
+        hints=(
+            "What do two anagrams have in common once their letters are sorted?",
+            "Precompute each word's sorted letters, then compare those keys.",
+            "Loop i over words and j from i + 1 so every unordered pair is seen once.",
+        ),
+        approaches=[
+            (
+                "Sort inside the pair loop",
+                "Sort both words for every pair.",
+                "O(n^2 * k log k)",
+                "O(k)",
+                False,
+            ),
+            (
+                "Precompute keys",
+                "Sort each word once, then compare keys.",
+                "O(n * k log k + n^2)",
+                "O(n * k)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                5,
+                "Starting j at i + 1 visits every unordered pair exactly once and never pairs a word with itself.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                7,
+                'For ["rat", "art", "tar"], what are i and j the second time <code>pairs.append(...)</code> is reached?',
+                "i = 0 and j = 2 (the pair 'rat' and 'tar').",
+            ),
+        ],
+        patterns=["Sorting", "Hash Map"],
+        techniques=["Precomputed keys", "Nested loops"],
+    ),
+    problem(
+        slug="character-frequency",
+        title="Character Frequency",
+        topic="string-play",
+        difficulty="easy",
+        fn="char_frequency",
+        signature="(s: str) -> dict[str, int]",
+        description=html(
+            "Return a dictionary that maps each character of <code>s</code> to the number of times it occurs. Case matters and spaces count as characters. Key order does not matter.",
+        ),
+        examples=[
+            (
+                's = "hello"',
+                "{'h': 1, 'e': 1, 'l': 2, 'o': 1}",
+                "'l' occurs twice, the others once",
+            ),
+        ],
+        constraints=["0 <= len(s) <= 10^5"],
+        todo="Walk through the string and bump a counter in a dictionary for each character.",
+        solution="""
+            def char_frequency(s: str) -> dict[str, int]:
+                counts = {}
+                for ch in s:
+                    counts[ch] = counts.get(ch, 0) + 1
+                return counts
+        """,
+        trace=1,
+        cases=[
+            ('"hello"', "{'h': 1, 'e': 1, 'l': 2, 'o': 1}", False),
+            ('"banana"', "{'b': 1, 'a': 3, 'n': 2}", False),
+            ('""', "{}", True),
+            ('"aaa"', "{'a': 3}", True),
+            ('"a b a"', "{'a': 2, ' ': 2, 'b': 1}", True),
+            ('"Aa"', "{'A': 1, 'a': 1}", True),
+        ],
+        hints=(
+            "A dictionary can hold one counter per character. What if the character has not been seen yet?",
+            "<code>counts.get(ch, 0)</code> returns 0 when ch is missing.",
+            "<code>counts[ch] = counts.get(ch, 0) + 1</code> for each character.",
+        ),
+        approaches=[
+            (
+                "collections.Counter",
+                "<code>dict(Counter(s))</code> does it in one call.",
+                "O(n)",
+                "O(k)",
+                False,
+            ),
+            (
+                "Counting with dict.get",
+                "One pass, one dictionary update per character.",
+                "O(n)",
+                "O(k)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                4,
+                "get(ch, 0) supplies 0 the first time a character appears, so no separate 'is it in the dictionary yet' branch is needed.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                4,
+                "For \"hello\", what is counts['l'] on the fourth arrival at <code>counts[ch] = ...</code> (the second 'l'), before the line runs?",
+                "1.",
+            ),
+        ],
+        patterns=["Hash Map", "Counting"],
+        techniques=["dict.get", "Frequency map"],
+    ),
+    problem(
+        slug="longest-word-length",
+        title="Longest Word Length",
+        topic="string-play",
+        difficulty="easy",
+        fn="longest_word_length",
+        signature="(text: str) -> int",
+        description=html(
+            "Words are separated by whitespace. Return the length of the longest word in <code>text</code>, or 0 if there are no words.",
+        ),
+        examples=[
+            ('text = "Find the longest word"', "7", "'longest' has 7 letters"),
+        ],
+        constraints=["0 <= len(text) <= 10^5"],
+        todo="Split into words and keep the largest length seen.",
+        solution="""
+            def longest_word_length(text: str) -> int:
+                longest = 0
+                for word in text.split():
+                    if len(word) > longest:
+                        longest = len(word)
+                return longest
+        """,
+        trace=1,
+        cases=[
+            ('"Find the longest word"', "7", False),
+            ('"a bb ccc bb"', "3", False),
+            ('""', "0", True),
+            ('"   "', "0", True),
+            ('"supercalifragilistic"', "20", True),
+            ('"ab cd ef"', "2", True),
+        ],
+        hints=(
+            "You only need a number, not the word itself. What should you remember while scanning?",
+            "Split the text, then compare each word's length with the best length so far.",
+            "Start <code>longest</code> at 0 and set it to <code>len(word)</code> when that is larger.",
+        ),
+        approaches=[
+            (
+                "max over lengths",
+                "<code>max(map(len, text.split()), default=0)</code>.",
+                "O(n)",
+                "O(n)",
+                False,
+            ),
+            (
+                "Running maximum",
+                "One pass keeping the best length.",
+                "O(n)",
+                "O(n)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                5,
+                "Only the best length so far is stored, since the answer is a number and not the word itself.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                5,
+                "For \"Find the longest word\", what is longest just before <code>longest = len(word)</code> runs the second time (word = 'longest')?",
+                "4, from 'Find'; it is about to become 7.",
+            ),
+        ],
+        patterns=["String Parsing"],
+        techniques=["Running maximum", "str.split"],
+    ),
 ]

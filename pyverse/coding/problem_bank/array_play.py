@@ -625,4 +625,182 @@ def compare(actual, expected):
         patterns=["Hash Set"],
         techniques=["Set", "sorted()"],
     ),
+    problem(
+        slug="triplets-summing-to-zero",
+        title="Triplets Summing to Zero",
+        topic="array-play",
+        difficulty="medium",
+        fn="three_sum",
+        signature="(nums: list[int]) -> list[list[int]]",
+        description=html(
+            "Return every unique triplet of values from <code>nums</code> that adds up to 0. The three values must come from three different positions, and no triplet may be listed twice (compare by values). Triplets and the values inside them may come back in any order.",
+        ),
+        examples=[
+            (
+                "nums = [-1, 0, 1, 2, -1, -4]",
+                "[[-1, -1, 2], [-1, 0, 1]]",
+                "[-1, -1, 2] and [-1, 0, 1]",
+            ),
+        ],
+        constraints=["0 <= len(nums) <= 3000", "-10^5 <= nums[i] <= 10^5"],
+        todo="Sort, fix the first value, then close in on the other two with a left and a right pointer.",
+        solution="""
+            def three_sum(nums: list[int]) -> list[list[int]]:
+                nums = sorted(nums)
+                triplets = []
+                for i in range(len(nums) - 2):
+                    if i > 0 and nums[i] == nums[i - 1]:
+                        continue
+                    left, right = i + 1, len(nums) - 1
+                    while left < right:
+                        total = nums[i] + nums[left] + nums[right]
+                        if total < 0:
+                            left += 1
+                        elif total > 0:
+                            right -= 1
+                        else:
+                            triplets.append([nums[i], nums[left], nums[right]])
+                            left += 1
+                            while left < right and nums[left] == nums[left - 1]:
+                                left += 1
+                return triplets
+        """,
+        trace=1,
+        comparator="custom",
+        custom_comparator="""
+def compare(actual, expected):
+    norm = lambda groups: sorted(sorted(g) for g in groups)
+    try:
+        return norm(actual) == norm(expected)
+    except TypeError:
+        return False
+""",
+        cases=[
+            ("[-1, 0, 1, 2, -1, -4]", "[[-1, -1, 2], [-1, 0, 1]]", False),
+            ("[0, 0, 0, 0]", "[[0, 0, 0]]", False),
+            ("[]", "[]", True),
+            ("[1, 2, -2, -1]", "[]", True),
+            ("[-2, 0, 1, 1, 2]", "[[-2, 0, 2], [-2, 1, 1]]", True),
+            ("[3, 0, -2, -1, 1, 2]", "[[-2, -1, 3], [-2, 0, 2], [-1, 0, 1]]", True),
+        ],
+        hints=(
+            "If you fix one value, the other two must add to its negative. How does sorting help find them?",
+            "After sorting, move a left pointer up when the sum is too small and a right pointer down when it is too big.",
+            "Skip repeated values for the fixed index and for the left pointer after recording a triplet.",
+        ),
+        approaches=[
+            (
+                "Try every triple",
+                "Three nested loops and a set to remove duplicates.",
+                "O(n^3)",
+                "O(k)",
+                False,
+            ),
+            (
+                "Sort and two pointers",
+                "Fix one value and sweep the rest from both ends.",
+                "O(n^2)",
+                "O(1) extra",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                5,
+                "After sorting, equal values sit side by side, so skipping an i that equals the previous one avoids starting the same triplet twice.",
+                False,
+            ),
+            (
+                17,
+                "After recording a triplet, skip equal values on the left so the same triplet is not recorded again.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                6,
+                "For [-1, 0, 1, 2, -1, -4], what is i the first time <code>continue</code> is reached? (The sorted list is [-4, -1, -1, 0, 1, 2].)",
+                "2, because nums[2] repeats nums[1].",
+            ),
+        ],
+        patterns=["Two Pointers", "Sorting"],
+        techniques=["Sorted-array sweep", "Duplicate skipping"],
+    ),
+    problem(
+        slug="even-minus-odd-sum",
+        title="Even Sum Minus Odd Sum",
+        topic="array-play",
+        difficulty="easy",
+        fn="even_odd_difference",
+        signature="(nums: list[int]) -> int",
+        description=html(
+            "Return (the sum of the even numbers in <code>nums</code>) minus (the sum of the odd numbers). The result can be negative. Negative numbers count as odd or even by the usual rule (-3 is odd, -4 is even).",
+        ),
+        examples=[
+            (
+                "nums = [1, 2, 3, 4, 5, 6]",
+                "3",
+                "Evens sum to 12, odds to 9, and 12 - 9 = 3",
+            ),
+        ],
+        constraints=["0 <= len(nums) <= 10^5"],
+        todo="Keep two running sums, one for evens and one for odds.",
+        solution="""
+            def even_odd_difference(nums: list[int]) -> int:
+                even_sum = 0
+                odd_sum = 0
+                for x in nums:
+                    if x % 2 == 0:
+                        even_sum += x
+                    else:
+                        odd_sum += x
+                return even_sum - odd_sum
+        """,
+        trace=1,
+        cases=[
+            ("[1, 2, 3, 4, 5, 6]", "3", False),
+            ("[10, 7, 4]", "7", False),
+            ("[]", "0", True),
+            ("[-3, 2]", "5", True),
+            ("[5]", "-5", True),
+            ("[0, 0]", "0", True),
+        ],
+        hints=(
+            "How do you tell whether a number is even?",
+            "Use <code>x % 2 == 0</code> and keep a separate total for each group.",
+            "Return <code>even_sum - odd_sum</code> after the loop.",
+        ),
+        approaches=[
+            (
+                "Two passes",
+                "Sum evens, then sum odds, with two generator expressions.",
+                "O(n)",
+                "O(1)",
+                False,
+            ),
+            (
+                "One pass, two totals",
+                "Route each number to the right accumulator.",
+                "O(n)",
+                "O(1)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                5,
+                "In Python -3 % 2 is 1, so the remainder test classifies negative numbers correctly as well.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                9,
+                "For [1, 2, 3, 4, 5, 6], what are even_sum and odd_sum when <code>return</code> is reached?",
+                "even_sum = 12 and odd_sum = 9, so the answer is 3.",
+            ),
+        ],
+        patterns=["Array Scan"],
+        techniques=["Accumulator", "Modulo"],
+    ),
 ]

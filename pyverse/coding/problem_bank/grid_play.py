@@ -837,4 +837,157 @@ PROBLEMS = [
         patterns=["Math", "Prime Numbers"],
         techniques=["List comprehension", "Slicing"],
     ),
+    problem(
+        slug="row-maximums",
+        title="Row Maximums",
+        topic="grid-play",
+        difficulty="easy",
+        fn="row_maximums",
+        signature="(matrix: list[list[int]]) -> list[int]",
+        description=html(
+            "Return a list holding the largest value of each row of <code>matrix</code>, in row order. Every row has at least one element.",
+        ),
+        examples=[
+            (
+                "matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
+                "[3, 6, 9]",
+                "Row maxima are 3, 6 and 9",
+            ),
+        ],
+        constraints=["1 <= rows, columns <= 100"],
+        todo="For each row keep a running largest value, then append it.",
+        solution="""
+            def row_maximums(matrix: list[list[int]]) -> list[int]:
+                maximums = []
+                for row in matrix:
+                    largest = row[0]
+                    for value in row:
+                        if value > largest:
+                            largest = value
+                    maximums.append(largest)
+                return maximums
+        """,
+        trace=2,
+        cases=[
+            ("[[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "[3, 6, 9]", False),
+            ("[[9, 2, 4], [1, 8, 3], [5, 5, 7]]", "[9, 8, 7]", False),
+            ("[[5]]", "[5]", True),
+            ("[[-3, -1], [-8, -9]]", "[-1, -8]", True),
+            ("[[2, 2, 2]]", "[2]", True),
+            ("[[1], [3], [2]]", "[1, 3, 2]", True),
+        ],
+        hints=(
+            "What do you compare each value against?",
+            "Keep a running <code>largest</code> for the row and update it whenever a bigger value appears.",
+            "Start <code>largest</code> at <code>row[0]</code>, loop over the row, then append it to the result.",
+        ),
+        approaches=[
+            (
+                "Built-in max per row",
+                "<code>[max(row) for row in matrix]</code>.",
+                "O(rows * cols)",
+                "O(rows)",
+                False,
+            ),
+            (
+                "Manual scan per row",
+                "Track the largest by hand; same cost, shows what max() does.",
+                "O(rows * cols)",
+                "O(rows)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                4,
+                "Starting from the row's first element rather than 0 keeps rows of all-negative numbers correct.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                8,
+                "For [[9, 2, 4], [1, 8, 3], [5, 5, 7]], what is largest the second time <code>maximums.append(largest)</code> is reached?",
+                "8.",
+            ),
+        ],
+        patterns=["Matrix"],
+        techniques=["Running maximum", "Nested loops"],
+    ),
+    problem(
+        slug="star-triangle",
+        title="Star Triangle",
+        topic="grid-play",
+        difficulty="easy",
+        fn="star_triangle",
+        signature="(height: int) -> list[str]",
+        description=html(
+            "Return the lines of a right-angled triangle made of stars: line <code>r</code> (counting from 1) is <code>r</code> stars in a row, with no spaces.",
+        ),
+        examples=[
+            (
+                "height = 4",
+                '["*", "**", "***", "****"]',
+                "Lines are '*', '**', '***', '****'",
+            ),
+        ],
+        constraints=["1 <= height <= 50"],
+        todo="Line r is just the string '*' repeated r times.",
+        solution="""
+            def star_triangle(height: int) -> list[str]:
+                lines = []
+                for row in range(1, height + 1):
+                    lines.append("*" * row)
+                return lines
+        """,
+        trace=1,
+        cases=[
+            ("4", '["*", "**", "***", "****"]', False),
+            ("6", '["*", "**", "***", "****", "*****", "******"]', False),
+            ("1", '["*"]', True),
+            ("2", '["*", "**"]', True),
+            (
+                "10",
+                '["*", "**", "***", "****", "*****", "******", "*******", "********", "*********", "**********"]',
+                True,
+            ),
+        ],
+        hints=(
+            "How many stars does line r have?",
+            "In Python you can repeat a string with the * operator.",
+            '<code>lines.append("*" * row)</code> for each row from 1 to height.',
+        ),
+        approaches=[
+            (
+                "Inner loop",
+                "Add one star at a time inside a second loop.",
+                "O(height^2)",
+                "O(height^2)",
+                False,
+            ),
+            (
+                "String repetition",
+                "Multiply the string by the row number.",
+                "O(height^2)",
+                "O(height^2)",
+                True,
+            ),
+        ],
+        notes=[
+            (
+                4,
+                "Multiplying a string repeats it, so line r is just r stars and no inner loop is needed.",
+                False,
+            ),
+        ],
+        predictions=[
+            (
+                4,
+                "For height = 4, which string is appended the third time <code>lines.append(...)</code> is reached?",
+                "'***'.",
+            ),
+        ],
+        patterns=["Simulation"],
+        techniques=["String repetition"],
+    ),
 ]
