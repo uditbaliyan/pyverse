@@ -29,6 +29,11 @@ TOPICS: dict[str, str] = {
     "string-play": "String Play",
     "grid-play": "Grids & Patterns",
     "array-play": "Array Practice",
+    "sorting": "Sorting",
+    "recursion": "Recursion",
+    "backtracking": "Backtracking",
+    "bit-manipulation": "Bit Manipulation",
+    "linked-list-play": "Linked List Play",
 }
 
 

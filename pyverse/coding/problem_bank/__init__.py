@@ -17,6 +17,19 @@ from . import array_drills
 from . import grid_drills
 from . import number_drills
 from . import string_drills
+from . import sorting_tuf1
+from . import arrays_basics_tuf1
+from . import arrays_faq_tuf1
+from . import recursion_rec1
+from . import backtracking_rec1
+from . import bits_rec1
+from . import singles_rec1
+from . import mazes_rec2
+from . import linkedlist_rec2
+from . import window_str1
+from . import window_count_str1
+from . import stack_str1
+from . import stack_hard_str1
 from ._spec import TOPICS
 
 PROBLEMS: list[dict] = [
@@ -31,6 +44,19 @@ PROBLEMS: list[dict] = [
     *grid_drills.PROBLEMS,
     *number_drills.PROBLEMS,
     *string_drills.PROBLEMS,
+    *sorting_tuf1.PROBLEMS,
+    *arrays_basics_tuf1.PROBLEMS,
+    *arrays_faq_tuf1.PROBLEMS,
+    *recursion_rec1.PROBLEMS,
+    *backtracking_rec1.PROBLEMS,
+    *bits_rec1.PROBLEMS,
+    *singles_rec1.PROBLEMS,
+    *mazes_rec2.PROBLEMS,
+    *linkedlist_rec2.PROBLEMS,
+    *window_str1.PROBLEMS,
+    *window_count_str1.PROBLEMS,
+    *stack_str1.PROBLEMS,
+    *stack_hard_str1.PROBLEMS,
 ]
 
 __all__ = ["PROBLEMS", "TOPICS"]
